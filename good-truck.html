@@ -1175,8 +1175,8 @@ function delay(d){
  return{k:'watch',label:'On Time (en cours)',app:'On Time',appK:'ok',n:null,el,diffFin,stopped:false,ic:'◷'};
 }
 const badge=(k,label,ic)=>`<span class="badge b-${k}">${ic?`<i aria-hidden="true">${ic}</i>`:''}${esc(label)}</span>`;
-const dBadge=d=>{const x=delay(d);return badge(x.k,x.label,x.ic)};
-const appBadge=d=>{const x=delay(d);return badge(x.appK,x.app,x.app==='On Time'?'✓':x.app==='Off Time'?'✕':'')};
+const dBadge=d=>{const x=delay(d);if(x.label===x.app)return '';const v=x.n??x.el;const daysTxt=(v!=null&&!x.label.includes('j'))?v+' j · ':'';return badge(x.k,daysTxt+x.label,x.ic)};
+const appBadge=d=>{const x=delay(d);const v=x.n??x.el;const daysTxt=v!=null?v+' j · ':'';const label=x.app&&x.app!=='—'?daysTxt+x.app:'—';return badge(x.appK,label,x.app==='On Time'?'✓':x.app==='Off Time'?'✕':'')};
 function delayCell(d){const x=delay(d),v=x.n??x.el;if(v==null)return '<span class="muted">—</span>';
  const restTxt=x.diffFin!=null?(x.diffFin<=0?`<small class="muted">(${Math.abs(x.diffFin)} j restants)</small>`:`<small style="color:var(--bad)">(+${x.diffFin} j retard)</small>`):'';
  return `<div style="display:inline-flex;align-items:center;gap:8px"><span class="day-circle ${x.k}" title="${v} jours observés">${v}j</span><span class="num">${x.stopped?'Retourné':'En cours'}&nbsp;${restTxt}</span></div>`;
