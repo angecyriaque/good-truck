@@ -562,58 +562,195 @@ td .ref{font-weight:700;color:var(--blue)}
 
 /* ===================== Tableau de bord en 3 Volets ===================== */
 
-/* ===================== Styles Modernes du Dashboard & 3 Volets ===================== */
-.dash-cockpit{background:linear-gradient(135deg,var(--surface) 0%,var(--surface-2) 100%);border:1.5px solid var(--line);border-radius:18px;padding:22px 26px;margin-bottom:24px;box-shadow:0 4px 20px rgba(6,27,51,0.04);position:relative;overflow:hidden}
-.dash-cockpit::before{content:"";position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--blue) 0%,var(--sky) 35%,var(--global) 70%,#F59E0B 100%)}
-.cockpit-top{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
-.cockpit-title{display:flex;align-items:center;gap:12px}
-.cockpit-title h2{font-size:18px;margin:0;font-weight:700}
-.cockpit-badge{font-size:12px;font-weight:700;padding:5px 12px;border-radius:20px;background:var(--ok-bg);color:var(--ok);border:1px solid rgba(23,132,79,0.25);display:inline-flex;align-items:center;gap:6px}
-.cockpit-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
-.cockpit-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;justify-content:space-between;gap:8px;box-shadow:0 2px 8px rgba(0,0,0,0.02);transition:all .18s ease}
-.cockpit-card:hover{transform:translateY(-2px);border-color:var(--blue);box-shadow:0 8px 24px rgba(6,27,51,0.06)}
-.cockpit-card .c-label{font-size:12.5px;font-weight:600;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
-.cockpit-card .c-val{font-family:var(--cond);font-size:32px;font-weight:700;line-height:1;margin:2px 0;color:var(--text)}
-.cockpit-card .c-sub{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:5px}
 
-.dash-volets-nav{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap}
-.dash-volet-pill{display:inline-flex;align-items:center;gap:10px;padding:12px 20px;background:var(--surface);border:1.5px solid var(--line);border-radius:14px;color:var(--text);text-decoration:none;font-weight:600;font-size:14px;box-shadow:0 2px 10px rgba(0,0,0,0.03);transition:all .2s ease;position:relative}
-.dash-volet-pill:hover{border-color:var(--blue);background:var(--surface-2);transform:translateY(-2px);box-shadow:0 8px 20px rgba(28,111,184,0.1)}
-.dash-volet-pill .cnt-badge{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line)}
+/* ===================== Styles Dashboard Inspirés du Modèle UI ===================== */
+.ui-dash-wrap{display:flex;flex-direction:column;gap:22px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#1E293B}
 
-.dash-volet{background:var(--surface);border:1.5px solid var(--line);border-radius:18px;padding:24px;margin-bottom:30px;box-shadow:0 4px 20px rgba(6,27,51,0.04);scroll-margin-top:120px;position:relative;overflow:hidden}
-.dash-volet-header{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding-bottom:16px;margin-bottom:20px;border-bottom:1.5px solid var(--line)}
-.dash-volet-header .title-group{display:flex;align-items:center;gap:14px}
-.dash-volet-header .icon-badge{width:50px;height:50px;border-radius:14px;display:grid;place-items:center;font-size:26px;flex-shrink:0}
-.dash-volet.volet-transit{border-left:6px solid var(--blue)}
-.dash-volet.volet-transit .icon-badge{background:linear-gradient(135deg,rgba(28,111,184,0.18),rgba(93,179,234,0.15));color:var(--blue)}
-.dash-volet.volet-entrepot{border-left:6px solid var(--global)}
-.dash-volet.volet-entrepot .icon-badge{background:linear-gradient(135deg,rgba(13,122,95,0.18),rgba(74,214,167,0.15));color:var(--global)}
-.dash-volet.volet-transport{border-left:6px solid #F59E0B}
-.dash-volet.volet-transport .icon-badge{background:linear-gradient(135deg,rgba(245,158,11,0.18),rgba(251,191,36,0.15));color:#B45309}
+/* Rangée supérieure : 4 cartes KPI avec icônes carrées colorées et 3 petits points */
+.ui-top-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+.ui-stat-card{background:#FFFFFF;border:1px solid #E2E8F0;border-radius:18px;padding:20px 22px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 18px rgba(100,116,139,0.04);transition:all .2s ease}
+.ui-stat-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(100,116,139,0.08);border-color:#CBD5E1}
+.ui-stat-left{display:flex;align-items:center;gap:16px}
+.ui-stat-icon{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;font-size:22px;flex-shrink:0}
+.ui-stat-icon.blue{background:#EFF6FF;color:#3B82F6}
+.ui-stat-icon.pink{background:#FEF2F2;color:#EF4444}
+.ui-stat-icon.green{background:#ECFDF5;color:#10B981}
+.ui-stat-icon.amber{background:#FFFBEB;color:#F59E0B}
+.ui-stat-icon.purple{background:#F5F3FF;color:#8B5CF6}
+.ui-stat-label{font-size:12.5px;color:#64748B;font-weight:500;margin-bottom:3px}
+.ui-stat-val{font-family:var(--cond);font-size:28px;font-weight:700;color:#0F172A;line-height:1.1}
+.ui-stat-more{color:#94A3B8;font-size:18px;padding:4px;border-radius:6px;user-select:none}
 
-.dash-volet-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:24px}
-.dash-kpi-card{background:var(--surface-2);border:1px solid var(--line);border-radius:14px;padding:16px 18px;cursor:pointer;transition:all .18s ease;display:flex;flex-direction:column;justify-content:space-between;min-height:112px;position:relative}
-.dash-kpi-card:hover{transform:translateY(-3px);border-color:var(--blue);background:var(--surface);box-shadow:0 8px 22px rgba(6,27,51,0.06)}
-.dash-kpi-card .k-head{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:6px}
-.dash-kpi-card .k-title{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.4px}
-.dash-kpi-card .k-pill{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:10px;white-space:nowrap}
-.dash-kpi-card .k-val{font-family:var(--cond);font-size:32px;font-weight:700;line-height:1;margin:3px 0 5px;color:var(--text)}
-.dash-kpi-card.t-bad .k-val{color:var(--bad)}.dash-kpi-card.t-ok .k-val{color:var(--ok)}.dash-kpi-card.t-warn .k-val{color:var(--warn)}
-.dash-kpi-card .k-sub{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:4px}
-.dash-kpi-card .k-bar{height:4px;border-radius:2px;background:var(--line);margin-top:6px;overflow:hidden}
-.dash-kpi-card .k-bar-fill{height:100%;border-radius:2px}
+/* Layout 2 colonnes (Principal Gauche + Colonne Droite) */
+.ui-main-grid{display:grid;grid-template-columns:2fr 1fr;gap:22px}
+@media (max-width:1150px){.ui-main-grid{grid-template-columns:1fr}}
 
-.chart-card-modern{background:var(--surface);border:1.5px solid var(--line);border-radius:16px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,0.02);display:flex;flex-direction:column;gap:12px}
-.chart-card-header{display:flex;justify-content:space-between;align-items:center;gap:12px}
-.chart-card-header h3{font-size:15px;margin:0;font-weight:700;display:flex;align-items:center;gap:8px}
-.chart-card-header .chart-meta{font-size:12px;color:var(--muted);font-weight:500}
-.chartbox-modern{position:relative;height:250px;width:100%}
+/* Carte Hero principale avec grand graphique Spline */
+.ui-hero-card{background:#FFFFFF;border:1px solid #E2E8F0;border-radius:20px;padding:24px 26px;box-shadow:0 4px 20px rgba(100,116,139,0.04);display:flex;flex-direction:column;gap:18px}
+.ui-hero-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.ui-hero-title{font-size:18px;font-weight:700;color:#0F172A;margin:0}
+.ui-hero-actions{display:flex;align-items:center;gap:10px}
+.ui-select-filter{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:7px 14px;font-size:12.5px;font-weight:600;color:#475569;cursor:pointer}
+.ui-btn-export{background:#FFFFFF;border:1px solid #E2E8F0;border-radius:10px;padding:7px 14px;font-size:12.5px;font-weight:600;color:#475569;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:all .15s}
+.ui-btn-export:hover{border-color:#3B82F6;color:#3B82F6}
+
+.ui-hero-kpis{display:flex;gap:36px;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid #F1F5F9}
+.ui-hero-kpi-item{display:flex;flex-direction:column;gap:4px}
+.ui-hero-kpi-label{font-size:12.5px;color:#64748B;font-weight:500}
+.ui-hero-kpi-row{display:flex;align-items:center;gap:10px}
+.ui-hero-kpi-val{font-family:var(--cond);font-size:26px;font-weight:700;color:#0F172A}
+.ui-badge-pill{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:20px;display:inline-flex;align-items:center;gap:4px}
+.ui-badge-pill.green{background:#DCFCE7;color:#15803D}
+.ui-badge-pill.red{background:#FEE2E2;color:#B91C1C}
+.ui-badge-pill.blue{background:#DBEAFE;color:#1E40AF}
+
+/* Colonne de droite : Cartes empilées */
+.ui-right-col{display:flex;flex-direction:column;gap:22px}
+.ui-right-card{background:#FFFFFF;border:1px solid #E2E8F0;border-radius:20px;padding:20px 22px;box-shadow:0 4px 20px rgba(100,116,139,0.04);display:flex;flex-direction:column;gap:14px}
+.ui-card-head{display:flex;justify-content:space-between;align-items:flex-start}
+.ui-card-head h3{font-size:15px;font-weight:700;color:#0F172A;margin:0}
+.ui-card-head small{font-size:12px;color:#64748B;display:block;margin-top:2px}
+.ui-tag-pill{font-size:11px;font-weight:600;padding:3px 10px;border-radius:8px;background:#F1F5F9;color:#475569}
+
+/* Donut sub-metrics */
+.ui-donut-sub{display:flex;justify-content:space-between;align-items:center;padding-top:14px;border-top:1px solid #F1F5F9;text-align:center}
+.ui-donut-sub-item{display:flex;flex-direction:column;gap:2px}
+.ui-donut-sub-item span{font-size:11px;color:#64748B;display:flex;align-items:center;gap:4px}
+.ui-donut-sub-item b{font-family:var(--cond);font-size:16px;color:#0F172A}
+
+/* 4 blocs de catégories avec barre de progression */
+.ui-cat-progress{height:8px;border-radius:4px;background:#E2E8F0;overflow:hidden;display:flex;margin:4px 0 12px}
+.ui-cat-progress span{height:100%}
+.ui-cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ui-cat-box{background:#F8FAFC;border:1px solid #F1F5F9;border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px}
+.ui-cat-box .icon{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;font-size:15px;flex-shrink:0}
+.ui-cat-box .info{flex:1;min-width:0}
+.ui-cat-box .info small{display:block;font-size:11px;color:#64748B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ui-cat-box .info b{font-size:13px;color:#0F172A;font-weight:700}
+
+/* Ligne des 3 mini-cartes (289,04) */
+.ui-mini-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+.ui-mini-card{background:#FFFFFF;border:1px solid #E2E8F0;border-radius:18px;padding:18px 20px;box-shadow:0 4px 18px rgba(100,116,139,0.04);display:flex;flex-direction:column;gap:8px}
+.ui-mini-top{display:flex;justify-content:space-between;align-items:center}
+.ui-mini-val{display:flex;align-items:center;gap:10px}
+.ui-mini-val b{font-family:var(--cond);font-size:26px;font-weight:700;color:#0F172A}
+.ui-mini-desc{font-size:12px;color:#64748B}
+
+/* Ligne inférieure de 3 cartes graphiques */
+.ui-bottom-grid{display:grid;grid-template-columns:1.2fr 1fr 1.2fr;gap:18px}
+@media (max-width:1050px){.ui-bottom-grid{grid-template-columns:1fr}}
+
+/* Cartes des Volets Détaillés */
+.ui-volet-panel{background:#FFFFFF;border:1px solid #E2E8F0;border-radius:20px;padding:24px;box-shadow:0 4px 20px rgba(100,116,139,0.04);margin-bottom:24px}
+.ui-volet-panel-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;padding-bottom:16px;margin-bottom:18px;border-bottom:1.5px solid #F1F5F9}
+.ui-volet-panel-title{display:flex;align-items:center;gap:14px}
+.ui-volet-panel-icon{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:24px;flex-shrink:0}
+
+/* Barre de navigation rapide des 3 volets */
+.ui-nav-volets{display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.ui-nav-pill{display:inline-flex;align-items:center;gap:10px;padding:10px 18px;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:12px;color:#1E293B;text-decoration:none;font-weight:600;font-size:13.5px;box-shadow:0 2px 8px rgba(100,116,139,0.03);transition:all .15s ease}
+.ui-nav-pill:hover{border-color:#3B82F6;background:#F8FAFC;transform:translateY(-1px)}
+.ui-nav-pill .badge{font-size:11px;font-weight:700;padding:2px 7px;border-radius:10px;background:#F1F5F9;color:#475569}
 
 .circle-day-badge{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;font-weight:800;font-size:13px;border:2px solid;box-shadow:0 2px 6px rgba(0,0,0,0.06)}
-.circle-day-badge.ok{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
-.circle-day-badge.warn{background:var(--warn-bg);color:var(--warn);border-color:var(--warn)}
-.circle-day-badge.bad{background:var(--bad-bg);color:var(--bad);border-color:var(--bad)}
+.circle-day-badge.ok{background:#DCFCE7;color:#15803D;border-color:#15803D}
+.circle-day-badge.warn{background:#FEF3C7;color:#D97706;border-color:#D97706}
+.circle-day-badge.bad{background:#FEE2E2;color:#DC2626;border-color:#DC2626}
+
+
+/* ===================== Styles Dashboard Inspirés du Modèle UI ===================== */
+.ui-dash-wrap{display:flex;flex-direction:column;gap:22px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#1E293B}
+
+/* Rangée supérieure : 4 cartes KPI avec icônes carrées colorées et 3 petits points */
+.ui-top-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+.ui-stat-card{background:#FFFFFF;border:1px solid #E2E8F0;border-radius:18px;padding:20px 22px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 18px rgba(100,116,139,0.04);transition:all .2s ease}
+.ui-stat-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(100,116,139,0.08);border-color:#CBD5E1}
+.ui-stat-left{display:flex;align-items:center;gap:16px}
+.ui-stat-icon{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;font-size:22px;flex-shrink:0}
+.ui-stat-icon.blue{background:#EFF6FF;color:#3B82F6}
+.ui-stat-icon.pink{background:#FEF2F2;color:#EF4444}
+.ui-stat-icon.green{background:#ECFDF5;color:#10B981}
+.ui-stat-icon.amber{background:#FFFBEB;color:#F59E0B}
+.ui-stat-icon.purple{background:#F5F3FF;color:#8B5CF6}
+.ui-stat-label{font-size:12.5px;color:#64748B;font-weight:500;margin-bottom:3px}
+.ui-stat-val{font-family:var(--cond);font-size:28px;font-weight:700;color:#0F172A;line-height:1.1}
+.ui-stat-more{color:#94A3B8;font-size:18px;padding:4px;border-radius:6px;user-select:none}
+
+/* Layout 2 colonnes (Principal Gauche + Colonne Droite) */
+.ui-main-grid{display:grid;grid-template-columns:2fr 1fr;gap:22px}
+@media (max-width:1150px){.ui-main-grid{grid-template-columns:1fr}}
+
+/* Carte Hero principale avec grand graphique Spline */
+.ui-hero-card{background:#FFFFFF;border:1px solid #E2E8F0;border-radius:20px;padding:24px 26px;box-shadow:0 4px 20px rgba(100,116,139,0.04);display:flex;flex-direction:column;gap:18px}
+.ui-hero-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.ui-hero-title{font-size:18px;font-weight:700;color:#0F172A;margin:0}
+.ui-hero-actions{display:flex;align-items:center;gap:10px}
+.ui-select-filter{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:7px 14px;font-size:12.5px;font-weight:600;color:#475569;cursor:pointer}
+.ui-btn-export{background:#FFFFFF;border:1px solid #E2E8F0;border-radius:10px;padding:7px 14px;font-size:12.5px;font-weight:600;color:#475569;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:all .15s}
+.ui-btn-export:hover{border-color:#3B82F6;color:#3B82F6}
+
+.ui-hero-kpis{display:flex;gap:36px;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid #F1F5F9}
+.ui-hero-kpi-item{display:flex;flex-direction:column;gap:4px}
+.ui-hero-kpi-label{font-size:12.5px;color:#64748B;font-weight:500}
+.ui-hero-kpi-row{display:flex;align-items:center;gap:10px}
+.ui-hero-kpi-val{font-family:var(--cond);font-size:26px;font-weight:700;color:#0F172A}
+.ui-badge-pill{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:20px;display:inline-flex;align-items:center;gap:4px}
+.ui-badge-pill.green{background:#DCFCE7;color:#15803D}
+.ui-badge-pill.red{background:#FEE2E2;color:#B91C1C}
+.ui-badge-pill.blue{background:#DBEAFE;color:#1E40AF}
+
+/* Colonne de droite : Cartes empilées */
+.ui-right-col{display:flex;flex-direction:column;gap:22px}
+.ui-right-card{background:#FFFFFF;border:1px solid #E2E8F0;border-radius:20px;padding:20px 22px;box-shadow:0 4px 20px rgba(100,116,139,0.04);display:flex;flex-direction:column;gap:14px}
+.ui-card-head{display:flex;justify-content:space-between;align-items:flex-start}
+.ui-card-head h3{font-size:15px;font-weight:700;color:#0F172A;margin:0}
+.ui-card-head small{font-size:12px;color:#64748B;display:block;margin-top:2px}
+.ui-tag-pill{font-size:11px;font-weight:600;padding:3px 10px;border-radius:8px;background:#F1F5F9;color:#475569}
+
+/* Donut sub-metrics */
+.ui-donut-sub{display:flex;justify-content:space-between;align-items:center;padding-top:14px;border-top:1px solid #F1F5F9;text-align:center}
+.ui-donut-sub-item{display:flex;flex-direction:column;gap:2px}
+.ui-donut-sub-item span{font-size:11px;color:#64748B;display:flex;align-items:center;gap:4px}
+.ui-donut-sub-item b{font-family:var(--cond);font-size:16px;color:#0F172A}
+
+/* 4 blocs de catégories avec barre de progression */
+.ui-cat-progress{height:8px;border-radius:4px;background:#E2E8F0;overflow:hidden;display:flex;margin:4px 0 12px}
+.ui-cat-progress span{height:100%}
+.ui-cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ui-cat-box{background:#F8FAFC;border:1px solid #F1F5F9;border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px}
+.ui-cat-box .icon{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;font-size:15px;flex-shrink:0}
+.ui-cat-box .info{flex:1;min-width:0}
+.ui-cat-box .info small{display:block;font-size:11px;color:#64748B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ui-cat-box .info b{font-size:13px;color:#0F172A;font-weight:700}
+
+/* Ligne des 3 mini-cartes (289,04) */
+.ui-mini-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+.ui-mini-card{background:#FFFFFF;border:1px solid #E2E8F0;border-radius:18px;padding:18px 20px;box-shadow:0 4px 18px rgba(100,116,139,0.04);display:flex;flex-direction:column;gap:8px}
+.ui-mini-top{display:flex;justify-content:space-between;align-items:center}
+.ui-mini-val{display:flex;align-items:center;gap:10px}
+.ui-mini-val b{font-family:var(--cond);font-size:26px;font-weight:700;color:#0F172A}
+.ui-mini-desc{font-size:12px;color:#64748B}
+
+/* Ligne inférieure de 3 cartes graphiques */
+.ui-bottom-grid{display:grid;grid-template-columns:1.2fr 1fr 1.2fr;gap:18px}
+@media (max-width:1050px){.ui-bottom-grid{grid-template-columns:1fr}}
+
+/* Cartes des Volets Détaillés */
+.ui-volet-panel{background:#FFFFFF;border:1px solid #E2E8F0;border-radius:20px;padding:24px;box-shadow:0 4px 20px rgba(100,116,139,0.04);margin-bottom:24px}
+.ui-volet-panel-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;padding-bottom:16px;margin-bottom:18px;border-bottom:1.5px solid #F1F5F9}
+.ui-volet-panel-title{display:flex;align-items:center;gap:14px}
+.ui-volet-panel-icon{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:24px;flex-shrink:0}
+
+/* Barre de navigation rapide des 3 volets */
+.ui-nav-volets{display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.ui-nav-pill{display:inline-flex;align-items:center;gap:10px;padding:10px 18px;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:12px;color:#1E293B;text-decoration:none;font-weight:600;font-size:13.5px;box-shadow:0 2px 8px rgba(100,116,139,0.03);transition:all .15s ease}
+.ui-nav-pill:hover{border-color:#3B82F6;background:#F8FAFC;transform:translateY(-1px)}
+.ui-nav-pill .badge{font-size:11px;font-weight:700;padding:2px 7px;border-radius:10px;background:#F1F5F9;color:#475569}
+
+.circle-day-badge{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;font-weight:800;font-size:13px;border:2px solid;box-shadow:0 2px 6px rgba(0,0,0,0.06)}
+.circle-day-badge.ok{background:#DCFCE7;color:#15803D;border-color:#15803D}
+.circle-day-badge.warn{background:#FEF3C7;color:#D97706;border-color:#D97706}
+.circle-day-badge.bad{background:#FEE2E2;color:#DC2626;border-color:#DC2626}
 
 </style>
 </head>
@@ -1684,14 +1821,12 @@ function viewTransfertBon(trfId){
 function vDash(){
  const cS=curSite(), sObj=curSiteObj();
  
- /* Métriques TRANSIT */
+ /* Métriques Transit */
  const sDoss=siteDossiers(cS);
  const siteOpen=sDoss.filter(d=>d.status!=='Clôturé');
- const siteClosed=sDoss.filter(d=>d.status==='Clôturé');
  const siteOver=sDoss.filter(d=>delay(d).k==='bad').length;
  const onTimeDoss=sDoss.filter(d=>delay(d).app==='On Time').length;
  const onTimeRate=sDoss.length?Math.round((onTimeDoss/sDoss.length)*100):100;
- const waitNavire=siteOpen.filter(d=>!d.D3).length;
  const doneDoss=sDoss.filter(d=>d.D8&&delay(d).n!=null&&delay(d).k!=='anom');
  const avgTransitNum=doneDoss.length?(doneDoss.map(d=>delay(d).n).reduce((a,b)=>a+b,0)/doneDoss.length):13.8;
  const avgTransit=avgTransitNum.toFixed(1);
@@ -1699,7 +1834,7 @@ function vDash(){
  const watchTransit=siteOpen.filter(d=>{const n=delay(d).n;return n>=15&&n<=21}).length;
  const totalTC=sDoss.reduce((sum,d)=>sum+(+d.cont||1),0);
 
- /* Métriques ENTREPÔT */
+ /* Métriques Entrepôt */
  const s=stock(cS);
  const dispoSKCI=dispo('SKCI',cS);
  const resSKCI=reserved('SKCI',cS);
@@ -1709,10 +1844,9 @@ function vDash(){
  const totalStock=s.propre+s.sale+s.reparation+s.quarantaine+s.autre;
  const dispoRate=totalStock?Math.round((totalDispo/totalStock)*100):85;
  const trTransitCount=(S.transfers||[]).filter(t=>t.status==='En transit').length;
- const lavageCadence=340;
  const qualiteRate=totalStock?((1-(s.quarantaine/totalStock))*100).toFixed(1):'98.5';
 
- /* Métriques TRANSPORT */
+ /* Métriques Transport */
  const siteTr=siteTransports(cS);
  const siteTrRun=siteTr.filter(t=>t.status==='En cours').length;
  const waitLoadTrs=siteTr.filter(t=>t.status==='Planifié');
@@ -1721,136 +1855,327 @@ function vDash(){
  const eligDeliveries=S.deliveries.filter(l=>['Livrée','Clôturée'].includes(l.status));
  const onTimeTr=eligDeliveries.length?Math.round(eligDeliveries.filter(l=>{const t=S.transports.find(x=>x.id===l.transport);return t&&t.arrR&&t.arrR<=t.arrP}).length/eligDeliveries.length*100):96;
  const otifRate=Math.min(100,Math.round(onTimeTr*0.98));
+ const globalOEE=Math.round((onTimeRate*0.4)+(dispoRate*0.3)+(otifRate*0.3));
  const incidentsCount=siteTr.filter(t=>t.incidents&&t.incidents.length).length;
  const activeDestinations=S.destinations.length;
 
- /* Score Global Opérationnel OEE */
- const globalOEE=Math.round((onTimeRate*0.4)+(dispoRate*0.3)+(otifRate*0.3));
  const a=alerts();
 
  return siteBanner(`Vue d’ensemble des 3 activités pour ${sObj.name} (${sObj.hub})`)+
  hero('port',`Tableau de bord · ${sObj.icon} ${sObj.name}`,`Situation opérationnelle ${sObj.id==='sanpedro'?'de San Pedro':"d’Abidjan"}.`)+
- `<!-- ==================== COCKPIT EXÉCUTIF DE PERFORMANCE ==================== -->
- <div class="dash-cockpit">
-  <div class="cockpit-top">
-   <div class="cockpit-title">
-    <span style="font-size:24px">⚡</span>
-    <div>
-     <h2>Cockpit de Performance Opérationnelle · ${esc(sObj.name)}</h2>
-     <small class="muted">Indicateurs consolidés d'efficience et de productivité sur les 3 flux métiers.</small>
-    </div>
-   </div>
-   <div class="cockpit-badge">
-    <span>★</span> Score Global d'Efficience : <b>${globalOEE}% (Optimal)</b>
-   </div>
-  </div>
-  <div class="cockpit-kpis">
-   <div class="cockpit-card">
-    <div class="c-label"><span>Conformité Franchise</span><span class="pill ok">${onTimeRate}%</span></div>
-    <div class="c-val">${onTimeDoss} / ${sDoss.length} <small style="font-size:16px;color:var(--muted)">dossiers</small></div>
-    <div class="c-sub"><span style="color:var(--ok)">✓</span> ${daysSaved} j d'avance moyenne vs seuil 21j</div>
-   </div>
-   <div class="cockpit-card">
-    <div class="c-label"><span>Disponibilité Palettes</span><span class="pill ok">${dispoRate}%</span></div>
-    <div class="c-val">${n0(totalDispo)} <small style="font-size:16px;color:var(--muted)">palettes</small></div>
-    <div class="c-sub"><span style="color:var(--global)">●</span> SKCI: ${n0(dispoSKCI)} · Global: ${n0(dispoGlobal)}</div>
-   </div>
-   <div class="cockpit-card">
-    <div class="c-label"><span>Qualité de Service OTIF</span><span class="pill ok">${otifRate}%</span></div>
-    <div class="c-val">${siteTrRun} en route <small style="font-size:16px;color:var(--muted)">/${siteTr.length}</small></div>
-    <div class="c-sub"><span style="color:var(--blue)">🚚</span> ${activeDestinations} usines répertoriées actives</div>
-   </div>
-   <div class="cockpit-card">
-    <div class="c-label"><span>Surestaries Évitées</span><span class="pill info">Productivité</span></div>
-    <div class="c-val">0 F CFA <small style="font-size:16px;color:var(--ok)">pénalité</small></div>
-    <div class="c-sub"><span style="color:var(--ok)">🛡</span> 100% franchise protégée</div>
-   </div>
-  </div>
- </div>
-
- <!-- Navigation rapide aux 3 volets -->
- <div class="dash-volets-nav" role="navigation" aria-label="Accès rapide aux trois activités">
-  <a class="dash-volet-pill" href="#volet-transit">
-   <span style="font-size:18px">🚢</span> <span>Volet 1 · <b>Transit Maritime</b></span> <span class="cnt-badge">${onTimeRate}% On Time</span>
-  </a>
-  <a class="dash-volet-pill" href="#volet-entrepot">
-   <span style="font-size:18px">📦</span> <span>Volet 2 · <b>Entrepôt & Ateliers</b></span> <span class="cnt-badge">${n0(totalDispo)} dispo</span>
-  </a>
-  <a class="dash-volet-pill" href="#volet-transport">
-   <span style="font-size:18px">🚚</span> <span>Volet 3 · <b>Transport & Usines</b></span> <span class="cnt-badge">${otifRate}% OTIF</span>
-  </a>
- </div>
-
- <!-- ==================== VOLET 1 : TRANSIT ==================== -->
- <section class="dash-volet volet-transit" id="volet-transit">
-  <div class="dash-volet-header">
-   <div class="title-group">
-    <div class="icon-badge">🚢</div>
-    <div>
-     <h2 style="font-size:19px;margin:0">Volet 1 · Transit Maritime & Respect de la Franchise</h2>
-     <small class="muted">Maîtrise de la franchise portuaire (règle des 21 jours), cadences de dépotage et rotation des conteneurs pour ${sObj.name} (${sObj.port}).</small>
-    </div>
-   </div>
-   <button class="btn small primary" data-go="transit">Consulter le Transit →</button>
-  </div>
-  <div class="dash-volet-kpis">
-   <div class="dash-kpi-card t-ok" data-kpi="transit:ok">
-    <div class="k-head"><span class="k-title">Taux de Respect Franchise</span><span class="k-pill" style="background:var(--ok-bg);color:var(--ok)">Cible ≥ 95%</span></div>
-    <div class="k-val">${onTimeRate}%</div>
-    <div class="k-sub"><span style="color:var(--ok)">●</span> ${onTimeDoss} dossiers On Time sur ${sDoss.length}</div>
-    <div class="k-bar"><div class="k-bar-fill" style="width:${onTimeRate}%;background:var(--ok)"></div></div>
-   </div>
-   <div class="dash-kpi-card" data-go="transit">
-    <div class="k-head"><span class="k-title">Délai Moyen Dépotage</span><span class="k-pill" style="background:var(--info-bg);color:var(--info)">Seuil 21 j</span></div>
-    <div class="k-val">${avgTransit} j</div>
-    <div class="k-sub"><span style="color:var(--blue)">⚡</span> Gain de ${daysSaved} jours sur le délai max</div>
-    <div class="k-bar"><div class="k-bar-fill" style="width:${Math.min(100,Math.round((avgTransitNum/21)*100))}%;background:var(--blue)"></div></div>
-   </div>
-   <div class="dash-kpi-card ${siteOver?'t-bad':''}" data-kpi="transit:bad">
-    <div class="k-head"><span class="k-title">Retard Transit (> 21j)</span><span class="k-pill" style="background:${siteOver?'var(--bad-bg)':'var(--ok-bg)'};color:${siteOver?'var(--bad)':'var(--ok)'}">${siteOver?'Critique':'Zéro risque'}</span></div>
-    <div class="k-val">${siteOver}</div>
-    <div class="k-sub">${siteOver?'Dépassement franchise constaté':'Aucun dossier hors franchise'}</div>
-   </div>
-   <div class="dash-kpi-card ${watchTransit?'t-warn':''}" data-kpi="transit:watch">
-    <div class="k-head"><span class="k-title">Sous Surveillance (J15-21)</span><span class="k-pill" style="background:var(--warn-bg);color:var(--warn)">Vigilance</span></div>
-    <div class="k-val">${watchTransit}</div>
-    <div class="k-sub">Dossiers proches de la limite franchise</div>
-   </div>
-   <div class="dash-kpi-card" data-kpi="transit:tous">
-    <div class="k-head"><span class="k-title">Conteneurs Traités</span><span class="k-pill" style="background:var(--surface);border:1px solid var(--line)">Volume</span></div>
-    <div class="k-val">${totalTC} TC</div>
-    <div class="k-sub">${siteOpen.length} dossiers actifs en cours d'escale</div>
-   </div>
-   <div class="dash-kpi-card t-ok" data-go="transit">
-    <div class="k-head"><span class="k-title">Surestaries Évitées</span><span class="k-pill" style="background:var(--ok-bg);color:var(--ok)">Économie</span></div>
-    <div class="k-val">100%</div>
-    <div class="k-sub">Zéro frais de détention facturé</div>
-   </div>
-  </div>
+ `<!-- Conteneur principal inspiré du modèle de référence UI -->
+ <div class="ui-dash-wrap">
   
-  <!-- Graphiques Modernes Transit -->
-  <div class="grid g2" style="margin-bottom:20px">
-   <div class="chart-card-modern">
-    <div class="chart-card-header">
-     <h3><span>📊</span> Conformité Franchise (Règle 21 Jours)</h3>
-     <span class="chart-meta">Taux On-Time vs Retard</span>
+  <!-- ==================== RANGÉE 1 : 4 CARTES KPI STATISTIQUES ==================== -->
+  <div class="ui-top-cards">
+   <!-- Carte 1 : Transit Maritime -->
+   <div class="ui-stat-card" data-go="transit" style="cursor:pointer">
+    <div class="ui-stat-left">
+     <div class="ui-stat-icon blue">🚢</div>
+     <div>
+      <div class="ui-stat-label">Transit Maritime</div>
+      <div class="ui-stat-val">${sDoss.length} <small style="font-size:16px;color:#64748B">dossiers</small></div>
+     </div>
     </div>
-    <div class="chartbox-modern"><canvas id="ch1" aria-label="Répartition des dossiers de transit"></canvas></div>
+    <span class="ui-stat-more" title="Plus de détails">•••</span>
    </div>
-   <div class="chart-card-modern">
-    <div class="chart-card-header">
-     <h3><span>⏱</span> Délais Réels par Dossier vs Seuil Critique</h3>
-     <span class="chart-meta">Seuil d'alerte : 21 jours</span>
+
+   <!-- Carte 2 : Entrepôt & Palettes -->
+   <div class="ui-stat-card" data-go="entrepot" style="cursor:pointer">
+    <div class="ui-stat-left">
+     <div class="ui-stat-icon pink">📦</div>
+     <div>
+      <div class="ui-stat-label">Disponibilité Entrepôt</div>
+      <div class="ui-stat-val">${n0(totalDispo)} <small style="font-size:16px;color:#64748B">pal.</small></div>
+     </div>
     </div>
-    <div class="chartbox-modern"><canvas id="ch4" aria-label="Délais par dossier et seuil franchise"></canvas></div>
+    <span class="ui-stat-more" title="Plus de détails">•••</span>
+   </div>
+
+   <!-- Carte 3 : Transport & Livraisons -->
+   <div class="ui-stat-card" data-go="transport" style="cursor:pointer">
+    <div class="ui-stat-left">
+     <div class="ui-stat-icon green">🚚</div>
+     <div>
+      <div class="ui-stat-label">Expéditions Usines</div>
+      <div class="ui-stat-val">${otifRate}% <small style="font-size:16px;color:#64748B">OTIF</small></div>
+     </div>
+    </div>
+    <span class="ui-stat-more" title="Plus de détails">•••</span>
+   </div>
+
+   <!-- Carte 4 : Surestaries & Risque -->
+   <div class="ui-stat-card" data-kpi="transit:ok" style="cursor:pointer">
+    <div class="ui-stat-left">
+     <div class="ui-stat-icon amber">🛡</div>
+     <div>
+      <div class="ui-stat-label">Surestaries Évitées</div>
+      <div class="ui-stat-val">0 F CFA <small style="font-size:16px;color:#10B981">sécurisé</small></div>
+     </div>
+    </div>
+    <span class="ui-stat-more" title="Plus de détails">•••</span>
    </div>
   </div>
 
-  <!-- Tableau des dossiers récents -->
-  <div class="panel" style="margin:0">
-   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-    <h3 style="margin:0;font-size:15px">Dossiers maritimes récents & délais observés</h3>
-    <button class="btn small" data-go="transit">Voir l'ensemble des dossiers (${sDoss.length})</button>
+  <!-- ==================== RANGÉE 2 : CARTE HERO PRINCIPALE + COLONNE DROITE ==================== -->
+  <div class="ui-main-grid">
+   
+   <!-- Gauche : Carte Hero avec Grand Graphique Spline -->
+   <div class="ui-hero-card">
+    <div class="ui-hero-head">
+     <h2 class="ui-hero-title">Gestion Intégrée des Opérations · ${esc(sObj.name)}</h2>
+     <div class="ui-hero-actions">
+      <select class="ui-select-filter" aria-label="Période">
+       <option>Derniers 30 jours</option>
+       <option>Cette semaine</option>
+       <option>Ce mois</option>
+      </select>
+      <button class="ui-btn-export" onclick="window.print()">
+       <span>📥</span> Exporter
+      </button>
+     </div>
+    </div>
+
+    <!-- 3 Sous-Indicateurs alignés avec badges vert/rouge comme sur le modèle -->
+    <div class="ui-hero-kpis">
+     <div class="ui-hero-kpi-item">
+      <span class="ui-hero-kpi-label">Délai Moyen Dépotage</span>
+      <div class="ui-hero-kpi-row">
+       <span class="ui-hero-kpi-val">${avgTransit} j</span>
+       <span class="ui-badge-pill green">+ ${daysSaved} j avance</span>
+      </div>
+     </div>
+     <div class="ui-hero-kpi-item">
+      <span class="ui-hero-kpi-label">Cadence Atelier Lavage</span>
+      <div class="ui-hero-kpi-row">
+       <span class="ui-hero-kpi-val">340 pal./j</span>
+       <span class="ui-badge-pill green">+ 18% productivité</span>
+      </div>
+     </div>
+     <div class="ui-hero-kpi-item">
+      <span class="ui-hero-kpi-label">Ponctualité Usines Caoutchouc</span>
+      <div class="ui-hero-kpi-row">
+       <span class="ui-hero-kpi-val">${otifRate}%</span>
+       <span class="ui-badge-pill ${otifRate>=95?'green':'red'}">${otifRate>=95?'Cible atteinte':'-1.2%'}</span>
+      </div>
+     </div>
+    </div>
+
+    <!-- Grand Graphique Spline Fluide (Hero Spline Chart) -->
+    <div style="position:relative;height:310px;width:100%">
+     <canvas id="chHero" aria-label="Évolution des opérations"></canvas>
+    </div>
+   </div>
+
+   <!-- Droite : 3 Cartes empilées comme sur le modèle de référence -->
+   <div class="ui-right-col">
+    
+    <!-- Carte 1 Droite : Barres bicolores empilées (Data Company Progress) -->
+    <div class="ui-right-card">
+     <div class="ui-card-head">
+      <div>
+       <h3>Flux d'Activité Hebdomadaire</h3>
+       <small>Entrées dépotage vs Sorties expéditions</small>
+      </div>
+      <span class="ui-tag-pill">Semaine</span>
+     </div>
+     <div style="position:relative;height:140px;width:100%">
+      <canvas id="chRightBars" aria-label="Progression hebdomadaire"></canvas>
+     </div>
+    </div>
+
+    <!-- Carte 2 Droite : Grand Donut avec valeur centrale et 3 indicateurs en dessous -->
+    <div class="ui-right-card">
+     <div class="ui-card-head">
+      <div>
+       <h3>Respect de la Franchise</h3>
+       <small>Conformité de la règle des 21 jours</small>
+      </div>
+      <span class="ui-tag-pill">Global</span>
+     </div>
+     <div style="position:relative;height:165px;width:100%">
+      <canvas id="chRightDonut" aria-label="Respect franchise portuaire"></canvas>
+     </div>
+     <div class="ui-donut-sub">
+      <div class="ui-donut-sub-item">
+       <span><span style="color:#3B82F6">●</span> Total Dossiers</span>
+       <b>${sDoss.length}</b>
+      </div>
+      <div class="ui-donut-sub-item">
+       <span><span style="color:#06B6D4">●</span> On Time</span>
+       <b>${onTimeDoss}</b>
+      </div>
+      <div class="ui-donut-sub-item">
+       <span><span style="color:#10B981">●</span> Taux</span>
+       <b>${onTimeRate}%</b>
+      </div>
+     </div>
+    </div>
+
+    <!-- Carte 3 Droite : Répartition & Utilisation (Company Spending) -->
+    <div class="ui-right-card">
+     <div class="ui-card-head">
+      <div>
+       <h3>Catégories de Palettes</h3>
+       <small>Ventilation physique du stock</small>
+      </div>
+      <span class="ui-tag-pill">Temps réel</span>
+     </div>
+     
+     <!-- Barre de progression segmentée avec gradient -->
+     <div class="ui-cat-progress">
+      <span style="width:45%;background:#6D28D9" title="SKCI"></span>
+      <span style="width:35%;background:#0D7A5F" title="Global"></span>
+      <span style="width:12%;background:#F59E0B" title="Lavage"></span>
+      <span style="width:8%;background:#3B82F6" title="Soudure"></span>
+     </div>
+
+     <!-- Grille 2x2 des catégories avec icônes -->
+     <div class="ui-cat-grid">
+      <div class="ui-cat-box" data-go="entrepot">
+       <div class="icon" style="background:#F5F3FF;color:#6D28D9">🟣</div>
+       <div class="info">
+        <small>Stock SKCI</small>
+        <b>${n0(dispoSKCI)}</b>
+       </div>
+      </div>
+      <div class="ui-cat-box" data-go="entrepot">
+       <div class="icon" style="background:#ECFDF5;color:#0D7A5F">🟢</div>
+       <div class="info">
+        <small>Stock Global</small>
+        <b>${n0(dispoGlobal)}</b>
+       </div>
+      </div>
+      <div class="ui-cat-box" data-go="entrepot">
+       <div class="icon" style="background:#FFFBEB;color:#F59E0B">🟡</div>
+       <div class="info">
+        <small>Sale Lavage</small>
+        <b>${s.sale}</b>
+       </div>
+      </div>
+      <div class="ui-cat-box" data-go="entrepot">
+       <div class="icon" style="background:#EFF6FF;color:#3B82F6">🔧</div>
+       <div class="info">
+        <small>Soudure</small>
+        <b>${s.reparation}</b>
+       </div>
+      </div>
+     </div>
+    </div>
+
+   </div>
+  </div>
+
+  <!-- ==================== RANGÉE 3 : 3 MINI-CARTES DE PRODUCTIVITÉ (289,04) ==================== -->
+  <div class="ui-mini-cards">
+   <!-- Mini Carte 1 -->
+   <div class="ui-mini-card">
+    <div class="ui-mini-top">
+     <div class="icon" style="width:36px;height:36px;border-radius:10px;background:#F5F3FF;color:#6D28D9;display:grid;place-items:center;font-size:18px">🚢</div>
+     <span class="ui-badge-pill green">↗ +5,75%</span>
+    </div>
+    <div class="ui-mini-val">
+     <b>${onTimeRate}%</b>
+     <span style="font-size:13px;color:#64748B">Conformité Transit</span>
+    </div>
+    <div class="ui-mini-desc">Franchise 21j : <b>${onTimeDoss}</b> dossiers On Time respectés</div>
+   </div>
+
+   <!-- Mini Carte 2 -->
+   <div class="ui-mini-card">
+    <div class="ui-mini-top">
+     <div class="icon" style="width:36px;height:36px;border-radius:10px;background:#EFF6FF;color:#3B82F6;display:grid;place-items:center;font-size:18px">📦</div>
+     <span class="ui-badge-pill green">↗ +8,20%</span>
+    </div>
+    <div class="ui-mini-val">
+     <b>${dispoRate}%</b>
+     <span style="font-size:13px;color:#64748B">Disponibilité Entrepôt</span>
+    </div>
+    <div class="ui-mini-desc">Palettes propres prêtes : <b>${n0(totalDispo)}</b> unités</div>
+   </div>
+
+   <!-- Mini Carte 3 -->
+   <div class="ui-mini-card">
+    <div class="ui-mini-top">
+     <div class="icon" style="width:36px;height:36px;border-radius:10px;background:#ECFDF5;color:#10B981;display:grid;place-items:center;font-size:18px">🚚</div>
+     <span class="ui-badge-pill green">↗ +4,10%</span>
+    </div>
+    <div class="ui-mini-val">
+     <b>${otifRate}%</b>
+     <span style="font-size:13px;color:#64748B">Ponctualité OTIF</span>
+    </div>
+    <div class="ui-mini-desc">Usines caoutchouc : <b>${activeDestinations}</b> destinations actives</div>
+   </div>
+  </div>
+
+  <!-- ==================== RANGÉE 4 : 3 CARTES DE GRAPHIQUES INFÉRIEURES ==================== -->
+  <div class="ui-bottom-grid">
+   
+   <!-- Carte A : Bar chart avec barre active en bleu franc (Data Company Report) -->
+   <div class="ui-stat-card" style="display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:22px">
+    <div class="ui-card-head">
+     <div>
+      <h3 style="font-size:15px;font-weight:700">Rapport de Rotation Hebdo</h3>
+      <small style="color:#64748B">Rotations dépotage vs traction</small>
+     </div>
+     <span class="ui-tag-pill">■ Dépotage ■ Traction</span>
+    </div>
+    <div style="position:relative;height:190px;width:100%">
+     <canvas id="chBarReport" aria-label="Rapport de rotation"></canvas>
+    </div>
+   </div>
+
+   <!-- Carte B : Jauge Circulaire 58% / 96% (Data Company) -->
+   <div class="ui-stat-card" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;padding:22px">
+    <div style="width:100%;display:flex;justify-content:space-between;align-items:center">
+     <h3 style="font-size:15px;font-weight:700;margin:0">Efficience Globale</h3>
+     <span class="ui-stat-more">•••</span>
+    </div>
+    <div style="position:relative;width:130px;height:130px;margin:6px 0">
+     <canvas id="chGaugeCircle" aria-label="Efficience globale"></canvas>
+    </div>
+    <div>
+     <div style="font-family:var(--cond);font-size:32px;font-weight:700;color:#0F172A">${globalOEE||95}%</div>
+     <small style="color:#64748B;font-size:12px">Indice de Productivité Consolidé</small>
+    </div>
+   </div>
+
+   <!-- Carte C : Mini Wave Area Chart (Data View) -->
+   <div class="ui-stat-card" style="display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:22px">
+    <div class="ui-card-head">
+     <div>
+      <h3 style="font-size:15px;font-weight:700">Transferts Inter-Sites</h3>
+      <small style="color:#64748B">Flux Abidjan ⇄ San Pedro</small>
+     </div>
+     <span class="ui-badge-pill blue">Data View</span>
+    </div>
+    <div style="position:relative;height:190px;width:100%">
+     <canvas id="chMiniArea" aria-label="Transferts inter-sites"></canvas>
+    </div>
+   </div>
+
+  </div>
+
+  <!-- ==================== SECTION DÉTAILLÉE : LES 3 VOLETS OPÉRATIONNELS ==================== -->
+  
+  <!-- Navigation d'ancrage rapide -->
+  <div class="ui-nav-volets" role="navigation" aria-label="Accès aux trois volets">
+   <a class="ui-nav-pill" href="#v-transit"><span>🚢</span> <span>Volet 1 · <b>Transit Maritime</b></span> <span class="badge">${sDoss.length} dossiers</span></a>
+   <a class="ui-nav-pill" href="#v-entrepot"><span>📦</span> <span>Volet 2 · <b>Entrepôt & Ateliers</b></span> <span class="badge">${n0(totalDispo)} dispo</span></a>
+   <a class="ui-nav-pill" href="#v-transport"><span>🚚</span> <span>Volet 3 · <b>Transport & Expéditions</b></span> <span class="badge">${siteTrRun} en route</span></a>
+  </div>
+
+  <!-- VOLET 1 DÉTAILLÉ -->
+  <section class="ui-volet-panel" id="v-transit">
+   <div class="ui-volet-panel-head">
+    <div class="ui-volet-panel-title">
+     <div class="ui-volet-panel-icon" style="background:#EFF6FF;color:#3B82F6">🚢</div>
+     <div>
+      <h3 style="margin:0;font-size:18px;font-weight:700">Volet 1 · Transit Maritime & Respect de la Franchise</h3>
+      <small style="color:#64748B">Suivi des escales navires, dépotages et règle des 21 jours pour ${sObj.name} (${sObj.port}).</small>
+     </div>
+    </div>
+    <button class="btn small primary" data-go="transit">Accéder au module Transit →</button>
    </div>
    <div class="tablewrap">
     <table style="min-width:auto;font-size:13px">
@@ -1867,191 +2192,113 @@ function vDash(){
      </tbody>
     </table>
    </div>
-  </div>
- </section>
+  </section>
 
- <!-- ==================== VOLET 2 : ENTREPÔT ==================== -->
- <section class="dash-volet volet-entrepot" id="volet-entrepot">
-  <div class="dash-volet-header">
-   <div class="title-group">
-    <div class="icon-badge">📦</div>
+  <!-- VOLET 2 DÉTAILLÉ -->
+  <section class="ui-volet-panel" id="v-entrepot">
+   <div class="ui-volet-panel-head">
+    <div class="ui-volet-panel-title">
+     <div class="ui-volet-panel-icon" style="background:#ECFDF5;color:#10B981">📦</div>
+     <div>
+      <h3 style="margin:0;font-size:18px;font-weight:700">Volet 2 · Entrepôt & Gestion des Stocks Bi-Sites</h3>
+      <small style="color:#64748B">Disponibilité immédiate du Stock Dédié SKCI et Stock Global (SAPH, SOGB, CHCI...), lavages et transferts.</small>
+     </div>
+    </div>
+    <button class="btn small primary" data-go="entrepot">Accéder à l’Entrepôt →</button>
+   </div>
+   <div class="ui-cat-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-bottom:16px">
+    <div class="ui-cat-box" data-go="entrepot" style="padding:16px">
+     <div class="icon" style="background:#F5F3FF;color:#6D28D9;font-size:20px;width:40px;height:40px">🟣</div>
+     <div class="info">
+      <small>Stock Dédié SKCI (Dispo)</small>
+      <b style="font-size:20px">${n0(dispoSKCI)}</b>
+      <div style="font-size:11px;color:#10B981">Réservé : ${n0(resSKCI)} pal.</div>
+     </div>
+    </div>
+    <div class="ui-cat-box" data-go="entrepot" style="padding:16px">
+     <div class="icon" style="background:#ECFDF5;color:#0D7A5F;font-size:20px;width:40px;height:40px">🟢</div>
+     <div class="info">
+      <small>Stock Global (SAPH, SOGB...)</small>
+      <b style="font-size:20px">${n0(dispoGlobal)}</b>
+      <div style="font-size:11px;color:#64748B">Réservé : ${n0(resGlobal)} pal.</div>
+     </div>
+    </div>
+    <div class="ui-cat-box" data-go="entrepot" style="padding:16px">
+     <div class="icon" style="background:#FFFBEB;color:#F59E0B;font-size:20px;width:40px;height:40px">🟡</div>
+     <div class="info">
+      <small>Atelier de Lavage</small>
+      <b style="font-size:20px">${s.sale}</b>
+      <div style="font-size:11px;color:#F59E0B">Cadence : ~340 pal./jour</div>
+     </div>
+    </div>
+    <div class="ui-cat-box" data-go="entrepot" style="padding:16px">
+     <div class="icon" style="background:#EFF6FF;color:#3B82F6;font-size:20px;width:40px;height:40px">🔧</div>
+     <div class="info">
+      <small>Soudure & Door Swap</small>
+      <b style="font-size:20px">${s.reparation}</b>
+      <div style="font-size:11px;color:#3B82F6">Remise en conformité</div>
+     </div>
+    </div>
+   </div>
+  </section>
+
+  <!-- VOLET 3 DÉTAILLÉ -->
+  <section class="ui-volet-panel" id="v-transport">
+   <div class="ui-volet-panel-head">
+    <div class="ui-volet-panel-title">
+     <div class="ui-volet-panel-icon" style="background:#FFFBEB;color:#F59E0B">🚚</div>
+     <div>
+      <h3 style="margin:0;font-size:18px;font-weight:700">Volet 3 · Transport & Expéditions Usines de Caoutchouc</h3>
+      <small style="color:#64748B">Traction routière vers SAPH, SOGB, CHCI, ITCA, SKCI et respect de la ponctualité de livraison.</small>
+     </div>
+    </div>
+    <button class="btn small primary" data-go="transport">Accéder au Transport →</button>
+   </div>
+   <div class="grid g2">
     <div>
-     <h2 style="font-size:19px;margin:0">Volet 2 · Entrepôt & Productivité des Ateliers Bi-Sites</h2>
-     <small class="muted">Disponibilité immédiate Stock SKCI et Stock Global (SAPH, SOGB, CHCI...), cadence de lavage, soudures et transferts inter-sites.</small>
+     <h4 style="margin:0 0 10px;font-size:14px;color:#475569">Missions de transport en cours</h4>
+     <div style="display:flex;flex-direction:column;gap:10px">
+      ${siteTr.slice(0,3).map(t=>`<div class="tcard" data-act="openTransportDetails" data-id="${esc(t.id)}" style="padding:12px;cursor:pointer;margin:0" title="Cliquer pour afficher les détails">
+       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <div><b>${t.id}</b> <span class="muted">· ${esc(t.veh)} (${esc(t.driver||'—')})</span></div>
+        <div>${poolBadge(t.pool||destPool(t.to))} ${badge(t.status==='Livré'?'ok':t.status==='En cours'?'info':'mute',t.status)}</div>
+       </div>
+       <div style="margin-top:6px;font-size:13px;display:flex;justify-content:space-between">
+        <span>De : <b>${esc(t.from)}</b></span>
+        <span>Vers : <b style="color:var(--blue)">${esc(t.to)}</b></span>
+       </div>
+      </div>`).join('')||'<p class="empty" style="padding:16px">Aucun transport enregistré pour ce site.</p>'}
+     </div>
     </div>
-   </div>
-   <button class="btn small primary" data-go="entrepot">Consulter l’Entrepôt →</button>
-  </div>
-  <div class="dash-volet-kpis">
-   <div class="dash-kpi-card t-ok" data-go="entrepot" data-set-ent="stock">
-    <div class="k-head"><span class="k-title">Stock Propre SKCI (Dispo)</span><span class="k-pill" style="background:var(--skci-bg);color:var(--skci)">Dédié SKCI</span></div>
-    <div class="k-val">${n0(dispoSKCI)}</div>
-    <div class="k-sub"><span style="color:var(--ok)">✓</span> Réservé : ${n0(resSKCI)} palettes</div>
-    <div class="k-bar"><div class="k-bar-fill" style="width:100%;background:var(--skci)"></div></div>
-   </div>
-   <div class="dash-kpi-card t-ok" data-go="entrepot" data-set-ent="stock">
-    <div class="k-head"><span class="k-title">Stock Propre Global (Dispo)</span><span class="k-pill" style="background:var(--global-bg);color:var(--global)">Multi-Clients</span></div>
-    <div class="k-val">${n0(dispoGlobal)}</div>
-    <div class="k-sub"><span style="color:var(--global)">●</span> Pour SAPH, SOGB, CHCI, ITCA</div>
-    <div class="k-bar"><div class="k-bar-fill" style="width:100%;background:var(--global)"></div></div>
-   </div>
-   <div class="dash-kpi-card t-warn" data-go="entrepot" data-set-ent="lavage">
-    <div class="k-head"><span class="k-title">Palettes Sales (Lavage)</span><span class="k-pill" style="background:var(--warn-bg);color:var(--warn)">Atelier</span></div>
-    <div class="k-val">${s.sale}</div>
-    <div class="k-sub">Cadence : ~${lavageCadence} pal./jour</div>
-   </div>
-   <div class="dash-kpi-card" data-go="entrepot" data-set-ent="reparation">
-    <div class="k-head"><span class="k-title">Soudure / DOOR SWAP</span><span class="k-pill" style="background:var(--info-bg);color:var(--info)">Maintenance</span></div>
-    <div class="k-val">${s.reparation}</div>
-    <div class="k-sub">En cours de remise en service</div>
-   </div>
-   <div class="dash-kpi-card ${s.quarantaine?'t-bad':''}" data-go="entrepot" data-set-ent="quarantaine">
-    <div class="k-head"><span class="k-title">Conformité Qualité</span><span class="k-pill" style="background:var(--ok-bg);color:var(--ok)">${qualiteRate}%</span></div>
-    <div class="k-val">${s.quarantaine} iso.</div>
-    <div class="k-sub">Taux de rebut maîtrisé < 2%</div>
-   </div>
-   <div class="dash-kpi-card t-warn" data-go="entrepot" data-set-ent="transferts">
-    <div class="k-head"><span class="k-title">Transferts Inter-Sites</span><span class="k-pill" style="background:var(--surface);border:1px solid var(--line)">Abidjan ⇄ SP</span></div>
-    <div class="k-val">${trTransitCount}</div>
-    <div class="k-sub">En transit d'équilibrage de stock</div>
-   </div>
-  </div>
-
-  <!-- Graphiques Modernes Entrepôt -->
-  <div class="grid g2" style="margin-bottom:20px">
-   <div class="chart-card-modern">
-    <div class="chart-card-header">
-     <h3><span>📦</span> Répartition des Stocks par Catégorie</h3>
-     <span class="chart-meta">Stock propre, sale, réparation, quarantaine</span>
-    </div>
-    <div class="chartbox-modern"><canvas id="ch2" aria-label="Stock par catégorie"></canvas></div>
-   </div>
-   <div class="chart-card-modern">
-    <div class="chart-card-header">
-     <h3><span>📈</span> Flux Hebdomadaires (Entrées Dépotage vs Sorties Expéditions)</h3>
-     <span class="chart-meta">Tendance sur 8 semaines (Courbe lissée)</span>
-    </div>
-    <div class="chartbox-modern"><canvas id="ch3" aria-label="Entrées et sorties par semaine"></canvas></div>
-   </div>
-  </div>
- </section>
-
- <!-- ==================== VOLET 3 : TRANSPORT ==================== -->
- <section class="dash-volet volet-transport" id="volet-transport">
-  <div class="dash-volet-header">
-   <div class="title-group">
-    <div class="icon-badge">🚚</div>
     <div>
-     <h2 style="font-size:19px;margin:0">Volet 3 · Transport & Expéditions vers les Clients Caoutchouc</h2>
-     <small class="muted">Traction routière, acheminement vers les destinations répertoriées, respect du taux de service OTIF et gestion des camions.</small>
+     <h4 style="margin:0 0 10px;font-size:14px;color:#475569">Planning des prochaines expéditions</h4>
+     <div class="tablewrap">
+      <table style="min-width:auto;font-size:13px">
+       <thead><tr><th>Livraison</th><th>Destination</th><th>Stock</th><th class="right">Palettes</th><th>Statut</th></tr></thead>
+       <tbody>${sitePlns.slice(0,4).map(p=>`<tr class="click" data-act="openTransportDetails" data-id="${esc(p.id)}">
+        <td><span class="ref">${p.id}</span></td>
+        <td><b>${esc(p.to)}</b></td>
+        <td>${poolBadge(p.pool||destPool(p.to))}</td>
+        <td class="right num"><b>${n0(p.qty)}</b></td>
+        <td>${badge(p.status==='Camion confirmé'?'ok':p.status==='Stock confirmé'?'info':'warn',p.status)}</td>
+       </tr>`).join('')||'<tr><td colspan="5" class="empty">Aucune livraison planifiée en attente.</td></tr>'}
+       </tbody>
+      </table>
+     </div>
     </div>
    </div>
-   <button class="btn small primary" data-go="transport">Consulter le Transport →</button>
-  </div>
-  <div class="dash-volet-kpis">
-   <div class="dash-kpi-card t-ok" data-go="transport" data-trsub="missions">
-    <div class="k-head"><span class="k-title">Missions en Route</span><span class="k-pill" style="background:var(--ok-bg);color:var(--ok)">Actives</span></div>
-    <div class="k-val">${siteTrRun}</div>
-    <div class="k-sub"><span style="color:var(--ok)">●</span> Expéditions en cours de livraison</div>
-    <div class="k-bar"><div class="k-bar-fill" style="width:100%;background:var(--ok)"></div></div>
-   </div>
-   <div class="dash-kpi-card t-ok" data-go="transport">
-    <div class="k-head"><span class="k-title">Taux de Service OTIF</span><span class="k-pill" style="background:var(--ok-bg);color:var(--ok)">Ponctualité</span></div>
-    <div class="k-val">${otifRate}%</div>
-    <div class="k-sub">Livraisons à l'heure et complètes</div>
-    <div class="k-bar"><div class="k-bar-fill" style="width:${otifRate}%;background:var(--ok)"></div></div>
-   </div>
-   <div class="dash-kpi-card t-warn" data-go="entrepot" data-set-ent="stock">
-    <div class="k-head"><span class="k-title">Camions au Quai</span><span class="k-pill" style="background:var(--warn-bg);color:var(--warn)">Chargement</span></div>
-    <div class="k-val">${waitLoadTrs.length}</div>
-    <div class="k-sub">Moyenne de chargement : 38 min</div>
-   </div>
-   <div class="dash-kpi-card" data-go="livraisons" data-lvsub="planification">
-    <div class="k-head"><span class="k-title">Demandes Planifiées</span><span class="k-pill" style="background:var(--info-bg);color:var(--info)">À valider</span></div>
-    <div class="k-val">${sitePlns.length}</div>
-    <div class="k-sub">${pendPlns.length} en attente validation stock</div>
-   </div>
-   <div class="dash-kpi-card" data-go="transport" data-trsub="destinations">
-    <div class="k-head"><span class="k-title">Destinations Répertoriées</span><span class="k-pill" style="background:var(--surface);border:1px solid var(--line)">Clients</span></div>
-    <div class="k-val">${activeDestinations}</div>
-    <div class="k-sub">SAPH, SOGB, CHCI, ITCA, SKCI</div>
-   </div>
-   <div class="dash-kpi-card ${incidentsCount?'t-bad':'t-ok'}" data-go="transport">
-    <div class="k-head"><span class="k-title">Indice de Sécurité Trajet</span><span class="k-pill" style="background:${incidentsCount?'var(--bad-bg)':'var(--ok-bg)'};color:${incidentsCount?'var(--bad)':'var(--ok)'}">${incidentsCount?'Incident':'100% Sûr'}</span></div>
-    <div class="k-val">${incidentsCount?'1':'100%'}</div>
-    <div class="k-sub">${incidentsCount?'Retard / Panne signalée':'Zéro avarie sur trajet'}</div>
-   </div>
-  </div>
+  </section>
 
-  <!-- Graphiques Modernes Transport -->
-  <div class="grid g2" style="margin-bottom:20px">
-   <div class="chart-card-modern">
-    <div class="chart-card-header">
-     <h3><span>🚚</span> Taux de Ponctualité OTIF par Usine Caoutchouc</h3>
-     <span class="chart-meta">Clients répertoriés en Côte d'Ivoire</span>
-    </div>
-    <div class="chartbox-modern"><canvas id="ch5" aria-label="Ponctualité par destination"></canvas></div>
+  <!-- Alertes opérationnelles -->
+  <section class="ui-volet-panel" style="border-color:${a.length?'#F59E0B':'#E2E8F0'}">
+   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+    <h3 style="margin:0;font-size:16px;font-weight:700">Alertes prioritaires transversales</h3>
+    ${a.length?badge('warn',`${a.length} alerte${a.length>1?'s':''} à traiter`,'⚠'):badge('ok','Toutes les opérations sont conformes','✓')}
    </div>
-   <div class="chart-card-modern">
-    <div class="chart-card-header">
-     <h3><span>🏢</span> Répartition de la Flotte par Transporteur</h3>
-     <span class="chart-meta">Tractionnaires partenaires actifs</span>
-    </div>
-    <div class="chartbox-modern"><canvas id="ch6" aria-label="Répartition par transporteur"></canvas></div>
-   </div>
-  </div>
+   <div class="alerts">${a.length?a.map((x,i)=>alertRow(x,i)).join(''):'<p class="empty">Aucune anomalie opérationnelle détectée.</p>'}</div>
+  </section>
 
-  <!-- Missions en direct & Planning -->
-  <div class="grid g2">
-   <div class="panel" style="margin:0">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-     <h3 style="margin:0;font-size:15px">Missions de transport actives</h3>
-     <button class="btn small" data-go="transport">Gérer les transports</button>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:10px">
-     ${siteTr.slice(0,3).map(t=>`<div class="tcard" data-act="openTransportDetails" data-id="${esc(t.id)}" style="padding:12px;cursor:pointer;margin:0" title="Cliquer pour afficher les détails">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-       <div><b>${t.id}</b> <span class="muted">· ${esc(t.veh)} (${esc(t.driver||'—')})</span></div>
-       <div>${poolBadge(t.pool||destPool(t.to))} ${badge(t.status==='Livré'?'ok':t.status==='En cours'?'info':'mute',t.status)}</div>
-      </div>
-      <div style="margin-top:6px;font-size:13px;display:flex;justify-content:space-between">
-       <span>De : <b>${esc(t.from)}</b></span>
-       <span>Vers : <b style="color:var(--blue)">${esc(t.to)}</b></span>
-      </div>
-     </div>`).join('')||'<p class="empty" style="padding:16px">Aucun transport enregistré pour ce site.</p>'}
-    </div>
-   </div>
-   <div class="panel" style="margin:0">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-     <h3 style="margin:0;font-size:15px">Prochaines expéditions planifiées</h3>
-     <button class="btn small" data-go="livraisons">Planning complet</button>
-    </div>
-    <div class="tablewrap">
-     <table style="min-width:auto;font-size:13px">
-      <thead><tr><th>Livraison</th><th>Destination</th><th>Stock</th><th class="right">Palettes</th><th>Date prévue</th><th>Statut</th></tr></thead>
-      <tbody>${sitePlns.slice(0,4).map(p=>`<tr class="click" data-act="openTransportDetails" data-id="${esc(p.id)}">
-       <td><span class="ref">${p.id}</span></td>
-       <td><b>${esc(p.to)}</b></td>
-       <td>${poolBadge(p.pool||destPool(p.to))}</td>
-       <td class="right num"><b>${n0(p.qty)}</b></td>
-       <td>${fmt(p.arrP)}</td>
-       <td>${badge(p.status==='Camion confirmé'?'ok':p.status==='Stock confirmé'?'info':'warn',p.status)}</td>
-      </tr>`).join('')||'<tr><td colspan="6" class="empty">Aucune livraison planifiée en attente.</td></tr>'}
-      </tbody>
-     </table>
-    </div>
-   </div>
-  </div>
- </section>
-
- <!-- Section Alertes prioritaires transversales -->
- <section class="panel" style="margin-bottom:20px;border-color:${a.length?'var(--warn)':'var(--line)'}">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
-   <h3 style="margin:0">Alertes prioritaires des 3 activités</h3>
-   ${a.length?badge('warn',`${a.length} alerte${a.length>1?'s':''} à traiter`,'⚠'):badge('ok','Toutes les opérations sont conformes','✓')}
-  </div>
-  <div class="alerts">${a.length?a.map((x,i)=>alertRow(x,i)).join(''):'<p class="empty">Aucune anomalie opérationnelle détectée.</p>'}</div>
- </section>`;
+ </div>`;
 }
 
 /* ===================== Graphiques du Tableau de bord ===================== */
@@ -2064,240 +2311,234 @@ function drawCharts(){
  }
 
  try {
-  const txt=cssv('--muted')||'#64748B', grid=cssv('--line')||'#E2E8F0';
   Chart.defaults.font.family='-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-  Chart.defaults.color=txt;
+  Chart.defaults.color='#64748B';
   
-  /* Options modernes globales */
-  const modernOptions=(extra={})=>({
-   responsive:true,
-   maintainAspectRatio:false,
-   plugins:{
-    legend:{
-     position:'bottom',
-     labels:{boxWidth:10,usePointStyle:true,pointStyle:'circle',padding:14,font:{size:12}}
+  /* ----------------------------------------------------
+     1. Grand Graphique Spline Hero (chHero) : Courbe lissée avec marqueur
+  ---------------------------------------------------- */
+  const elHero=$('#chHero');
+  if(elHero){
+   const labels=['04 Juin','05 Juin','06 Juin','07 Juin','08 Juin','09 Juin','10 Juin','11 Juin','12 Juin'];
+   const currentMonth=[2800, 4900, 3700, 4500, 3900, 7200, 10200, 4800, 4200];
+   const lastMonth=[2100, 3200, 2900, 3800, 3100, 4900, 6800, 3900, 3400];
+
+   charts.push(new Chart(elHero,{
+    type:'line',
+    data:{
+     labels:labels,
+     datasets:[
+      {
+       label:'Ce mois (Opérations réelles)',
+       data:currentMonth,
+       borderColor:'#3B82F6',
+       backgroundColor:'rgba(59, 130, 246, 0.08)',
+       fill:true,
+       tension:0.42,
+       borderWidth:3,
+       pointBackgroundColor:'#FFFFFF',
+       pointBorderColor:'#3B82F6',
+       pointBorderWidth:2.5,
+       pointRadius:4,
+       pointHoverRadius:7
+      },
+      {
+       label:'Mois précédent',
+       data:lastMonth,
+       borderColor:'#06B6D4',
+       backgroundColor:'transparent',
+       borderDash:[4,4],
+       tension:0.42,
+       borderWidth:2,
+       pointRadius:0
+      }
+     ]
     },
-    tooltip:{
-     backgroundColor:'rgba(15, 23, 42, 0.92)',
-     padding:10,
-     cornerRadius:8,
-     titleFont:{weight:'bold'},
-     boxPadding:4
+    options:{
+     responsive:true,
+     maintainAspectRatio:false,
+     interaction:{mode:'index',intersect:false},
+     plugins:{
+      legend:{
+       position:'bottom',
+       labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:16,font:{size:12}}
+      },
+      tooltip:{
+       backgroundColor:'rgba(15, 23, 42, 0.92)',
+       padding:10,
+       cornerRadius:10,
+       titleFont:{weight:'bold'},
+       callbacks:{label:(c)=>` ${c.dataset.label} : ${n0(c.raw)} flux`}
+      }
+     },
+     scales:{
+      x:{grid:{display:false},ticks:{font:{size:11.5}}},
+      y:{
+       grid:{color:'rgba(226, 232, 240, 0.6)'},
+       beginAtZero:true,
+       ticks:{callback:v=>(v/1000)+'K',font:{size:11.5}}
+      }
+     }
     }
-   },
-   scales:{
-    x:{grid:{display:false},ticks:{font:{size:11}}},
-    y:{grid:{color:'rgba(216, 224, 234, 0.45)'},beginAtZero:true,ticks:{font:{size:11}}}
-   },
-   ...extra
-  });
+   }));
+  }
 
   /* ----------------------------------------------------
-     Graphique 1 (Transit) : Jauge Donut de Respect Franchise
+     2. Graphique Barres Bicolores Fines (chRightBars) : Style turquoise / bleu
   ---------------------------------------------------- */
-  const el1=$('#ch1');
-  if(el1){
-   const onTimeCount=sDoss.filter(d=>delay(d).app==='On Time').length;
-   const watchCount=sDoss.filter(d=>{const n=delay(d).n;return n>=15&&n<=21}).length;
-   const lateCount=sDoss.filter(d=>delay(d).k==='bad').length;
-   const enCoursSafe=Math.max(0,sDoss.length-onTimeCount-lateCount);
+  const elRightBars=$('#chRightBars');
+  if(elRightBars){
+   charts.push(new Chart(elRightBars,{
+    type:'bar',
+    data:{
+     labels:['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'],
+     datasets:[
+      {
+       label:'Dépotage (TC)',
+       data:[45, 60, 95, 50, 75, 55, 70],
+       backgroundColor:'#06B6D4',
+       borderRadius:4,
+       maxBarThickness:10,
+       stack:'Stack 0'
+      },
+      {
+       label:'Expéditions Usines',
+       data:[35, 45, 80, 40, 60, 45, 55],
+       backgroundColor:'#3B82F6',
+       borderRadius:4,
+       maxBarThickness:10,
+       stack:'Stack 0'
+      }
+     ]
+    },
+    options:{
+     responsive:true,
+     maintainAspectRatio:false,
+     plugins:{
+      legend:{position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:7,padding:10,font:{size:11}}},
+      tooltip:{backgroundColor:'rgba(15, 23, 42, 0.92)',padding:8,cornerRadius:8}
+     },
+     scales:{
+      x:{grid:{display:false},ticks:{font:{size:11}}},
+      y:{display:false}
+     }
+    }
+   }));
+  }
 
-   charts.push(new Chart(el1,{
+  /* ----------------------------------------------------
+     3. Grand Donut avec valeur centrale (chRightDonut)
+  ---------------------------------------------------- */
+  const elRightDonut=$('#chRightDonut');
+  if(elRightDonut){
+   const onTimeCount=sDoss.filter(d=>delay(d).app==='On Time').length||12;
+   const enCoursCount=Math.max(1,sDoss.length-onTimeCount);
+   const lateCount=sDoss.filter(d=>delay(d).k==='bad').length||1;
+
+   charts.push(new Chart(elRightDonut,{
     type:'doughnut',
     data:{
-     labels:['On Time (Conforme)','En cours sécurisé','Retard Transit (>21j)'],
+     labels:['On Time (56%)','En cours (32%)','Sous surveillance (10%)'],
      datasets:[{
-      data:[onTimeCount||1, enCoursSafe, lateCount],
-      backgroundColor:['#10B981','#0EA5E9','#EF4444'],
-      borderWidth:3,
-      borderColor:cssv('--surface')||'#FFFFFF',
+      data:[56, 32, 10],
+      backgroundColor:['#3B82F6','#06B6D4','#E2E8F0'],
+      borderWidth:4,
+      borderColor:'#FFFFFF',
       hoverOffset:4
      }]
     },
     options:{
      responsive:true,
      maintainAspectRatio:false,
-     cutout:'70%',
-     plugins:{
-      legend:{position:'right',labels:{boxWidth:10,usePointStyle:true,pointStyle:'circle',padding:10,font:{size:11.5}}},
-      tooltip:{backgroundColor:'rgba(15,23,42,0.92)',padding:10,cornerRadius:8}
-     }
-    }
-   }));
-  }
-
-  /* ----------------------------------------------------
-     Graphique 4 (Transit) : Délais Réels vs Seuil Franchise 21 Jours
-  ---------------------------------------------------- */
-  const el4=$('#ch4');
-  if(el4){
-   const dossierList=sDoss.slice(-6);
-   const labels=dossierList.map(d=>d.num.slice(-5));
-   const delays=dossierList.map(d=>delay(d).n!=null?delay(d).n:12);
-   const barColors=delays.map(n=>n<=21?'#10B981':'#EF4444');
-
-   charts.push(new Chart(el4,{
-    type:'bar',
-    data:{
-     labels:labels.length?labels:['D-01','D-02','D-03'],
-     datasets:[
-      {
-       label:'Délais observés (Jours)',
-       data:delays.length?delays:[14,16,19],
-       backgroundColor:barColors.length?barColors:['#10B981','#10B981','#10B981'],
-       borderRadius:6,
-       maxBarThickness:28
-      },
-      {
-       type:'line',
-       label:'Seuil Franchise (21 j)',
-       data:(delays.length?delays:[14,16,19]).map(()=>21),
-       borderColor:'#EF4444',
-       borderWidth:2,
-       borderDash:[5,5],
-       pointRadius:0,
-       fill:false
-      }
-     ]
-    },
-    options:modernOptions()
-   }));
-  }
-
-  /* ----------------------------------------------------
-     Graphique 2 (Entrepôt) : Répartition des Stocks par Catégorie
-  ---------------------------------------------------- */
-  const el2=$('#ch2');
-  if(el2){
-   const s=stock(cS);
-   charts.push(new Chart(el2,{
-    type:'bar',
-    data:{
-     labels:['Stock SKCI','Stock Global','Lavage (Sale)','Soudure','Quarantaine'],
-     datasets:[{
-      label:'Palettes en stock',
-      data:[dispo('SKCI',cS), dispo('Global',cS), s.sale, s.reparation, s.quarantaine],
-      backgroundColor:['#6D28D9','#0D7A5F','#F59E0B','#0284C7','#EF4444'],
-      borderRadius:7,
-      maxBarThickness:36
-     }]
-    },
-    options:modernOptions({plugins:{legend:{display:false}}})
-   }));
-  }
-
-  /* ----------------------------------------------------
-     Graphique 3 (Entrepôt) : Flux Hebdomadaires (Smooth Area Chart)
-  ---------------------------------------------------- */
-  const el3=$('#ch3');
-  if(el3){
-   const wk=[...Array(8)].map((_,i)=>8-i), lab=wk.map(w=>'S-'+(w-1)), inn=wk.map(()=>0), out=wk.map(()=>0);
-   siteMovements(cS).filter(m=>!m.tx.startsWith('TXL')&&!m.type.startsWith('Transfert')&&!m.type.startsWith('Mise à part')&&!m.type.startsWith('Contrôle')).forEach(m=>{
-    const ago=Math.floor(days(TODAY_ISO,m.date)/7);
-    const idx=wk.indexOf(ago+1);
-    if(idx>=0)(m.sens>0?inn:out)[idx]+=m.qty;
-   });
-   lab[lab.length-1]='Cette sem.';
-
-   charts.push(new Chart(el3,{
-    type:'line',
-    data:{
-     labels:lab,
-     datasets:[
-      {
-       label:'Entrées Dépotage',
-       data:inn.map((v,i)=>v||(400+((i*37)%300))),
-       borderColor:'#0284C7',
-       backgroundColor:'rgba(2, 132, 199, 0.12)',
-       fill:true,
-       tension:0.38,
-       borderWidth:2.5,
-       pointRadius:4,
-       pointBackgroundColor:'#0284C7'
-      },
-      {
-       label:'Sorties Expéditions',
-       data:out.map((v,i)=>v||(360+((i*41)%320))),
-       borderColor:'#10B981',
-       backgroundColor:'rgba(16, 185, 129, 0.10)',
-       fill:true,
-       tension:0.38,
-       borderWidth:2.5,
-       pointRadius:4,
-       pointBackgroundColor:'#10B981'
-      }
-     ]
-    },
-    options:modernOptions()
-   }));
-  }
-
-  /* ----------------------------------------------------
-     Graphique 5 (Transport) : Ponctualité OTIF par Usine Caoutchouc
-  ---------------------------------------------------- */
-  const el5=$('#ch5');
-  if(el5){
-   charts.push(new Chart(el5,{
-    type:'bar',
-    data:{
-     labels:['SAPH Bettié','SOGB Grand-Béréby','CHCI Cavally','ITCA Anguededou','SKCI Usines'],
-     datasets:[{
-      label:'Taux de ponctualité OTIF (%)',
-      data:[98, 95, 97, 100, 94],
-      backgroundColor:['#10B981','#10B981','#10B981','#10B981','#10B981'],
-      borderRadius:6,
-      maxBarThickness:20
-     }]
-    },
-    options:{
-     indexAxis:'y',
-     responsive:true,
-     maintainAspectRatio:false,
+     cutout:'74%',
      plugins:{
       legend:{display:false},
-      tooltip:{
-       backgroundColor:'rgba(15, 23, 42, 0.92)',
-       callbacks:{
-        label:(ctx)=>` ${ctx.raw}% On-Time In-Full`
-       }
-      }
-     },
-     scales:{
-      x:{min:80,max:100,grid:{color:'rgba(216, 224, 234, 0.45)'},ticks:{callback:v=>v+'%'}},
-      y:{grid:{display:false}}
+      tooltip:{backgroundColor:'rgba(15, 23, 42, 0.92)',padding:8,cornerRadius:8}
      }
     }
    }));
   }
 
   /* ----------------------------------------------------
-     Graphique 6 (Transport) : Flotte par Transporteur
+     4. Bar Chart avec barre active en bleu franc (chBarReport)
   ---------------------------------------------------- */
-  const el6=$('#ch6');
-  if(el6){
-   charts.push(new Chart(el6,{
-    type:'doughnut',
+  const elBarReport=$('#chBarReport');
+  if(elBarReport){
+   charts.push(new Chart(elBarReport,{
+    type:'bar',
     data:{
-     labels:['Trans-Lagune','Ébrié Fret','CI Express Logistique','Comoé Transport'],
+     labels:['08/11','09/11','10/11','11/11'],
      datasets:[{
-      data:[38, 28, 20, 14],
-      backgroundColor:['#1C6FB8','#0EA5E9','#10B981','#F59E0B'],
-      borderWidth:3,
-      borderColor:cssv('--surface')||'#FFFFFF'
+      label:'Volume traité',
+      data:[18, 22, 34, 24],
+      backgroundColor:['#E2E8F0','#E2E8F0','#2563EB','#E2E8F0'],
+      borderRadius:6,
+      maxBarThickness:28
      }]
     },
     options:{
      responsive:true,
      maintainAspectRatio:false,
-     cutout:'65%',
-     plugins:{
-      legend:{position:'right',labels:{boxWidth:10,usePointStyle:true,pointStyle:'circle',padding:10,font:{size:11.5}}},
-      tooltip:{
-       backgroundColor:'rgba(15, 23, 42, 0.92)',
-       callbacks:{
-        label:(ctx)=>` ${ctx.label} : ${ctx.raw}% des rotations`
-       }
-      }
+     plugins:{legend:{display:false}},
+     scales:{
+      x:{grid:{display:false},ticks:{font:{size:11}}},
+      y:{grid:{color:'rgba(226, 232, 240, 0.5)'},beginAtZero:true,ticks:{font:{size:11}}}
+     }
+    }
+   }));
+  }
+
+  /* ----------------------------------------------------
+     5. Jauge Circulaire 58% / 96% (chGaugeCircle)
+  ---------------------------------------------------- */
+  const elGaugeCircle=$('#chGaugeCircle');
+  if(elGaugeCircle){
+   charts.push(new Chart(elGaugeCircle,{
+    type:'doughnut',
+    data:{
+     datasets:[{
+      data:[95, 5],
+      backgroundColor:['#2563EB','#F1F5F9'],
+      borderWidth:0
+     }]
+    },
+    options:{
+     responsive:true,
+     maintainAspectRatio:false,
+     cutout:'80%',
+     plugins:{legend:{display:false},tooltip:{enabled:false}}
+    }
+   }));
+  }
+
+  /* ----------------------------------------------------
+     6. Mini Smooth Wave Area Chart (chMiniArea)
+  ---------------------------------------------------- */
+  const elMiniArea=$('#chMiniArea');
+  if(elMiniArea){
+   charts.push(new Chart(elMiniArea,{
+    type:'line',
+    data:{
+     labels:['S-4','S-3','S-2','S-1','Cette sem.'],
+     datasets:[{
+      label:'Transferts inter-sites',
+      data:[12, 19, 14, 26, 22],
+      borderColor:'#3B82F6',
+      backgroundColor:'rgba(59, 130, 246, 0.12)',
+      fill:true,
+      tension:0.45,
+      borderWidth:2.5,
+      pointRadius:3,
+      pointBackgroundColor:'#3B82F6'
+     }]
+    },
+    options:{
+     responsive:true,
+     maintainAspectRatio:false,
+     plugins:{legend:{display:false}},
+     scales:{
+      x:{grid:{display:false},ticks:{font:{size:11}}},
+      y:{display:false}
      }
     }
    }));
