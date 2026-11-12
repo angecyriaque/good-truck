@@ -1,0 +1,7 @@
+# Ignorer les fichiers temporaires
+temp_replay.html
+test_rebuild.html
+*.tmp
+*.log
+.DS_Store
+Thumbs.db
