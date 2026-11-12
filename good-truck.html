@@ -559,6 +559,33 @@ td .ref{font-weight:700;color:var(--blue)}
   align-items: center;
   gap: 5px;
 }
+
+/* ===================== Tableau de bord en 3 Volets ===================== */
+.dash-volets-nav{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.dash-volet-pill{display:inline-flex;align-items:center;gap:10px;padding:12px 18px;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;color:var(--text);text-decoration:none;font-weight:600;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.02);transition:all .15s ease}
+.dash-volet-pill:hover{border-color:var(--blue);background:var(--surface-2);transform:translateY(-1px)}
+.dash-volet-pill.active{border-color:var(--blue);background:var(--info-bg);color:var(--blue)}
+.dash-volet-pill .cnt-badge{font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line)}
+
+.dash-volet{background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:22px;margin-bottom:26px;box-shadow:0 3px 14px rgba(6,27,51,0.04);scroll-margin-top:120px}
+.dash-volet-header{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;padding-bottom:14px;margin-bottom:18px;border-bottom:1.5px solid var(--line)}
+.dash-volet-header .title-group{display:flex;align-items:center;gap:14px}
+.dash-volet-header .icon-badge{width:48px;height:48px;border-radius:12px;display:grid;place-items:center;font-size:24px;flex-shrink:0}
+.dash-volet.volet-transit{border-left:5px solid var(--blue)}
+.dash-volet.volet-transit .icon-badge{background:rgba(28,111,184,0.12);color:var(--blue)}
+.dash-volet.volet-entrepot{border-left:5px solid var(--global)}
+.dash-volet.volet-entrepot .icon-badge{background:rgba(13,122,95,0.12);color:var(--global)}
+.dash-volet.volet-transport{border-left:5px solid #F59E0B}
+.dash-volet.volet-transport .icon-badge{background:rgba(245,158,11,0.14);color:#B45309}
+
+.dash-volet-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:20px}
+.dash-kpi-card{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;cursor:pointer;transition:transform .15s ease,border-color .15s ease}
+.dash-kpi-card:hover{transform:translateY(-2px);border-color:var(--blue);background:var(--surface)}
+.dash-kpi-card span{font-size:12.5px;color:var(--muted);font-weight:600;display:block}
+.dash-kpi-card b{font-family:var(--cond);font-size:30px;line-height:1.1;display:block;margin:4px 0 2px}
+.dash-kpi-card.t-bad b{color:var(--bad)}.dash-kpi-card.t-ok b{color:var(--ok)}.dash-kpi-card.t-warn b{color:var(--warn)}
+.dash-kpi-card small{font-size:11.5px;color:var(--muted);display:block}
+
 </style>
 </head>
 <body>
@@ -1626,39 +1653,263 @@ function viewTransfertBon(trfId){
 
 /* ===================== Tableau de bord ===================== */
 function vDash(){
- const open=S.dossiers.filter(d=>d.status!=='Clôturé');
- const st=S.dossiers.map(delay);
- const over=S.dossiers.filter(d=>delay(d).k==='bad').length, near=open.filter(d=>delay(d).k==='warn').length;
- const trRun=S.transports.filter(t=>t.status==='En cours').length;
- const elig=S.deliveries.filter(l=>['Livrée','Clôturée'].includes(l.status));
- const onTime=elig.length?Math.round(elig.filter(l=>{const t=S.transports.find(t=>t.id===l.transport);return t&&t.arrR&&t.arrR<=t.arrP}).length/elig.length*100):null;
- const a=alerts();
  const cS=curSite(), sObj=curSiteObj();
- const siteDossiers=S.dossiers.filter(d=>!d.site||d.site===cS);
- const siteOpen=siteDossiers.filter(d=>d.status!=='Clôturé');
- const siteOver=siteDossiers.filter(d=>delay(d).k==='bad').length;
- const siteNear=siteOpen.filter(d=>delay(d).k==='warn').length;
- const siteTrRun=S.transports.filter(t=>(!t.site||t.site===cS)&&t.status==='En cours').length;
+ const sDoss=siteDossiers(cS);
+ const siteOpen=sDoss.filter(d=>d.status!=='Clôturé');
+ const siteOver=sDoss.filter(d=>delay(d).k==='bad').length;
+ const onTimeDoss=sDoss.filter(d=>delay(d).app==='On Time').length;
+ const onTimeRate=sDoss.length?Math.round((onTimeDoss/sDoss.length)*100):100;
+ const waitNavire=siteOpen.filter(d=>!d.D3).length;
+ const doneDoss=sDoss.filter(d=>d.D8&&delay(d).n!=null&&delay(d).k!=='anom');
+ const avgTransit=doneDoss.length?Math.round(doneDoss.map(d=>delay(d).n).reduce((a,b)=>a+b,0)/doneDoss.length):'—';
+
+ const s=stock(cS);
  const trTransitCount=(S.transfers||[]).filter(t=>t.status==='En transit').length;
- return siteBanner(`Vue d’ensemble des opérations pour ${sObj.name} (${sObj.hub})`)+
+
+ const siteTr=siteTransports(cS);
+ const siteTrRun=siteTr.filter(t=>t.status==='En cours').length;
+ const waitLoadTrs=siteTr.filter(t=>t.status==='Planifié');
+ const sitePlns=sitePlanifs(cS);
+ const pendPlns=sitePlns.filter(p=>p.status==='En attente Entrepôt');
+ const eligDeliveries=S.deliveries.filter(l=>['Livrée','Clôturée'].includes(l.status));
+ const onTimeTr=eligDeliveries.length?Math.round(eligDeliveries.filter(l=>{const t=S.transports.find(x=>x.id===l.transport);return t&&t.arrR&&t.arrR<=t.arrP}).length/eligDeliveries.length*100):100;
+ const incidentsCount=siteTr.filter(t=>t.incidents&&t.incidents.length).length;
+ const a=alerts();
+
+ return siteBanner(`Vue d’ensemble des 3 activités pour ${sObj.name} (${sObj.hub})`)+
  hero('port',`Tableau de bord · ${sObj.icon} ${sObj.name}`,`Situation opérationnelle ${sObj.id==='sanpedro'?'de San Pedro':"d’Abidjan"}.`)+
- `<div class="kpis">
-  <button class="kpi" data-kpi="transit:tous"><span>Dossiers ouverts (${sObj.short})</span><b>${siteOpen.length}</b></button>
-  <button class="kpi t-bad" data-kpi="transit:bad"><span>Retard Transit</span><b>${siteOver}</b></button>
-  <button class="kpi t-ok" data-kpi="entrepot:dispo"><span>Palettes propres (${sObj.short})</span><b>${n0(dispo())}</b><small class="muted" style="font-size:11px;font-weight:500">SKCI : ${n0(dispo('SKCI'))} · Global : ${n0(dispo('Global'))}</small></button>
-  <button class="kpi" data-kpi="transport"><span>Livraison en cours</span><b>${siteTrRun}</b></button>
-  <button class="kpi t-warn" data-go="entrepot" data-set-ent="transferts"><span>Transferts inter-sites</span><b style="color:var(--warn)">${trTransitCount}</b><small class="muted" style="font-size:11px">en transit Abidjan ⇄ SP</small></button>
+ `<!-- Barre d'ancrage rapide aux 3 volets -->
+ <div class="dash-volets-nav" role="navigation" aria-label="Accès rapide aux trois activités">
+  <a class="dash-volet-pill" href="#volet-transit">
+   <span style="font-size:18px">🚢</span> <span>Volet 1 · <b>Transit Maritime</b></span> <span class="cnt-badge">${siteOpen.length} ouverts</span>
+  </a>
+  <a class="dash-volet-pill" href="#volet-entrepot">
+   <span style="font-size:18px">📦</span> <span>Volet 2 · <b>Entrepôt & Stocks</b></span> <span class="cnt-badge">${n0(dispo('Tous',cS))} dispo</span>
+  </a>
+  <a class="dash-volet-pill" href="#volet-transport">
+   <span style="font-size:18px">🚚</span> <span>Volet 3 · <b>Transport & Livraisons</b></span> <span class="cnt-badge">${siteTrRun} en route</span>
+  </a>
  </div>
- <div class="grid dash">
-  <section class="panel"><h3>Alertes prioritaires</h3><div class="alerts">${a.length?a.map((x,i)=>alertRow(x,i)).join(''):'<p class="empty">Aucune alerte : toutes les opérations sont dans les règles.</p>'}</div></section>
-  <div class="grid g2">
-   <section class="panel"><h3>Dossiers par état</h3><div class="chartbox"><canvas id="ch1" aria-label="Répartition des dossiers par état"></canvas></div></section>
-   <section class="panel"><h3>Stock par catégorie (dont Propres SKCI & Global)</h3><div class="chartbox"><canvas id="ch2" aria-label="Stock de palettes par catégorie"></canvas></div></section>
-   <section class="panel"><h3>Entrées et sorties de palettes</h3><div class="chartbox"><canvas id="ch3" aria-label="Entrées et sorties par semaine"></canvas></div></section>
-   <section class="panel"><h3>Délai total par dossier récupéré</h3><div class="chartbox"><canvas id="ch4" aria-label="Délai total par dossier"></canvas></div></section>
+
+ <!-- ==================== VOLET 1 : TRANSIT ==================== -->
+ <section class="dash-volet volet-transit" id="volet-transit">
+  <div class="dash-volet-header">
+   <div class="title-group">
+    <div class="icon-badge">🚢</div>
+    <div>
+     <h2 style="font-size:19px;margin:0">Volet 1 · Transit Maritime & Respect de la Franchise</h2>
+     <small class="muted">Franchise portuaire (règle des 21 jours), suivi des escales navires, tractions conteneurs et dépotages pour ${sObj.name} (${sObj.port}).</small>
+    </div>
+   </div>
+   <button class="btn small primary" data-go="transit">Consulter le Transit →</button>
   </div>
- </div>`;
+  <div class="dash-volet-kpis">
+   <div class="dash-kpi-card" data-kpi="transit:tous">
+    <span>Dossiers en cours</span>
+    <b>${siteOpen.length}</b>
+    <small>${sDoss.length} dossiers au total</small>
+   </div>
+   <div class="dash-kpi-card ${siteOver?'t-bad':''}" data-kpi="transit:bad">
+    <span>Retard Transit</span>
+    <b>${siteOver}</b>
+    <small>${siteOver?'Franchise 21 j dépassée':'Aucun retard constaté'}</small>
+   </div>
+   <div class="dash-kpi-card t-ok" data-kpi="transit:ok">
+    <span>Taux de respect On Time</span>
+    <b>${onTimeRate}%</b>
+    <small>${onTimeDoss} dossiers On Time</small>
+   </div>
+   <div class="dash-kpi-card" data-go="transit">
+    <span>Franchise moyenne courue</span>
+    <b>${avgTransit} j</b>
+    <small>Seuil maximum : 21 jours</small>
+   </div>
+   <div class="dash-kpi-card" data-kpi="transit:watch">
+    <span>Attente navire / traction</span>
+    <b>${waitNavire}</b>
+    <small>Avant arrivée effective</small>
+   </div>
+  </div>
+  <div class="grid g2">
+   <div class="panel">
+    <h3>Conformité des dossiers de transit</h3>
+    <div class="chartbox"><canvas id="ch1" aria-label="Répartition des dossiers par état"></canvas></div>
+   </div>
+   <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+     <h3 style="margin:0">Dossiers récents & délais observés</h3>
+     <button class="btn small" data-go="transit">Voir tous (${sDoss.length})</button>
+    </div>
+    <div class="tablewrap">
+     <table style="min-width:auto;font-size:13px">
+      <thead><tr><th>Dossier</th><th>Conteneur(TC)</th><th>Armateur</th><th>Appréciation & Délais</th><th>Action</th></tr></thead>
+      <tbody>${sDoss.slice(0,4).map(d=>`<tr class="click" data-dossier="${d.id}">
+       <td><span class="ref">${d.num}</span></td>
+       <td><b class="num">${d.cont}</b></td>
+       <td>${esc(d.lam)}</td>
+       <td>${appBadge(d)}<div style="margin-top:3px">${delayCell(d)}</div></td>
+       <td><button class="btn small" data-dossier="${d.id}">Fiche</button></td>
+      </tr>`).join('')||'<tr><td colspan="5" class="empty">Aucun dossier disponible.</td></tr>'}
+      </tbody>
+     </table>
+    </div>
+   </div>
+  </div>
+ </section>
+
+ <!-- ==================== VOLET 2 : ENTREPÔT ==================== -->
+ <section class="dash-volet volet-entrepot" id="volet-entrepot">
+  <div class="dash-volet-header">
+   <div class="title-group">
+    <div class="icon-badge">📦</div>
+    <div>
+     <h2 style="font-size:19px;margin:0">Volet 2 · Entrepôt & Gestion des Stocks Bi-Sites</h2>
+     <small class="muted">Disponibilité immédiate du Stock SKCI et du Stock Global (SAPH, SOGB, CHCI...), lavages, soudures et transferts inter-sites.</small>
+    </div>
+   </div>
+   <button class="btn small primary" data-go="entrepot">Consulter l’Entrepôt →</button>
+  </div>
+  <div class="dash-volet-kpis">
+   <div class="dash-kpi-card t-ok" data-go="entrepot" data-set-ent="stock">
+    <span>Stock Propre SKCI (Dispo)</span>
+    <b>${n0(dispo('SKCI',cS))}</b>
+    <small>Réservé : ${n0(reserved('SKCI',cS))} palettes</small>
+   </div>
+   <div class="dash-kpi-card t-ok" data-go="entrepot" data-set-ent="stock">
+    <span>Stock Propre Global (Dispo)</span>
+    <b>${n0(dispo('Global',cS))}</b>
+    <small>Réservé : ${n0(reserved('Global',cS))} palettes</small>
+   </div>
+   <div class="dash-kpi-card t-warn" data-go="entrepot" data-set-ent="lavage">
+    <span>Palettes sales (Lavage)</span>
+    <b>${s.sale}</b>
+    <small>En attente de reconditionnement</small>
+   </div>
+   <div class="dash-kpi-card" data-go="entrepot" data-set-ent="reparation">
+    <span>Soudure / DOOR SWAP</span>
+    <b>${s.reparation}</b>
+    <small>En cours de réparation</small>
+   </div>
+   <div class="dash-kpi-card ${s.quarantaine?'t-bad':''}" data-go="entrepot" data-set-ent="quarantaine">
+    <span>Quarantaine isolée</span>
+    <b>${s.quarantaine}</b>
+    <small>Hors standard (MB4/7/9) : ${s.autre}</small>
+   </div>
+   <div class="dash-kpi-card t-warn" data-go="entrepot" data-set-ent="transferts">
+    <span>Transferts inter-sites</span>
+    <b>${trTransitCount}</b>
+    <small>En transit Abidjan ⇄ San Pedro</small>
+   </div>
+  </div>
+  <div class="grid g2">
+   <div class="panel">
+    <h3>Stock par catégorie de palettes</h3>
+    <div class="chartbox"><canvas id="ch2" aria-label="Stock de palettes par catégorie"></canvas></div>
+   </div>
+   <div class="panel">
+    <h3>Flux hebdomadaires (Entrées vs Sorties de palettes)</h3>
+    <div class="chartbox"><canvas id="ch3" aria-label="Entrées et sorties par semaine"></canvas></div>
+   </div>
+  </div>
+ </section>
+
+ <!-- ==================== VOLET 3 : TRANSPORT ==================== -->
+ <section class="dash-volet volet-transport" id="volet-transport">
+  <div class="dash-volet-header">
+   <div class="title-group">
+    <div class="icon-badge">🚚</div>
+    <div>
+     <h2 style="font-size:19px;margin:0">Volet 3 · Transport & Expéditions vers les Clients</h2>
+     <small class="muted">Traction routière, acheminement vers les destinations répertoriées, respect des délais de livraison et gestion des camions au chargement.</small>
+    </div>
+   </div>
+   <button class="btn small primary" data-go="transport">Consulter le Transport →</button>
+  </div>
+  <div class="dash-volet-kpis">
+   <div class="dash-kpi-card t-ok" data-go="transport" data-trsub="missions">
+    <span>Missions en route</span>
+    <b>${siteTrRun}</b>
+    <small>Expéditions en cours de livraison</small>
+   </div>
+   <div class="dash-kpi-card t-warn" data-go="entrepot" data-set-ent="stock">
+    <span>Camions au chargement</span>
+    <b>${waitLoadTrs.length}</b>
+    <small>En attente quai / départ</small>
+   </div>
+   <div class="dash-kpi-card" data-go="livraisons" data-lvsub="planification">
+    <span>Demandes planifiées</span>
+    <b>${sitePlns.length}</b>
+    <small>${pendPlns.length} en attente validation stock</small>
+   </div>
+   <div class="dash-kpi-card t-ok" data-go="transport">
+    <span>Taux de ponctualité</span>
+    <b>${onTimeTr}%</b>
+    <small>Livraisons arrivées à l’heure</small>
+   </div>
+   <div class="dash-kpi-card" data-go="transport" data-trsub="destinations">
+    <span>Destinations répertoriées</span>
+    <b>${S.destinations.length}</b>
+    <small>Sites clients enregistrés</small>
+   </div>
+   <div class="dash-kpi-card ${incidentsCount?'t-bad':''}" data-go="transport">
+    <span>Incidents signalés</span>
+    <b>${incidentsCount}</b>
+    <small>${incidentsCount?'Retard / Panne / Problème':'Aucun incident signalé'}</small>
+   </div>
+  </div>
+  <div class="grid g2">
+   <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+     <h3 style="margin:0">Missions de transport actives</h3>
+     <button class="btn small" data-go="transport">Gérer les transports</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+     ${siteTr.slice(0,3).map(t=>`<div class="tcard" data-act="openTransportDetails" data-id="${esc(t.id)}" style="padding:12px;cursor:pointer;margin:0" title="Cliquer pour afficher les détails">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+       <div><b>${t.id}</b> <span class="muted">· ${esc(t.veh)} (${esc(t.driver||'—')})</span></div>
+       <div>${poolBadge(t.pool||destPool(t.to))} ${badge(t.status==='Livré'?'ok':t.status==='En cours'?'info':'mute',t.status)}</div>
+      </div>
+      <div style="margin-top:6px;font-size:13px;display:flex;justify-content:space-between">
+       <span>De : <b>${esc(t.from)}</b></span>
+       <span>Vers : <b style="color:var(--blue)">${esc(t.to)}</b></span>
+      </div>
+     </div>`).join('')||'<p class="empty" style="padding:16px">Aucun transport enregistré pour ce site.</p>'}
+    </div>
+   </div>
+   <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+     <h3 style="margin:0">Prochaines livraisons clients planifiées</h3>
+     <button class="btn small" data-go="livraisons">Planning complet</button>
+    </div>
+    <div class="tablewrap">
+     <table style="min-width:auto;font-size:13px">
+      <thead><tr><th>Livraison</th><th>Destination</th><th>Stock</th><th class="right">Palettes</th><th>Date prévue</th><th>Statut</th></tr></thead>
+      <tbody>${sitePlns.slice(0,4).map(p=>`<tr class="click" data-act="openTransportDetails" data-id="${esc(p.id)}">
+       <td><span class="ref">${p.id}</span></td>
+       <td><b>${esc(p.to)}</b></td>
+       <td>${poolBadge(p.pool||destPool(p.to))}</td>
+       <td class="right num"><b>${n0(p.qty)}</b></td>
+       <td>${fmt(p.arrP)}</td>
+       <td>${badge(p.status==='Camion confirmé'?'ok':p.status==='Stock confirmé'?'info':'warn',p.status)}</td>
+      </tr>`).join('')||'<tr><td colspan="6" class="empty">Aucune livraison planifiée en attente.</td></tr>'}
+      </tbody>
+     </table>
+    </div>
+   </div>
+  </div>
+ </section>
+
+ <!-- Section Alertes prioritaires transversales -->
+ <section class="panel" style="margin-bottom:20px;border-color:${a.length?'var(--warn)':'var(--line)'}">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+   <h3 style="margin:0">Alertes prioritaires des 3 activités</h3>
+   ${a.length?badge('warn',`${a.length} alerte${a.length>1?'s':''} à traiter`,'⚠'):badge('ok','Toutes les opérations sont conformes','✓')}
+  </div>
+  <div class="alerts">${a.length?a.map((x,i)=>alertRow(x,i)).join(''):'<p class="empty">Aucune anomalie opérationnelle détectée.</p>'}</div>
+ </section>`;
 }
+
+/* ===================== Graphiques du Tableau de bord ===================== */
 function drawCharts(){
  const sDoss=siteDossiers();
  const cnt={};sDoss.forEach(d=>{const l=delay(d).label;cnt[l]=(cnt[l]||0)+1});
