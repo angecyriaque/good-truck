@@ -875,14 +875,14 @@ function seed(){
   {id:'OP-TRS-03',type:'Transporteur',name:'CI Express Logistique',code:'CIX-CI',contact:'Lambert Gnagne',phone:'+225 07 49 11 05 77',email:'flotte@ciexpress.ci',zone:'Abidjan · San-Pedro · Bonoua (18 tracteurs)',active:true},
   {id:'OP-TRS-04',type:'Transporteur',name:'Comoé Transport',code:'CMT-CI',contact:'Drissa Ouattara',phone:'+225 01 02 65 80 44',email:'ops@comoetransport.ci',zone:'Terminal Vridi · Intérieur du pays (11 tracteurs)',active:true}
  ];
- return {v:14,curSite:'abidjan',me:'u1',users,operators,destinations,receptions,paletteModels,autresPalettes,dossiers,movements:mv,lavages,reparations,deliveries,transports,planifications,convs,
+ return {v:15,curSite:'abidjan',me:'u1',users,operators,destinations,receptions,paletteModels,autresPalettes,dossiers,movements:mv,lavages,reparations,deliveries,transports,planifications,convs,
   stockInit:{sale:300,propre_skci:340,propre_global:310,reparation:48,quarantaine:18,autre:45},
   audit:[{t:ago(-1,16,5),user:'u3',action:'Dépotage transmis à l’entrepôt',obj:'GT-2026-103',details:'REC-003 (140 palettes) transféré automatiquement en Stock & Réceptions'},{t:ago(0,9,10),user:'u4',action:'Lavage enregistré',obj:'LAV-004',details:'Lot LOT-2026-34 : 120 palettes lavées affectées au Stock Global'},{t:ago(0,14,0),user:'u4',action:'Opération DOOR SWAP',obj:'REP-002',details:'15 palettes en DOOR SWAP envoyées au lavage (Palettes sales)'}],
   seq:{MV:k,LV:44,TR:23,PLN:3,LAV:4,REP:3,AUT:3,GT:109,ARM:5,TRS:4,REC:7,DST:6}};
 }
 let S;
-try{S=JSON.parse(localStorage.getItem('goodtruck-v14'))}catch(e){S=null}
-if(!S||S.v!==14)S=seed();
+try{S=JSON.parse(localStorage.getItem('goodtruck-v15'))}catch(e){S=null}
+if(!S||S.v!==15)S=seed();
 
 S.dossiers = S.dossiers || [];
 S.transports = S.transports || [];
@@ -1029,7 +1029,7 @@ if(!S.dossiers.some(d=>d.site==='sanpedro')){
  if(!u.dept)u.dept=u.role==='Agent Transit'?'Transit & Douane':u.role==='Magasinier'?'Entrepôt & Stockage':u.role==='Responsable Transport'?'Transport Routier & Flotte':u.role==='Responsable des opérations'?'Opérations & Logistique':'Direction Générale';
  if(!u.password)u.password='Pass#2026';
 });
-const persist=()=>{try{localStorage.setItem('goodtruck-v14',JSON.stringify(S))}catch(e){}};
+const persist=()=>{try{localStorage.setItem('goodtruck-v15',JSON.stringify(S))}catch(e){}};
 const autresModelsList=()=>S?.paletteModels?.length?S.paletteModels:['MB4','MB7','MB9'];
 const armateursList=()=>S?.operators?S.operators.filter(o=>o.type==='Armateur'&&o.active).map(o=>o.name):ARMATEURS;
 const transporteursList=()=>S?.operators?S.operators.filter(o=>o.type==='Transporteur'&&o.active).map(o=>o.name):TRANSPORTEURS;
@@ -1146,13 +1146,12 @@ function openLoginModal() {
 
 /* Enregistrement simulé : le succès n’est annoncé qu’après confirmation */
 function save(label,fn,btn){
- if(!navigator.onLine){toast('Hors connexion : rien n’a été enregistré. Réessayez une fois le réseau rétabli.','bad');return Promise.resolve(false)}
  if(btn){btn.disabled=true;btn.dataset.l=btn.textContent;btn.textContent='Enregistrement…'}
  return new Promise(r=>setTimeout(()=>{
   let res;try{res=fn()}catch(e){res=e.message}
-  if(btn){btn.disabled=false;btn.textContent=btn.dataset.l}
+  if(btn){try{btn.disabled=false;btn.textContent=btn.dataset.l}catch(e){}}
   if(typeof res==='string'){toast(res,'bad');r(false);return}
-  persist();toast(label,'ok');render();r(true)},420));
+  persist();toast(label,'ok');render();r(true)},60));
 }
 
 /* ===================== Règles métier ===================== */
@@ -3219,6 +3218,52 @@ if (typeof setInterval !== 'undefined') {
  },1000);
 }
 
+/* Actions Planification & validation Entrepôt */
+function validerStockPlanif(id){
+ const p = (S.planifications||[]).find(x=>x.id===id);
+ if(!p) return;
+ const dest = destInfo(p.to), pool = p.pool || dest?.pool || destPool(p.to) || 'Global';
+ const disp = dispo(pool);
+ if(p.qty > disp){
+  toast(`Stock Propre ${pool} insuffisant (${n0(disp)} disponibles pour ${n0(p.qty)} demandées).`, 'bad');
+  return;
+ }
+ save(`Stock disponible validé pour la demande ${p.id} (${n0(p.qty)} palettes ${pool}).`, ()=>{
+  p.status = 'Stock confirmé';
+  p.stockValBy = S.me;
+  p.stockValAt = nowISO();
+  audit('Validation Stock Planification', p.id, `${n0(p.qty)} palettes Stock ${pool} vers ${p.to}`);
+ });
+}
+
+function confirmerCamionPlanif(id){
+ const p = (S.planifications||[]).find(x=>x.id===id);
+ if(!p) return;
+ openModal(`Confirmer le camion · ${p.id}`,
+  fld('Transporteur','trans','select',{req:1,options:transporteursList(),blank:'Choisir un transporteur',value:p.trans||''})+
+  fld('Immatriculation camion','veh','text',{req:1,ph:'Ex. AA-1234-CI',value:p.veh||''})+
+  fld('Conducteur','driver','text',{req:1,ph:'Nom du chauffeur',value:p.driver||''})+
+  fld('Téléphone chauffeur','driverPhone','text',{ph:'+225 …',value:p.driverPhone||''}),
+  'Confirmer le camion', data=>{
+   const e = req(data,['trans','veh','driver']);
+   if(Object.keys(e).length) return e;
+   save(`Camion ${data.veh.trim().toUpperCase()} confirmé pour ${p.id}.`, ()=>{
+    p.trans = data.trans;
+    p.veh = data.veh.trim().toUpperCase();
+    p.driver = data.driver.trim();
+    p.driverPhone = data.driverPhone?.trim()||'';
+    p.status = 'Camion confirmé';
+    p.camionValBy = S.me;
+    p.camionValAt = nowISO();
+    audit('Confirmation Camion Planification', p.id, `${p.trans} · ${p.veh} · ${p.driver}`);
+    closeModal();
+   }, submitBtn());
+  }
+ );
+}
+
+const newDemandeTransport = () => newTransport();
+
 /* Détails complets d’un transport / mission / livraison */
 function openTransportDetails(id){
  const t = (S.transports||[]).find(x=>x.id===id) || (S.planifications||[]).find(x=>x.id===id);
@@ -3541,11 +3586,11 @@ function confirmReception(l,t,after){
    closeModal();after&&after();
   },submitBtn())});
 }
-function tDeliver(id){if(!guard('transport'))return;const t=S.transports.find(x=>x.id===id);confirmReception(S.deliveries.find(x=>x.id===t.liv),t)}
-function tClose(id){if(!guard('transport'))return;const t=S.transports.find(x=>x.id===id);
+function tDeliver(id){if(!guard('transport'))return;const t=S.transports.find(x=>x.id===id);if(!t){toast('Transport introuvable.','bad');return;}confirmReception(S.deliveries.find(x=>x.id===t.liv),t)}
+function tClose(id){if(!guard('transport'))return;const t=S.transports.find(x=>x.id===id);if(!t){toast('Transport introuvable.','bad');return;}
  if(t.status!=='Livré'){toast('Clôture bloquée : la livraison doit d’abord être confirmée.','bad');return}
  save(`${t.id} clôturé.`,()=>{t.status='Clôturé';const l=S.deliveries.find(x=>x.id===t.liv);if(l&&l.status==='Livrée')l.status='Clôturée';audit('Transport clôturé',t.id,'')})}
-function tIncident(id){if(!guard('transport'))return;const t=S.transports.find(x=>x.id===id);
+function tIncident(id){if(!guard('transport'))return;const t=S.transports.find(x=>x.id===id);if(!t){toast('Transport introuvable.','bad');return;}
  openModal(`Signaler un incident · ${t.id}`,fld('Description de l’incident','txt','textarea',{req:1,full:1}),'Signaler l’incident',data=>{const e=req(data,['txt']);if(Object.keys(e).length)return e;
   save('Incident enregistré dans l’historique.',()=>{t.incidents.push(data.txt.trim());audit('Incident transport',t.id,data.txt.trim());closeModal()},submitBtn())})}
 
@@ -3580,13 +3625,13 @@ function newLivraison(){
   if(Object.keys(e).length)return e;
   save(data.now==='1'?`Livraison créée et ${n0(q)} palettes réservées théoriquement sur le Stock ${pool}.`:'Livraison créée en brouillon.',()=>{const id=nextId('LV');S.deliveries.push({id,dossier:data.dossier,dateP:data.dateP,from:data.from,to:data.to,pool,cat:propreCat(pool),qty:q,qtyShip:null,qtyRec:null,damaged:0,transport:'',resp:S.me,status:data.now==='1'?'Réservée':'Brouillon',comments:''});audit('Livraison créée',id,`${q} palettes (${pool}) vers ${data.to}`);closeModal()},submitBtn())});
 }
-function lReserve(id){if(!guard('livraisons'))return;const l=S.deliveries.find(x=>x.id===id);const pool=l.pool||destPool(l.to);
+function lReserve(id){if(!guard('livraisons'))return;const l=S.deliveries.find(x=>x.id===id);if(!l){toast('Livraison introuvable.','bad');return;}const pool=l.pool||destPool(l.to);
  save(`${l.qty} palettes propres réservées sur le Stock ${pool} pour ${l.id}.`,()=>{if(l.status!=='Brouillon')return 'Cette livraison est déjà réservée.';if(l.qty>dispo(pool))return `Réservation refusée : ${n0(dispo(pool))} palettes propres disponibles dans le Stock ${pool} pour ${l.qty} demandées.`;l.status='Réservée';l.pool=pool;l.cat=propreCat(pool);audit('Réservation stock',l.id,`${l.qty} palettes (${pool})`)})}
-function lShip(id){if(!guard('livraisons'))return;const l=S.deliveries.find(x=>x.id===id);const t=S.transports.find(x=>x.id===l.transport);
+function lShip(id){if(!guard('livraisons'))return;const l=S.deliveries.find(x=>x.id===id);if(!l){toast('Livraison introuvable.','bad');return;}const t=S.transports.find(x=>x.id===l.transport);
  save(`${l.id} expédiée : sortie physique de ${l.qty} palettes propres (${l.pool||destPool(l.to)}) enregistrée.`,()=>{shipDelivery(l,t);if(t&&t.status==='Planifié'){t.status='En cours';t.depR=TODAY_ISO}})}
-function lReceive(id){if(!guard('livraisons'))return;const l=S.deliveries.find(x=>x.id===id);confirmReception(l,S.transports.find(x=>x.id===l.transport))}
-function lClose(id){if(!guard('livraisons'))return;const l=S.deliveries.find(x=>x.id===id);save(`${l.id} clôturée.`,()=>{l.status='Clôturée';audit('Livraison clôturée',l.id,'')})}
-function lCancel(id){if(!guard('livraisons'))return;const l=S.deliveries.find(x=>x.id===id);
+function lReceive(id){if(!guard('livraisons'))return;const l=S.deliveries.find(x=>x.id===id);if(!l){toast('Livraison introuvable.','bad');return;}confirmReception(l,S.transports.find(x=>x.id===l.transport))}
+function lClose(id){if(!guard('livraisons'))return;const l=S.deliveries.find(x=>x.id===id);if(!l){toast('Livraison introuvable.','bad');return;}save(`${l.id} clôturée.`,()=>{l.status='Clôturée';audit('Livraison clôturée',l.id,'')})}
+function lCancel(id){if(!guard('livraisons'))return;const l=S.deliveries.find(x=>x.id===id);if(!l){toast('Livraison introuvable.','bad');return;}
  openModal(`Annuler ${l.id} ?`,`<p class="full" style="margin:0">La réservation théorique de ${l.qty} palettes (${l.pool||destPool(l.to)}) sera libérée. Cette action est conservée dans l’historique.</p>`+fld('Motif d’annulation','m','textarea',{req:1,full:1}),'Annuler la livraison',data=>{const e=req(data,['m']);if(Object.keys(e).length)return e;
   save(`${l.id} annulée et réservation libérée.`,()=>{l.status='Annulée';l.comments=data.m;const t=S.transports.find(x=>x.id===l.transport);if(t&&t.status==='Planifié')t.status='Brouillon';audit('Livraison annulée',l.id,data.m);closeModal()},submitBtn())})}
 
@@ -3730,7 +3775,7 @@ function afterChat(){const c=S.convs.find(x=>x.id===curConv);if(c&&c.unread){c.u
 const REPLIES={canal:['Bien reçu, je m’en occupe.','Merci pour l’info, je mets à jour la fiche.','Je vérifie et je reviens vers vous dans la matinée.'],dossier:['Noté. J’ajoute un commentaire officiel dans la fiche du dossier.','D’accord, je relance le transporteur.','Merci, je documente l’action corrective.'],direct:['Parfait, merci !','Je regarde ça tout de suite.','Ok, on en parle à la réunion.']};
 function sendMsg(){
  const c=S.convs.find(x=>x.id===curConv),inp=$('#msgIn');if(!c||!inp.value.trim())return;
- if(!navigator.onLine){toast('Hors connexion : le message n’a pas été envoyé.','bad');return}
+ // Offline allowed for local demo and intranet
  const msg={id:'m'+Date.now(),author:S.me,t:nowISO(),text:inp.value.trim(),ref:$('#refSel').value||(c.dossier&&/GT-\d/.test(inp.value)?'':'')};
  c.messages.push(msg);inp.value='';persist();
  $('#msgs').innerHTML=msgsHtml(c)+'<div class="typing" id="typing"><i></i><i></i><i></i></div>';$('#msgs').scrollTop=1e6;
