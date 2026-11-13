@@ -1824,6 +1824,7 @@ function vDash(){
  /* Métriques Transit */
  const sDoss=siteDossiers(cS);
  const siteOpen=sDoss.filter(d=>d.status!=='Clôturé');
+ const siteClosed=sDoss.filter(d=>d.status==='Clôturé');
  const siteOver=sDoss.filter(d=>delay(d).k==='bad').length;
  const onTimeDoss=sDoss.filter(d=>delay(d).app==='On Time').length;
  const onTimeRate=sDoss.length?Math.round((onTimeDoss/sDoss.length)*100):100;
@@ -2165,7 +2166,7 @@ function vDash(){
    <a class="ui-nav-pill" href="#v-transport"><span>🚚</span> <span>Volet 3 · <b>Transport & Expéditions</b></span> <span class="badge">${siteTrRun} en route</span></a>
   </div>
 
-  <!-- VOLET 1 DÉTAILLÉ -->
+    <!-- VOLET 1 DÉTAILLÉ -->
   <section class="ui-volet-panel" id="v-transit">
    <div class="ui-volet-panel-head">
     <div class="ui-volet-panel-title">
@@ -2175,26 +2176,73 @@ function vDash(){
       <small style="color:#64748B">Suivi des escales navires, dépotages et règle des 21 jours pour ${sObj.name} (${sObj.port}).</small>
      </div>
     </div>
-    <button class="btn small primary" data-go="transit">Accéder au module Transit →</button>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+     <span class="ui-badge-pill blue" style="font-size:12px;padding:5px 12px">⏳ ${siteOpen.length} en cours</span>
+     <span class="ui-badge-pill green" style="font-size:12px;padding:5px 12px">✅ ${siteClosed.length} clôturés</span>
+     <button class="btn small primary" data-go="transit">Accéder au module Transit →</button>
+    </div>
    </div>
-   <div class="tablewrap">
-    <table style="min-width:auto;font-size:13px">
-     <thead><tr><th>Dossier</th><th>Conteneur(TC)</th><th>Armateur</th><th>B/L</th><th>Appréciation & Délais</th><th>Statut</th><th>Action</th></tr></thead>
-     <tbody>${sDoss.slice(0,5).map(d=>`<tr class="click" data-dossier="${d.id}">
-      <td><span class="ref">${d.num}</span></td>
-      <td><b class="num">${d.cont}</b></td>
-      <td>${esc(d.lam)}</td>
-      <td><span class="muted">${esc(d.bl||'—')}</span></td>
-      <td>${appBadge(d)}<div style="margin-top:3px">${delayCell(d)}</div></td>
-      <td>${badge(d.status==='Clôturé'?'ok':d.status==='Dépoté'?'info':'warn',d.status)}</td>
-      <td><button class="btn small" data-dossier="${d.id}">Fiche</button></td>
-     </tr>`).join('')||'<tr><td colspan="7" class="empty">Aucun dossier disponible.</td></tr>'}
-     </tbody>
-    </table>
+
+   <!-- SOUS-SECTION 1 : DOSSIERS EN COURS DE TRAITEMENT -->
+   <div style="margin-bottom:28px">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:#EFF6FF;border-left:5px solid #3B82F6;border-radius:12px;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+     <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:18px">⏳</span>
+      <div>
+       <b style="color:#1E40AF;font-size:14.5px">Dossiers en cours de traitement</b>
+       <div style="font-size:11.5px;color:#3B82F6">Franchise portuaire active · Opérations en cours (dédouanement, dépotage)</div>
+      </div>
+     </div>
+     <span class="badge b-info" style="font-size:12px;font-weight:700">${siteOpen.length} dossier${siteOpen.length>1?'s':''} actif${siteOpen.length>1?'s':''}</span>
+    </div>
+    <div class="tablewrap">
+     <table style="min-width:auto;font-size:13px">
+      <thead><tr><th>Dossier</th><th>Conteneur (TC)</th><th>Armateur</th><th>B/L</th><th>Appréciation & Délais</th><th>Statut</th><th>Action</th></tr></thead>
+      <tbody>${siteOpen.map(d=>`<tr class="click" data-dossier="${d.id}" style="border-left:4px solid #3B82F6">
+       <td><span class="ref">${d.num}</span></td>
+       <td><b class="num">${d.cont}</b></td>
+       <td>${esc(d.lam)}</td>
+       <td><span class="muted">${esc(d.bl||'—')}</span></td>
+       <td>${appBadge(d)}<div style="margin-top:3px">${delayCell(d)}</div></td>
+       <td>${badge(d.status==='Dépoté'?'info':'warn',d.status)}</td>
+       <td><button class="btn small" data-dossier="${d.id}">Fiche</button></td>
+      </tr>`).join('')||'<tr><td colspan="7" class="empty">Aucun dossier en cours de traitement pour ce site.</td></tr>'}
+      </tbody>
+     </table>
+    </div>
+   </div>
+
+   <!-- SOUS-SECTION 2 : DOSSIERS CLÔTURÉS -->
+   <div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:#F8FAFC;border-left:5px solid #10B981;border-radius:12px;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+     <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:18px">✅</span>
+      <div>
+       <b style="color:#0F172A;font-size:14.5px">Dossiers clôturés</b>
+       <div style="font-size:11.5px;color:#64748B">Conteneurs retournés au port · Franchise terminée · Dossiers archivés</div>
+      </div>
+     </div>
+     <span class="badge b-ok" style="font-size:12px;font-weight:700">${siteClosed.length} dossier${siteClosed.length>1?'s':''} clôturé${siteClosed.length>1?'s':''}</span>
+    </div>
+    <div class="tablewrap">
+     <table style="min-width:auto;font-size:13px">
+      <thead><tr><th>Dossier</th><th>Conteneur (TC)</th><th>Armateur</th><th>B/L</th><th>Appréciation & Délais</th><th>Statut</th><th>Action</th></tr></thead>
+      <tbody>${siteClosed.map(d=>`<tr class="click" data-dossier="${d.id}" style="border-left:4px solid #10B981;background:#FAFAFC;opacity:0.92">
+       <td><span class="ref" style="opacity:0.85">${d.num}</span></td>
+       <td><b class="num" style="opacity:0.85">${d.cont}</b></td>
+       <td>${esc(d.lam)}</td>
+       <td><span class="muted">${esc(d.bl||'—')}</span></td>
+       <td>${appBadge(d)}<div style="margin-top:3px">${delayCell(d)}</div></td>
+       <td>${badge('ok','Clôturé')}</td>
+       <td><button class="btn small" data-dossier="${d.id}">Fiche</button></td>
+      </tr>`).join('')||'<tr><td colspan="7" class="empty">Aucun dossier clôturé enregistré pour ce site.</td></tr>'}
+      </tbody>
+     </table>
+    </div>
    </div>
   </section>
 
-  <!-- VOLET 2 DÉTAILLÉ -->
+   <!-- VOLET 2 DÉTAILLÉ -->
   <section class="ui-volet-panel" id="v-entrepot">
    <div class="ui-volet-panel-head">
     <div class="ui-volet-panel-title">
@@ -2635,17 +2683,71 @@ function vTransit(){
  const q=fQ.toLowerCase();
  const rows=by(fFilter).filter(d=>(!fTrans||d.trans===fTrans)&&(!q||[d.num,d.cont,d.bl,d.trans,d.lam,...d.comments.map(c=>c.text)].join(' ').toLowerCase().includes(q)));
  const open=sDoss.filter(d=>d.status!=='Clôturé');
+ const closed=sDoss.filter(d=>d.status==='Clôturé');
  const avg=(()=>{const x=sDoss.filter(d=>d.D8&&delay(d).n!=null&&delay(d).k!=='anom').map(d=>delay(d).n);return x.length?Math.round(x.reduce((a,b)=>a+b,0)/x.length):'—'})();
+
+ const openRows=rows.filter(d=>d.status!=='Clôturé');
+ const closedRows=rows.filter(d=>d.status==='Clôturé');
+
+ let tableContent='';
+ if(!rows.length){
+  tableContent='<tr><td colspan="9" class="empty">Aucun dossier ne correspond à ces filtres.</td></tr>';
+ } else if(fFilter==='clos'){
+  tableContent=closedRows.map(d=>renderDossierRow(d,true)).join('');
+ } else if(fFilter!=='tous'){
+  tableContent=rows.map(d=>renderDossierRow(d,d.status==='Clôturé')).join('');
+ } else {
+  // Mode "Tous" : séparation claire entre en cours et clôturés
+  const rOpen=openRows.map(d=>renderDossierRow(d,false)).join('');
+  const rClosed=closedRows.map(d=>renderDossierRow(d,true)).join('');
+  
+  tableContent=`
+   <tr style="background:#EFF6FF;border-top:2px solid #BFDBFE;border-bottom:2px solid #BFDBFE">
+    <td colspan="9" style="padding:10px 14px;font-weight:700;color:#1E40AF">
+     <div style="display:flex;align-items:center;justify-content:space-between">
+      <span>⏳ DOSSIERS EN COURS DE TRAITEMENT (${openRows.length})</span>
+      <small style="color:#3B82F6;font-weight:600">Franchise active</small>
+     </div>
+    </td>
+   </tr>
+   ${rOpen||'<tr><td colspan="9" class="empty">Aucun dossier en cours.</td></tr>'}
+   <tr style="background:#F8FAFC;border-top:2px solid #CBD5E1;border-bottom:2px solid #CBD5E1">
+    <td colspan="9" style="padding:10px 14px;font-weight:700;color:#334155">
+     <div style="display:flex;align-items:center;justify-content:space-between">
+      <span>✅ DOSSIERS CLÔTURÉS (${closedRows.length})</span>
+      <small style="color:#64748B;font-weight:600">Conteneurs retournés au port</small>
+     </div>
+    </td>
+   </tr>
+   ${rClosed||'<tr><td colspan="9" class="empty">Aucun dossier clôturé.</td></tr>'}
+  `;
+ }
+
  return siteBanner(`Dossiers de dédouanement et franchise portuaire pour ${curSiteObj().name} (${curSiteObj().port})`)+
   hero('ship',`Transit · ${curSiteObj().icon} ${curSiteObj().name}`,`Suivi des dossiers de dédouanement et respect de la franchise.`,
-  `<div><b>${open.length}</b>dossiers ouverts</div><div><b>${avg} j</b>franchise moyenne courue</div>`)+
+  `<div><b>${open.length}</b>dossiers ouverts</div><div><b>${closed.length}</b>dossiers clôturés</div><div><b>${avg} j</b>franchise moyenne</div>`)+
  `<div class="toolbar">
   <input class="field-inline grow" id="fq" type="search" placeholder="Rechercher un dossier, N° Conteneur(TC), BL, armateur, commentaire" value="${esc(fQ)}" aria-label="Rechercher dans les dossiers">
   <button class="btn primary${lockCls('transit')}" data-act="newDossier">${plus()}Nouveau dossier</button>
  </div>
  <div class="chips" style="margin-bottom:14px">${chips.map(([k,l])=>`<button class="chip" data-ff="${k}" aria-pressed="${fFilter===k}">${l}<span class="c">${by(k).length}</span></button>`).join('')}</div>
  <div class="tablewrap"><table><thead><tr><th>Dossier</th><th>N° Conteneur(TC)</th><th>N° Bon de Livraison</th><th>Armateur</th><th>Fin de franchise</th><th>ETA Navire</th><th>Mise en livraison</th><th>Statut</th><th>Appréciation</th></tr></thead>
- <tbody>${rows.sort((a,b)=>(a.status==='Clôturé'?1:0)-(b.status==='Clôturé'?1:0)).map(d=>{return `<tr class="click" data-dossier="${d.id}" tabindex="0"><td><span class="ref">${d.num}</span></td><td class="num">${d.cont}</td><td>${esc(d.bl)}</td><td>${esc(d.lam)}</td><td>${fmt(d.D1)||'<span class="muted">—</span>'}</td><td>${fmt(d.D2)||'<span class="muted">—</span>'}</td><td>${fmt(d.D4)||'<span class="muted">—</span>'}</td><td>${badge(d.status==='Clôturé'?'mute':'info',d.status)}</td><td style="white-space:nowrap">${appBadge(d)}<div style="margin-top:4px">${delayCell(d)}</div></td></tr>`}).join('')||`<tr><td colspan="9" class="empty">Aucun dossier ne correspond à ces filtres.</td></tr>`}</tbody></table></div>`;
+ <tbody>${tableContent}</tbody></table></div>`;
+}
+
+function renderDossierRow(d,isClosed){
+ const borderStyle=isClosed?'border-left:4px solid #10B981;background:#FAFAFC;opacity:0.92':'border-left:4px solid #3B82F6';
+ return `<tr class="click" data-dossier="${d.id}" tabindex="0" style="${borderStyle}">
+  <td><span class="ref" ${isClosed?'style="opacity:0.85"':''}>${d.num}</span></td>
+  <td class="num" ${isClosed?'style="opacity:0.85"':''}>${d.cont}</td>
+  <td>${esc(d.bl)}</td>
+  <td>${esc(d.lam)}</td>
+  <td>${fmt(d.D1)||'<span class="muted">—</span>'}</td>
+  <td>${fmt(d.D2)||'<span class="muted">—</span>'}</td>
+  <td>${fmt(d.D4)||'<span class="muted">—</span>'}</td>
+  <td>${badge(isClosed?'ok':'info',d.status)}</td>
+  <td style="white-space:nowrap">${appBadge(d)}<div style="margin-top:4px">${delayCell(d)}</div></td>
+ </tr>`;
 }
 const plus=()=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>`;
 
