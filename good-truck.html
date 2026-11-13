@@ -1372,7 +1372,7 @@ const dBadge=d=>{const x=delay(d);if(x.label===x.app)return '';const v=x.n??x.el
 const appBadge=d=>{const x=delay(d);const v=x.n??x.el;const daysTxt=v!=null?v+' j · ':'';const label=x.app&&x.app!=='—'?daysTxt+x.app:'—';return badge(x.appK,label,x.app==='On Time'?'✓':x.app==='Off Time'?'✕':'')};
 function delayCell(d){const x=delay(d),v=x.n??x.el;if(v==null)return '<span class="muted">—</span>';
  const restTxt=x.diffFin!=null?(x.diffFin<=0?`<small class="muted">(${Math.abs(x.diffFin)} j restants)</small>`:`<small style="color:var(--bad)">(+${x.diffFin} j retard)</small>`):'';
- return `<div style="display:inline-flex;align-items:center;gap:8px"><span class="day-circle ${x.k}" title="${v} jours observés">${v}j</span><span class="num">${x.stopped?'Retourné':'En cours'}&nbsp;${restTxt}</span></div>`;
+ return `<span class="num">${x.stopped?'Retourné':'En cours'}&nbsp;${restTxt}</span>`;
 }
 
 function stock(site=curSite()){
@@ -2653,7 +2653,7 @@ function gauge(d){const x=delay(d),v=x.n??x.el;
  return `<div class="panel">
   <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
    <div style="display:flex;align-items:center;gap:14px">
-    <span class="day-circle ${x.k}" style="width:48px;height:48px;font-size:18px">${v!=null?v+'j':'—'}</span>
+    
     <div>
      <h3 style="margin:0 0 3px">Franchise & Retour du conteneur</h3>
      <p style="margin:0;font-size:13px" class="muted">${x.k==='anom'?`Anomalie chronologique : la Date de récupération précède l’arrivée du navire.`:x.stopped?`Conteneur retourné le <b>${fmt(d.D8)}</b> (Fin de franchise : <b>${fmt(d.D1)}</b>) → <b class="num" style="color:var(--text);font-size:15px">${x.n} jours observés</b> · ${x.app}.`:x.el!=null?`La franchise court jusqu’au retour du conteneur : <b class="num" style="color:var(--text);font-size:15px">${x.el} j observés</b> · ${x.diffFin<=0?`<b>${Math.abs(x.diffFin)} j restants</b> avant fin de franchise (${fmt(d.D1)})`:`dépassée de <b style="color:var(--bad)">+${x.diffFin} j</b>`}.`:'Franchise non calculable : la Fin de franchise manque.'}</p>
