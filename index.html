@@ -874,6 +874,8 @@ const siteLavages=(s=curSite())=>(S.lavages||[]).filter(l=>siteOf(l)===s);
 const siteReparations=(s=curSite())=>(S.reparations||[]).filter(r=>siteOf(r)===s);
 const siteMovements=(s=curSite())=>(S.movements||[]).filter(m=>siteOf(m)===s);
 const siteAutres=(s=curSite())=>(S.autresPalettes||[]).filter(p=>siteOf(p)===s);
+const siteDestinations=(s=curSite())=>(S.destinations||[]).filter(d=>siteOf(d)===s);
+const siteOrigins=(s=curSite())=>s==='sanpedro'?['SKCI · Dépôt San-Pedro','Port de San-Pedro']:['Entrepôt Vridi','Port autonome d’Abidjan'];
 
 const curSiteObj=()=>SITES_APP.find(s=>s.id===curSite())||SITES_APP[0];
 const otherSite=s=>s==='abidjan'?'sanpedro':'abidjan';
@@ -946,14 +948,14 @@ function seed(){
   {id:'u5',nom:'N’Guessan',prenom:'Serge',name:'Serge N’Guessan',email:'s.nguessan@goodpack.ci',fonction:'Responsable Transport Routier',dept:'Transport Routier & Flotte',role:'Responsable Transport',password:'Transport#2026',active:true,c:'#C3302F'},
   {id:'u6',nom:'Diallo',prenom:'Fatou',name:'Fatou Diallo',email:'f.diallo@goodpack.ci',fonction:'Auditrice & Contrôle Interne',dept:'Direction Générale',role:'Consultation',password:'Audit#2026',active:true,c:'#56697F'}];
  const destinations=[
-  {id:'DST-01',name:'SKCI · Usine Yopougon',client:'SKCI',pool:'SKCI',address:'Zone Industrielle Yopougon, Abidjan',contact:'Kouadio Yao · +225 07 09 11 22 33',active:true},
-  {id:'DST-02',name:'SKCI · Plateforme Vridi',client:'SKCI',pool:'SKCI',address:'Zone Portuaire de Vridi, Abidjan',contact:'Bintou Koné · +225 07 08 55 44 11',active:true},
-  {id:'DST-03',name:'SKCI · Dépôt San-Pedro',client:'SKCI',pool:'SKCI',address:'Zone Portuaire, San-Pedro',contact:'Hervé Zadi · +225 05 04 33 21 00',active:true},
-  {id:'DST-04',name:'SAPH · Usine de Toupah',client:'SAPH',pool:'Global',address:'Plantation & Usine de Toupah, Dabou / Grands Ponts',contact:'Alain Kouassi · +225 07 47 88 99 00',active:true},
-  {id:'DST-05',name:'SOGB · Usine de Grand-Béréby',client:'SOGB',pool:'Global',address:'Complexe Agro-industriel SOGB, Grand-Béréby / San-Pedro',contact:'Mireille Bérété · +225 01 02 33 44 55',active:true},
-  {id:'DST-06',name:'CHCI · Usine de Cavally',client:'CHCI',pool:'Global',address:'Site Industriel Caoutchouc Cavally, Région San-Pedro',contact:'Didier Soro · +225 07 58 12 34 56',active:true},
-  {id:'DST-07',name:'TRCI · Plateforme San-Pedro',client:'TRCI',pool:'Global',address:'Zone Portuaire Industrielle, San-Pedro',contact:'M. Coulibaly · +225 07 55 66 77 88',active:true},
-  {id:'DST-08',name:'ITCA · Usine Bonoua',client:'ITCA',pool:'Global',address:'Zone Agro-industrielle de Bonoua',contact:'M. Niamkey · +225 05 66 77 88 99',active:true}
+  {id:'DST-01',site:'abidjan',name:'SKCI · Usine Yopougon',client:'SKCI',pool:'SKCI',address:'Zone Industrielle Yopougon, Abidjan',contact:'Kouadio Yao · +225 07 09 11 22 33',active:true},
+  {id:'DST-02',site:'abidjan',name:'SKCI · Plateforme Vridi',client:'SKCI',pool:'SKCI',address:'Zone Portuaire de Vridi, Abidjan',contact:'Bintou Koné · +225 07 08 55 44 11',active:true},
+  {id:'DST-03',site:'sanpedro',name:'SKCI · Dépôt San-Pedro',client:'SKCI',pool:'SKCI',address:'Zone Portuaire, San-Pedro',contact:'Hervé Zadi · +225 05 04 33 21 00',active:true},
+  {id:'DST-04',site:'abidjan',name:'SAPH · Usine de Toupah',client:'SAPH',pool:'Global',address:'Plantation & Usine de Toupah, Dabou / Grands Ponts',contact:'Alain Kouassi · +225 07 47 88 99 00',active:true},
+  {id:'DST-05',site:'sanpedro',name:'SOGB · Usine de Grand-Béréby',client:'SOGB',pool:'Global',address:'Complexe Agro-industriel SOGB, Grand-Béréby / San-Pedro',contact:'Mireille Bérété · +225 01 02 33 44 55',active:true},
+  {id:'DST-06',site:'sanpedro',name:'CHCI · Usine de Cavally',client:'CHCI',pool:'Global',address:'Site Industriel Caoutchouc Cavally, Région San-Pedro',contact:'Didier Soro · +225 07 58 12 34 56',active:true},
+  {id:'DST-07',site:'sanpedro',name:'TRCI · Plateforme San-Pedro',client:'TRCI',pool:'Global',address:'Zone Portuaire Industrielle, San-Pedro',contact:'M. Coulibaly · +225 07 55 66 77 88',active:true},
+  {id:'DST-08',site:'abidjan',name:'ITCA · Usine Bonoua',client:'ITCA',pool:'Global',address:'Zone Agro-industrielle de Bonoua',contact:'M. Niamkey · +225 05 66 77 88 99',active:true}
  ];
  const DEP=(d6,total,model='MB5',status='Validée',recId='',cat='sale')=>({date:iso(d6),status,recId,total,model,cat,by:'u3',at:ago(d6,11)});
  const D=(num,cont,bl,lam,tr,o,status='Ouvert',comments=[],depotage=null)=>({id:num,num,cont,bl,lam,trans:tr||'',status,createdBy:'u3',createdAt:ago(o.D1??-10,8),updatedBy:'u3',updatedAt:ago(-1,16),
@@ -1100,7 +1102,7 @@ S.transports.forEach(t => { if (!t.incidents) t.incidents = []; });
 // Activer toutes les fonctionnalités, comptes, opérateurs et destinations
 (S.users || []).forEach(u => { u.active = true; });
 (S.operators || []).forEach(o => { o.active = true; });
-(S.destinations || []).forEach(d => { d.active = true; });
+(S.destinations || []).forEach(d => { d.active = true; if(!d.site) d.site = siteOf(d); });
 if (!S.me || (S.me !== 'guest' && !S.users.some(u => u.id === S.me))) S.me = 'guest';
 
 if(!S.planifications){
@@ -1228,7 +1230,7 @@ const armateursList=()=>S?.operators?S.operators.filter(o=>o.type==='Armateur'&&
 const transporteursList=()=>S?.operators?S.operators.filter(o=>o.type==='Transporteur'&&o.active).map(o=>o.name):TRANSPORTEURS;
 const DEFAULT_TARIFS={'DST-01':85000,'DST-02':45000,'DST-03':350000,'DST-04':110000,'DST-05':135000,'DST-06':60000};
 (S?.destinations||[]).forEach(d=>{if(d.tarif==null)d.tarif=DEFAULT_TARIFS[d.id]||75000});
-const destinationsList=()=>S?.destinations?S.destinations.filter(d=>d.active):[];
+const destinationsList=(s=curSite())=>siteDestinations(s).filter(d=>d.active!==false);
 const destInfo=nameOrId=>(S?.destinations||[]).find(d=>d.name===nameOrId||d.id===nameOrId)||null;
 const destPool=nameOrId=>{const d=destInfo(nameOrId);if(d)return d.pool;return String(nameOrId||'').toUpperCase().includes('SKCI')?'SKCI':'Global'};
 const destTarif=nameOrId=>{const d=destInfo(nameOrId);return d&&d.tarif!=null?+d.tarif:0};
@@ -1406,12 +1408,12 @@ function stockPropre(pool='Tous',site=curSite()){
 }
 /* Réservation théorique du stock propre (SKCI ou Global) par les transports planifiés/réservés, livraisons réservées et demandes de transport dont le stock est confirmé par l’Entrepôt */
 function reserved(pool='Tous',site=curSite()){
- const trRes=S.transports.filter(t=>['Planifié','Réservé'].includes(t.status)&&!t.shipped&&(site==='all'||(t.site||(t.from&&t.from.includes('San-Pedro')?'sanpedro':'abidjan'))===site)&&(pool==='Tous'||(t.pool||destPool(t.to))===pool));
+ const trRes=(S.transports||[]).filter(t=>['Planifié','Réservé'].includes(t.status)&&!t.shipped&&(site==='all'||siteOf(t)===site)&&(pool==='Tous'||(t.pool||destPool(t.to))===pool));
  const trLvIds=new Set(trRes.map(t=>t.liv).filter(Boolean));
  const trIds=new Set(trRes.map(t=>t.id).filter(Boolean));
- const lvRes=S.deliveries.filter(l=>l.status==='Réservée'&&!trLvIds.has(l.id)&&(site==='all'||(l.site||(l.from&&l.from.includes('San-Pedro')?'sanpedro':'abidjan'))===site)&&(pool==='Tous'||(l.pool||destPool(l.to))===pool));
+ const lvRes=(S.deliveries||[]).filter(l=>l.status==='Réservée'&&!trLvIds.has(l.id)&&(site==='all'||siteOf(l)===site)&&(pool==='Tous'||(l.pool||destPool(l.to))===pool));
  const lvIds=new Set(lvRes.map(l=>l.id).filter(Boolean));
- const plnRes=(S.planifications||[]).filter(p=>p.status==='Stock confirmé'&&(!p.liv||(!trLvIds.has(p.liv)&&!lvIds.has(p.liv)))&&(!p.transport||!trIds.has(p.transport))&&(site==='all'||(p.site||(p.from&&p.from.includes('San-Pedro')?'sanpedro':'abidjan'))===site)&&(pool==='Tous'||(p.pool||destPool(p.to))===pool));
+ const plnRes=(S.planifications||[]).filter(p=>p.status==='Stock confirmé'&&(!p.liv||(!trLvIds.has(p.liv)&&!lvIds.has(p.liv)))&&(!p.transport||!trIds.has(p.transport))&&(site==='all'||siteOf(p)===site)&&(pool==='Tous'||(p.pool||destPool(p.to))===pool));
  return trRes.reduce((a,t)=>a+t.qty,0)+lvRes.reduce((a,l)=>a+l.qty,0)+plnRes.reduce((a,p)=>a+p.qty,0);
 }
 const dispo=(pool='Tous',site=curSite())=>stockPropre(pool,site)-reserved(pool,site);
@@ -1853,12 +1855,12 @@ function vDash(){
  const waitLoadTrs=siteTr.filter(t=>t.status==='Planifié');
  const sitePlns=sitePlanifs(cS);
  const pendPlns=sitePlns.filter(p=>p.status==='En attente Entrepôt');
- const eligDeliveries=S.deliveries.filter(l=>['Livrée','Clôturée'].includes(l.status));
- const onTimeTr=eligDeliveries.length?Math.round(eligDeliveries.filter(l=>{const t=S.transports.find(x=>x.id===l.transport);return t&&t.arrR&&t.arrR<=t.arrP}).length/eligDeliveries.length*100):96;
+ const eligDeliveries=siteDeliveries(cS).filter(l=>['Livrée','Clôturée'].includes(l.status));
+ const onTimeTr=eligDeliveries.length?Math.round(eligDeliveries.filter(l=>{const t=siteTr.find(x=>x.id===l.transport);return t&&t.arrR&&t.arrR<=t.arrP}).length/eligDeliveries.length*100):96;
  const otifRate=Math.min(100,Math.round(onTimeTr*0.98));
  const globalOEE=Math.round((onTimeRate*0.4)+(dispoRate*0.3)+(otifRate*0.3));
  const incidentsCount=siteTr.filter(t=>t.incidents&&t.incidents.length).length;
- const activeDestinations=S.destinations.length;
+ const activeDestinations=siteDestinations(cS).length;
 
  const a=alerts();
 
@@ -2791,7 +2793,7 @@ function applyDepotage(d,dateD6,totalQty,model='MB5'){
  S.seq.REC=(S.seq.REC||7)+1;
  const recId='REC-'+String(S.seq.REC).padStart(3,'0');
  const rec={
-  id:recId,dossier:d.num,cont:d.cont,date:validDate,
+  id:recId,site:siteOf(d)||curSite(),dossier:d.num,cont:d.cont,date:validDate,
   model:model||'MB5',typeRec:'',cat:'',qtyEmise:total,qtyRecue:null,total,status:'En attente',by:S.me,valBy:'',valAt:'',obs:'',
   depotStartAt:'',depotEndAt:''
  };
@@ -3067,17 +3069,17 @@ function confirmArrival(id){
 }
 
 /* ===================== Entrepôt ===================== */
-function dailyProdStats(dateIso=TODAY_ISO){
+function dailyProdStats(dateIso=TODAY_ISO,site=curSite()){
  const d=dateIso||TODAY_ISO;
- const lavs=(S.lavages||[]).filter(l=>(l.dateOp||l.date?.slice(0,10))===d);
+ const lavs=siteLavages(site).filter(l=>(l.dateOp||l.date?.slice(0,10))===d);
  const qLavees=lavs.reduce((a,l)=>a+(+(l.qty??l.conf??l.recu??0)),0);
  const qLavSkci=lavs.filter(l=>l.stockTarget==='SKCI').reduce((a,l)=>a+(+(l.qty??l.conf??l.recu??0)),0);
  const qLavGlobal=lavs.filter(l=>l.stockTarget==='Global').reduce((a,l)=>a+(+(l.qty??l.conf??l.recu??0)),0);
- const reps=(S.reparations||[]).filter(r=>(r.dateOp||r.date?.slice(0,10))===d&&!String(r.sens||'').startsWith('Retour'));
+ const reps=siteReparations(site).filter(r=>(r.dateOp||r.date?.slice(0,10))===d&&!String(r.sens||'').startsWith('Retour'));
  const qSoudure=reps.filter(r=>r.kind!=='DOOR SWAP').reduce((a,r)=>a+(+r.qty||0),0);
  const qDoorSwap=reps.filter(r=>r.kind==='DOOR SWAP').reduce((a,r)=>a+(+r.qty||0),0);
- const qQuarantaine=(S.movements||[]).filter(m=>m.date===d&&m.cat==='quarantaine'&&m.sens>0).reduce((a,m)=>a+(+m.qty||0),0);
- const movesDay=(S.movements||[]).filter(m=>m.date===d);
+ const qQuarantaine=siteMovements(site).filter(m=>m.date===d&&m.cat==='quarantaine'&&m.sens>0).reduce((a,m)=>a+(+m.qty||0),0);
+ const movesDay=siteMovements(site).filter(m=>m.date===d);
  return {date:d,qLavees,qLavSkci,qLavGlobal,qSoudure,qQuarantaine,qDoorSwap,lavs,reps,movesDay};
 }
 
@@ -3199,13 +3201,15 @@ function printFicheProd(){
 }
 
 function vEntrepot(){
- const s=stock(),f=flows();
- const recs=S.receptions||[],pendRecs=recs.filter(r=>r.status==='En attente');
- const reps=S.reparations||[];
+ const cS=curSite();
+ const s=stock(cS),f=flows(cS);
+ const recs=siteReceptions(cS),pendRecs=recs.filter(r=>r.status==='En attente');
+ const reps=siteReparations(cS);
+ const openReps=reps.filter(r=>r.status!=='Terminée');
  const segs=[
   ['stock','Stock & Réceptions'+(pendRecs.length?` (${pendRecs.length})`:'')],
   ['receptions','Historique Dépotages ('+recs.length+')'],
-  ['lavage','Lavage ('+(S.lavages||[]).length+')'],
+  ['lavage','Lavage ('+siteLavages(cS).length+')'],
   ['reparations','Soudure & DOOR SWAP ('+reps.length+')'],
   ['mouvements','Traçabilité des mouvements'],
   ['dispo','Disponibilité SKCI / Global']
@@ -3291,8 +3295,8 @@ function vEntrepot(){
   }).join('')||`<tr><td colspan="9" class="empty">Aucun dépotage validé dans l’historique.</td></tr>`}
   </tbody></table></div></section>`;
 
- const pendPlns=(S.planifications||[]).filter(p=>p.status==='En attente Entrepôt');
- const waitLoadTrs=(S.transports||[]).filter(t=>t.status==='Planifié');
+ const pendPlns=sitePlanifs(cS).filter(p=>p.status==='En attente Entrepôt');
+ const waitLoadTrs=siteTransports(cS).filter(t=>t.status==='Planifié');
  const pendingPlnStockTable=()=>`<section class="panel" style="margin-bottom:16px;border-color:${pendPlns.length?'var(--warn)':'var(--line)'}">
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
    <div><h3 style="margin:0">1. Demandes de transport en attente de validation Stock (Planification)</h3><small class="muted">Validez la disponibilité du stock (Stock SKCI ou Stock Global) pour autoriser l’arrivée des camions au chargement.</small></div>
@@ -3523,7 +3527,7 @@ function vEntrepot(){
   const poolCard=(p,title,desc)=>{
    const pr=stockPropre(p),r=reserved(p),dp=dispo(p);
    const col=p==='SKCI'?'var(--skci)':'var(--global)';
-   const trRes=S.transports.filter(t=>['Planifié','Réservé'].includes(t.status)&&!t.shipped&&(t.pool||destPool(t.to))===p);
+   const trRes=siteTransports(cS).filter(t=>['Planifié','Réservé'].includes(t.status)&&!t.shipped&&(t.pool||destPool(t.to))===p);
    return `<section class="panel ${p==='SKCI'?'panel-skci':'panel-global'}">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
      <h3 style="margin:0">${title}</h3>${poolBadge(p)}
@@ -3948,7 +3952,7 @@ function newLavage(){
    save(`Lavage ${lot} enregistré : ${n0(q)} palettes lavées affectées au Stock ${data.stockTarget}.`,()=>{
     const id=nextId('LAV',3);
     transfer(from,toCat,q,id,`Lavage ${lot} : ${q} palettes lavées affectées au Stock ${data.stockTarget}${data.obs?' · '+data.obs.trim():''}`,`Lavage & Affectation Stock ${data.stockTarget}`);
-    S.lavages.push({id,date:nowISO(),dateOp:TODAY_ISO,lot,qty:q,stockTarget:data.stockTarget,resp,obs:data.obs?.trim()||'',status:'Validée'});
+    S.lavages.push({id,site:curSite(),date:nowISO(),dateOp:TODAY_ISO,lot,qty:q,stockTarget:data.stockTarget,resp,obs:data.obs?.trim()||'',status:'Validée'});
     audit('Opération de lavage enregistrée',id,`${lot} (${q} palettes) → Stock ${data.stockTarget} par ${user(resp).name}`);
     closeModal();
    },submitBtn());
@@ -4044,13 +4048,13 @@ function newReparation(){
       addMove(opLabel,'sale',1,q,id,motifTxt,tx);
      }
      if(!S.reparations)S.reparations=[];
-     S.reparations.push({id,date:nowISO(),dateOp:TODAY_ISO,lot,kind:'DOOR SWAP',sens:'Fin de DOOR SWAP → Lavage',fromCat:from,toCat:'sale',qty:q,resp,obs:data.obs?.trim()||'',status:'Terminée'});
+     S.reparations.push({id,site:curSite(),date:nowISO(),dateOp:TODAY_ISO,lot,kind:'DOOR SWAP',sens:'Fin de DOOR SWAP → Lavage',fromCat:from,toCat:'sale',qty:q,resp,obs:data.obs?.trim()||'',status:'Terminée'});
      audit('Opération DOOR SWAP → Lavage',id,`${q} palettes (${lot}) → Lavage (Palettes sales)`);
     }else{
      const opLabel='Entrée en soudure';
      transfer(from,'reparation',q,id,`Soudure (${lot}) : ${q} palettes de ${catL(from)} → Soudure${data.obs?' · '+data.obs.trim():''}`,opLabel);
      if(!S.reparations)S.reparations=[];
-     S.reparations.push({id,date:nowISO(),dateOp:TODAY_ISO,lot,kind:'Soudure',sens:'Entrée en soudure',fromCat:from,toCat:'reparation',qty:q,resp,obs:data.obs?.trim()||'',status:'En soudure'});
+     S.reparations.push({id,site:curSite(),date:nowISO(),dateOp:TODAY_ISO,lot,kind:'Soudure',sens:'Entrée en soudure',fromCat:from,toCat:'reparation',qty:q,resp,obs:data.obs?.trim()||'',status:'En soudure'});
      audit('Opération Soudure',id,`${q} palettes (${lot}) → Soudure`);
     }
     closeModal();
@@ -4286,11 +4290,12 @@ function openTransportDetails(id){
 
 /* ===================== Transport & Destinations Clients ===================== */
 function vTransport(){
+ const cS=curSite();
  const sts=['Tous','Planifié','En cours','Livré','Clôturé','Brouillon','Incident'];
- const list=S.transports.filter(t=>trFilter==='Tous'||(trFilter==='Incident'?t.incidents.length:t.status===trFilter)).slice().reverse();
- const dests=S.destinations||[];
+ const list=siteTransports(cS).filter(t=>trFilter==='Tous'||(trFilter==='Incident'?t.incidents.length:t.status===trFilter)).slice().reverse();
+ const dests=siteDestinations(cS);
  const subBar=`<div class="seg" role="group" aria-label="Espaces Transport" style="margin-bottom:14px">
-  <button data-trsub="missions" aria-pressed="${trSub==='missions'}">Planification & Suivi des Transports (${S.transports.length})</button>
+  <button data-trsub="missions" aria-pressed="${trSub==='missions'}">Planification & Suivi des Transports (${list.length})</button>
   <button data-trsub="destinations" aria-pressed="${trSub==='destinations'}">Destinations & Adresses Clients conservées (${dests.length})</button>
  </div>`;
  const stockBanner=`<div class="panel" style="margin-bottom:14px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
@@ -4312,7 +4317,7 @@ function vTransport(){
   </div>
   <div class="tablewrap"><table><thead><tr><th>Réf.</th><th>Destination / Site de livraison</th><th>Client</th><th>Bassin de stock affecté</th><th>Adresse complète conservée</th><th>Contact sur site</th><th>Transports liés</th><th>Actions</th></tr></thead><tbody>
    ${dests.map(d=>{
-    const trCnt=S.transports.filter(t=>t.to===d.name).length;
+    const trCnt=siteTransports(cS).filter(t=>t.to===d.name).length;
     return `<tr style="border-left:4px solid ${d.pool==='SKCI'?'var(--skci)':'var(--global)'}">
      <td><span class="ref">${esc(d.id)}</span></td>
      <td><b>${esc(d.name)}</b></td>
@@ -4376,7 +4381,7 @@ function newDestination(){
     if(!S.destinations)S.destinations=[];
     S.seq.DST=(S.seq.DST||6)+1;
     const id='DST-'+String(S.seq.DST).padStart(2,'0');
-    S.destinations.push({id,name:nm,client:data.client.trim(),pool:data.pool,address:data.address.trim(),contact:data.contact.trim(),active:true});
+    S.destinations.push({id,site:curSite(),name:nm,client:data.client.trim(),pool:data.pool,address:data.address.trim(),contact:data.contact.trim(),active:true});
     audit('Création destination client',id,`${nm} (${data.pool}) · ${data.address.trim()}`);
     closeModal();
    },submitBtn());
@@ -4410,7 +4415,7 @@ function editDestination(id){
 
 function newTransport(){
  if(!guard('transport'))return;
- const freeLv=S.deliveries.filter(l=>!l.transport&&!['Clôturée','Annulée'].includes(l.status));
+ const freeLv=siteDeliveries().filter(l=>!l.transport&&!['Clôturée','Annulée'].includes(l.status));
  const dstList=destinationsList();
  const dstOpts=dstList.map(d=>[d.name,`${d.name} [Stock ${d.pool}]`]);
  const defDst=dstList[0]||null;
@@ -4427,9 +4432,9 @@ function newTransport(){
   fld('Bassin de la nouvelle destination','newDstPool','select',{options:[['SKCI','Stock SKCI (client SKCI)'],['Global','Stock Global (autre client)']],value:'Global'})+
   fld('Adresse de la nouvelle destination','newDstAddr','text',{full:1,ph:'Adresse géographique complète si nouvelle destination'})+
   fld('Livraison existante associée','liv','select',{options:freeLv.map(l=>[l.id,`${l.id} · ${l.qty} palettes (${l.pool||destPool(l.to)}) · ${l.to}`]),blank:'Créer automatiquement le planning de livraison associé'})+
-  fld('Dossier de transit rattaché','dossier','select',{options:S.dossiers.map(d=>d.num),value:S.dossiers[0]?.num||''})+
+  fld('Dossier de transit rattaché','dossier','select',{options:siteDossiers().map(d=>d.num),value:siteDossiers()[0]?.num||''})+
   fld('Transporteur','trans','select',{req:1,options:transporteursList(),blank:'Choisir un transporteur'})+
-  fld('Origine','from','select',{req:1,options:ORIGINS,value:ORIGINS[0]})+
+  fld('Origine','from','select',{req:1,options:siteOrigins(),value:siteOrigins()[0]})+
   fld('Immatriculation camion','veh','text',{req:1,ph:'AB-1234-CI'})+fld('Conducteur','driver','text',{ph:'Nom du chauffeur'})+
   fld('Date de départ prévue (planning)','depP','date',{req:1,value:iso(1),min:TODAY_ISO})+fld('Date d’arrivée prévue','arrP','date',{req:1,value:iso(1),min:TODAY_ISO})+
   fld('Quantité de palettes propres à réserver & expédier','qty','number',{req:1,min:1,full:1})+
@@ -4467,9 +4472,9 @@ function newTransport(){
      lv.transport=id;lv.status='Réservée';lv.pool=pool;lv.cat=propreCat(pool);lv.to=destName;
     }else{
      livId=nextId('LV');
-     S.deliveries.push({id:livId,dossier:data.dossier||S.dossiers[0]?.num||'',dateP:data.arrP,from:data.from,to:destName,pool,cat:propreCat(pool),qty:q,qtyShip:null,qtyRec:null,damaged:0,transport:id,resp:S.me,status:'Réservée',comments:`Réservation théorique automatique via le transport ${id} (Stock ${pool}).`});
+     S.deliveries.push({id:livId,site:curSite(),dossier:data.dossier||siteDossiers()[0]?.num||'',dateP:data.arrP,from:data.from,to:destName,pool,cat:propreCat(pool),qty:q,qtyShip:null,qtyRec:null,damaged:0,transport:id,resp:S.me,status:'Réservée',comments:`Réservation théorique automatique via le transport ${id} (Stock ${pool}).`});
     }
-    S.transports.push({id,liv:livId,dossier:lv?.dossier||data.dossier||'',trans:data.trans,veh:data.veh.trim().toUpperCase(),driver:data.driver?.trim()||'—',from:data.from,to:destName,pool,depP:data.depP,arrP:data.arrP,depR:'',arrR:'',qty:q,shipped:false,status:'Planifié',incidents:[]});
+    S.transports.push({id,site:curSite(),liv:livId,dossier:lv?.dossier||data.dossier||'',trans:data.trans,veh:data.veh.trim().toUpperCase(),driver:data.driver?.trim()||'—',from:data.from,to:destName,pool,depP:data.depP,arrP:data.arrP,depR:'',arrR:'',qty:q,shipped:false,status:'Planifié',incidents:[]});
     audit('Transport validé & stock réservé',id,`${q} palettes propres (Stock ${pool}) réservées vers ${destName}`);
     closeModal();
    },submitBtn());
@@ -4559,15 +4564,16 @@ function tIncident(id){if(!guard('transport'))return;const t=S.transports.find(x
 
 /* ===================== Livraisons ===================== */
 function vLivraisons(){
+ const cS=curSite();
  const sts=['Tous',...LSTEPS,'Annulée'];
- const list=S.deliveries.filter(l=>lvFilter==='Tous'||l.status===lvFilter).slice().reverse();
+ const list=siteDeliveries(cS).filter(l=>lvFilter==='Tous'||l.status===lvFilter).slice().reverse();
  const act=l=>({'Brouillon':`<button class="btn small primary${lockCls('livraisons')}" data-act="lReserve" data-id="${l.id}">Réserver stock</button>`,
   'Réservée':`<button class="btn small primary${lockCls('livraisons')}" data-act="lShip" data-id="${l.id}">Expédier</button>`,
   'Expédiée':`<button class="btn small${lockCls('livraisons')}" style="background:#86EFAC;border-color:#22C55E;color:#064E3B;font-weight:700" data-act="lReceive" data-id="${l.id}">Confirmer la livraison</button>`,
   'Livrée':`<button class="btn small primary${lockCls('livraisons')}" data-act="lClose" data-id="${l.id}">Clôturer</button>`})[l.status]||'';
  const kind=s=>({'Brouillon':'mute','Réservée':'warn','Expédiée':'info','Livrée':'ok','Clôturée':'mute','Annulée':'bad'})[s];
  return hero('delivery','Livraisons & Planning de réservation','Suivi du planning de livraison client : réservation théorique sur le Stock SKCI (sites SKCI) ou Global (autres clients), expédition et rapprochement des quantités reçues.',
-  `<div><b>${n0(reserved('SKCI'))}</b>réservées SKCI</div><div><b>${n0(reserved('Global'))}</b>réservées Global</div><div><b>${S.deliveries.filter(l=>l.status==='Expédiée').length}</b>en cours d’acheminement</div>`)+
+  `<div><b>${n0(reserved('SKCI'))}</b>réservées SKCI</div><div><b>${n0(reserved('Global'))}</b>réservées Global</div><div><b>${siteDeliveries(cS).filter(l=>l.status==='Expédiée').length}</b>en cours d’acheminement</div>`)+
  `<div class="toolbar"><div class="chips grow">${sts.map(s=>`<button class="chip" data-lf="${s}" aria-pressed="${lvFilter===s}">${s}</button>`).join('')}</div><button class="btn primary${lockCls('livraisons')}" data-act="newLivraison">${plus()}Nouvelle livraison</button></div>
  <div class="tablewrap"><table><thead><tr><th>Livraison</th><th>Dossier</th><th>Date prévue</th><th>Destination & Bassin</th><th class="right">Prévue</th><th class="right">Expédiée</th><th class="right">Reçue</th><th>Transport</th><th>Statut</th><th>Action</th></tr></thead><tbody>
  ${list.map(l=>{const pl=l.pool||destPool(l.to);return `<tr><td><span class="ref">${l.id}</span></td><td><button class="refchip" style="border:0;background:none;color:var(--blue);font-weight:600;cursor:pointer;padding:0" data-dossier="${l.dossier}">${l.dossier}</button></td><td>${fmt(l.dateP)}${lvLate(l)?'<br>'+badge('warn','En retard','◷'):''}</td><td>${esc(l.from)} → <b>${esc(l.to)}</b><br>${poolBadge(pl)} <span class="badge b-info" style="margin-left:4px">${fcfa(destTarif(l.to))}</span></td>
@@ -4577,8 +4583,8 @@ function vLivraisons(){
 function newLivraison(){
  if(!guard('livraisons'))return;
  const dstOpts=destinationsList().map(d=>[d.name,`${d.name} — Tarif : ${fcfa(d.tarif)} [Stock ${d.pool}]`]);
- openModal('Nouvelle livraison client',fld('Dossier de transit','dossier','select',{req:1,options:S.dossiers.map(d=>d.num),blank:'Choisir'})+fld('Date de livraison prévue','dateP','date',{req:1,value:iso(3),min:TODAY_ISO})+
-  fld('Site de départ','from','select',{req:1,options:ORIGINS})+fld('Destination client','to','select',{req:1,options:dstOpts,value:dstOpts[0]?.[0]||''})+fld('Quantité prévue (palettes propres)','qty','number',{req:1,min:1})+
+ openModal('Nouvelle livraison client',fld('Dossier de transit','dossier','select',{req:1,options:siteDossiers().map(d=>d.num),blank:'Choisir'})+fld('Date de livraison prévue','dateP','date',{req:1,value:iso(3),min:TODAY_ISO})+
+  fld('Site de départ','from','select',{req:1,options:siteOrigins()})+fld('Destination client','to','select',{req:1,options:dstOpts,value:dstOpts[0]?.[0]||''})+fld('Quantité prévue (palettes propres)','qty','number',{req:1,min:1})+
   `<div class="f"><label>Réserver immédiatement sur le stock propre</label><select name="now"><option value="1">Oui, réserver théoriquement les palettes</option><option value="0">Non, garder en brouillon</option></select></div>`+
   `<p class="note">Aucune date antérieure à ce jour (${fmt(TODAY_ISO)}) ne peut être saisie. Disponibilité actuelle : <b>${n0(dispo('SKCI'))}</b> Palettes propres SKCI (mises à part après lavage) · <b>${n0(dispo('Global'))}</b> Palettes propres Global.</p>`,'Créer la livraison',data=>{
   const e=req(data,['dossier','dateP','qty','to']);const q=+data.qty,pool=destPool(data.to);
@@ -4586,7 +4592,7 @@ function newLivraison(){
   if(data.from===data.to)e.to='La destination doit différer du départ.';
   if(data.now==='1'&&q>dispo(pool))e.qty=`Réservation refusée : seulement ${n0(dispo(pool))} palettes propres disponibles dans le Stock ${pool}.`;
   if(Object.keys(e).length)return e;
-  save(data.now==='1'?`Livraison créée et ${n0(q)} palettes réservées théoriquement sur le Stock ${pool}.`:'Livraison créée en brouillon.',()=>{const id=nextId('LV');S.deliveries.push({id,dossier:data.dossier,dateP:data.dateP,from:data.from,to:data.to,pool,cat:propreCat(pool),qty:q,qtyShip:null,qtyRec:null,damaged:0,transport:'',resp:S.me,status:data.now==='1'?'Réservée':'Brouillon',comments:''});audit('Livraison créée',id,`${q} palettes (${pool}) vers ${data.to}`);closeModal()},submitBtn())});
+  save(data.now==='1'?`Livraison créée et ${n0(q)} palettes réservées théoriquement sur le Stock ${pool}.`:'Livraison créée en brouillon.',()=>{const id=nextId('LV');S.deliveries.push({id,site:curSite(),dossier:data.dossier,dateP:data.dateP,from:data.from,to:data.to,pool,cat:propreCat(pool),qty:q,qtyShip:null,qtyRec:null,damaged:0,transport:'',resp:S.me,status:data.now==='1'?'Réservée':'Brouillon',comments:''});audit('Livraison créée',id,`${q} palettes (${pool}) vers ${data.to}`);closeModal()},submitBtn())});
 }
 function lReserve(id){if(!guard('livraisons'))return;const l=S.deliveries.find(x=>x.id===id);if(!l){toast('Livraison introuvable.','bad');return;}const pool=l.pool||destPool(l.to);
  save(`${l.qty} palettes propres réservées sur le Stock ${pool} pour ${l.id}.`,()=>{if(l.status!=='Brouillon')return 'Cette livraison est déjà réservée.';if(l.qty>dispo(pool))return `Réservation refusée : ${n0(dispo(pool))} palettes propres disponibles dans le Stock ${pool} pour ${l.qty} demandées.`;l.status='Réservée';l.pool=pool;l.cat=propreCat(pool);audit('Réservation stock',l.id,`${l.qty} palettes (${pool})`)})}
