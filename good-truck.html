@@ -925,7 +925,7 @@ const SEQ_STEPS=[
  {step:3,k:'D5',label:'Date de réception',type:'date',prev:'trans',prevLabel:'Transporteur'},
  {step:4,k:'D6',label:'Date de dépotage',type:'date',prev:'D5',prevLabel:'Date de réception'},
  {step:5,k:'D7',label:'Mail de récupération',type:'date',prev:'D6',prevLabel:'Date de dépotage'},
- {step:6,k:'D8',label:'Date de récupération (retour conteneur)',type:'date',prev:'D7',prevLabel:'Mail de récupération'}];
+ {step:6,k:'D8',label:'Date de récupération (retour conteneur · clôture du dossier)',type:'date',prev:'D7',prevLabel:'Mail de récupération'}];
 const ECARTS=[
  ['1. Arrivée réelle navire − ETA Navire','D3','D2'],
  ['2. Mise en livraison − Arrivée réelle navire','D4','D3'],
@@ -963,11 +963,11 @@ function seed(){
  const C=(a,n,t)=>({id:'c'+Math.random().toString(36).slice(2,8),author:a,t:ago(n,10,15),text:t,history:[]});
  const dossiers=[
   D('GT-2026-101','MSCU4821930','BL-ABJ-55821',ARMATEURS[0],TRANSPORTEURS[0],{D1:-16,D2:-38,D3:-37,D4:-33,D5:-32,D6:-30,D7:-24,D8:-22},'Clôturé',[C('u3',-22,'Conteneur retourné 6 jours avant la fin de franchise (15 j courus). Palettes sales envoyées au lavage.')],DEP(-30,140,'MB5','Validée','REC-001','sale')),
-  D('GT-2026-102','CMAU0073415','BL-ABJ-55904',ARMATEURS[1],TRANSPORTEURS[1],{D1:-13,D2:-35,D3:-34,D4:-25,D5:-24,D6:-20,D7:-12,D8:-8},'Ouvert',[C('u3',-28,'Navire retardé de 4 jours (congestion au port).'),C('u2',-8,'Conteneur retourné 5 jours après la fin de franchise (26 j courus) : motif documenté.')],DEP(-20,130,'MB5','Validée','REC-002','propre_global')),
+  D('GT-2026-102','CMAU0073415','BL-ABJ-55904',ARMATEURS[1],TRANSPORTEURS[1],{D1:-13,D2:-35,D3:-34,D4:-25,D5:-24,D6:-20,D7:-12,D8:-8},'Clôturé',[C('u3',-28,'Navire retardé de 4 jours (congestion au port).'),C('u2',-8,'Conteneur retourné 5 jours après la fin de franchise (26 j courus) : motif documenté.')],DEP(-20,130,'MB5','Validée','REC-002','propre_global')),
   D('GT-2026-103','MSKU7702158','BL-ABJ-56010',ARMATEURS[2],TRANSPORTEURS[2],{D1:4,D2:-18,D3:-17,D4:-10,D5:-9,D6:-6},'Ouvert',[],DEP(-6,140,'MB5','En attente','REC-003','')),
   D('GT-2026-104','TGHU0040221','BL-ABJ-56077',ARMATEURS[3],TRANSPORTEURS[0],{D1:11,D2:-11,D3:-10,D4:-5,D5:-2}),
-  D('GT-2026-105','MSCU5530087','BL-ABJ-55610',ARMATEURS[0],TRANSPORTEURS[3],{D1:-26,D2:-48,D3:-47,D4:-42,D5:-41,D6:-38,D7:-28,D8:-26},'Ouvert',[C('u3',-26,'Conteneur retourné le jour exact de la fin de franchise (21 jours courus).')],DEP(-38,140,'MB5','Validée','REC-004','quarantaine')),
-  D('GT-2026-106','CMAU0901176','BL-ABJ-55712',ARMATEURS[1],TRANSPORTEURS[1],{D1:-7,D2:-29,D3:-28,D4:-26,D5:-25,D6:-24,D7:-23,D8:-33},'Ouvert',[C('u3',-5,'Date de retour du conteneur à vérifier : elle précède l’arrivée du navire.')],DEP(-24,130,'MB5','Validée','REC-005','reparation')),
+  D('GT-2026-105','MSCU5530087','BL-ABJ-55610',ARMATEURS[0],TRANSPORTEURS[3],{D1:-26,D2:-48,D3:-47,D4:-42,D5:-41,D6:-38,D7:-28,D8:-26},'Clôturé',[C('u3',-26,'Conteneur retourné le jour exact de la fin de franchise (21 jours courus).')],DEP(-38,140,'MB5','Validée','REC-004','quarantaine')),
+  D('GT-2026-106','CMAU0901176','BL-ABJ-55712',ARMATEURS[1],TRANSPORTEURS[1],{D1:-7,D2:-29,D3:-28,D4:-26,D5:-25,D6:-24,D7:-23,D8:-33},'Clôturé',[C('u3',-5,'Date de retour du conteneur à vérifier : elle précède l’arrivée du navire.')],DEP(-24,130,'MB5','Validée','REC-005','reparation')),
   D('GT-2026-107','MSKU0310984','BL-ABJ-55958',ARMATEURS[2],TRANSPORTEURS[2],{D1:-4,D2:-25,D3:-25,D4:-16,D5:-15,D6:-12,D7:-3},'Ouvert',[C('u3',-3,'Mail de récupération envoyé, la franchise continue de courir tant que le conteneur n’est pas retourné.')],DEP(-12,140,'MB5','En attente','REC-006','')),
   D('GT-2026-108','TGHU0122309','BL-ABJ-55402',ARMATEURS[3],TRANSPORTEURS[3],{D1:-37,D2:-58,D3:-58,D4:-52,D5:-50,D6:-47,D7:-38,D8:-36},'Clôturé',[C('u2',-36,'Conteneur retourné à 22 jours (+1 j après fin de franchise) : procédure revue avec le transitaire.')],DEP(-47,45,'MB4','Validée','REC-007','autre')),
   D('GT-2026-109','MSCU6610452','BL-ABJ-56133',ARMATEURS[0],'',{D1:23,D2:2})
@@ -1180,6 +1180,7 @@ if(!S.autresPalettes.some(a=>siteOf(a)==='sanpedro')){
 // Enrichissement des dossiers avec site (Abidjan vs San Pedro)
 (S?.dossiers||[]).forEach(d=>{
  if(!d.site)d.site=(d.id.includes('SP')||d.bl?.includes('SP')||d.num?.includes('SP'))?'sanpedro':'abidjan';
+ if(d.D8&&d.status!=='Clôturé')d.status='Clôturé';
 });
 // Ajout de dossiers d'exemple pour San Pedro si absents
 if(!S.dossiers.some(d=>d.site==='sanpedro')){
@@ -2868,7 +2869,7 @@ function openDossier(id,edit=false){
  const ev=[{t:d.createdAt.slice(0,10),l:'Création du dossier',s:'par '+user(d.createdBy).name},...DATES.map(([k,l])=>({t:d[k],l,s:k,code:k}))]
    .map(e=>({...e,fut:!e.t})).sort((a,b)=>a.fut-b.fut||(a.t||'').localeCompare(b.t||''));
  if(clos)ev.push({t:d.updatedAt.slice(0,10),l:'Clôture du dossier',s:''});
- $('#drawer').innerHTML=`<header><div class="grow"><h2>${d.num}</h2><div class="muted" style="font-size:14px">N° Conteneur(TC) ${d.cont} · BL ${d.bl} · ${esc(d.lam)}${d.trans?' · Transporteur : '+esc(d.trans):''}</div><div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${badge(clos?'mute':'info',d.status)}${appBadge(d)}${arrived?badge('ok','Navire arrivé le '+fmt(d.D3),'✓'):badge('bad','En attente d’arrivée du navire','◷')}</div></div><button class="close" data-act="closeDrawer" aria-label="Fermer">×</button></header>
+ $('#drawer').innerHTML=`<header><div class="grow"><h2>${d.num}</h2><div class="muted" style="font-size:14px">N° Conteneur(TC) ${d.cont} · BL ${d.bl} · ${esc(d.lam)}${d.trans?' · Transporteur : '+esc(d.trans):''}</div><div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${badge(clos?'ok':'info',clos?'✓ Clôturé (Conteneur récupéré)':'⏳ En cours (Franchise active)')}${appBadge(d)}${arrived?badge('ok','Navire arrivé le '+fmt(d.D3),'✓'):badge('bad','En attente d’arrivée du navire','◷')}</div></div><button class="close" data-act="closeDrawer" aria-label="Fermer">×</button></header>
  <div class="body">
   <div style="display:flex;gap:8px;flex-wrap:wrap">
    ${clos?`<button class="btn${lockCls('transit')}" data-act="reopen" data-id="${d.id}">Rouvrir le dossier</button>`:`
@@ -2927,6 +2928,7 @@ function openDossier(id,edit=false){
      if(prevOk&&!val&&!clos){
       if(s.k==='D6')actBtn=`<button type="button" class="btn small primary${lockCls('transit')}" data-act="validerDepotage" data-id="${d.id}">Confirmer dépotage</button>`;
       else if(s.type==='select')actBtn=`<button type="button" class="btn small primary${lockCls('transit')}" data-act="editDates" data-id="${d.id}">Choisir le transporteur</button>`;
+      else if(s.k==='D8')actBtn=`<button type="button" class="btn small primary${lockCls('transit')}" data-act="validerStepJour" data-id="${d.id}" data-step="${s.k}" style="background:#059669;border-color:#047857">Valider récupération & Clôturer</button>`;
       else actBtn=`<button type="button" class="btn small primary${lockCls('transit')}" data-act="validerStepJour" data-id="${d.id}" data-step="${s.k}">Valider ce jour</button>`;
      }
      ctrl=disp||(prevOk?`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px"><span class="badge b-bad">Non renseigné · prêt à valider</span>${actBtn}</div>`:`<span class="badge b-bad">🔒 Non renseigné (attente : ${s.prevLabel})</span>`);
@@ -5000,8 +5002,17 @@ document.addEventListener('click',e=>{
   validerStepJour:()=>{if(!guard('transit'))return;const d=S.dossiers.find(x=>x.id===id);if(!d||!d.D3)return;
    const sk=a.dataset.step,st=SEQ_STEPS.find(x=>x.k===sk);if(!st||d[sk])return;
    if(!d[st.prev]){toast(`Validez d’abord « ${st.prevLabel} ».`,'bad');return}
-   save(`« ${st.label} » validée à la date du jour (${fmt(TODAY_ISO)}).`,()=>{
-    d[sk]=TODAY_ISO;d.updatedAt=nowISO();d.updatedBy=S.me;
+   const isRecovery=sk==='D8';
+   const successMsg=isRecovery
+    ?`Conteneur récupéré le ${fmt(TODAY_ISO)} : le dossier ${d.num} est désormais clôturé.`
+    :`« ${st.label} » validée à la date du jour (${fmt(TODAY_ISO)}).`;
+   save(successMsg,()=>{
+    d[sk]=TODAY_ISO;
+    if(isRecovery){
+     d.status='Clôturé';
+     audit('Clôture automatique du dossier (conteneur récupéré)',d.num,`Conteneur retourné au port le ${fmt(TODAY_ISO)} · Dossier clôturé automatiquement.`);
+    }
+    d.updatedAt=nowISO();d.updatedBy=S.me;
     audit('Validation étape Transit (date du jour)',d.num,`${st.label} → ${fmt(TODAY_ISO)}`);
     setTimeout(()=>openDossier(id,false),30);
    },a)},
@@ -5027,9 +5038,19 @@ document.addEventListener('click',e=>{
    }
    const ch=SEQ_STEPS.filter(s=>(next[s.k]||'')!==(d[s.k]||''));
    if(!ch.length&&!hasDep){openDossier(id,false);return}
-   save(hasDep?`Suivi validé au ${fmt(TODAY_ISO)} & dépotage (${n0(depTotal)} palettes) transmis à l’Entrepôt.`:`Suivi validé au ${fmt(TODAY_ISO)} (${ch.map(s=>s.label).join(', ')}).`,()=>{
+   const isRecovery=(next.D8&&!d.D8)||Boolean(next.D8);
+   const successMsg=hasDep
+    ?`Suivi validé au ${fmt(TODAY_ISO)} & dépotage (${n0(depTotal)} palettes) transmis à l’Entrepôt.`
+    :isRecovery
+     ?`Conteneur récupéré au ${fmt(next.D8||TODAY_ISO)} : dossier ${d.num} clôturé.`
+     :`Suivi validé au ${fmt(TODAY_ISO)} (${ch.map(s=>s.label).join(', ')}).`;
+   save(successMsg,()=>{
     ch.forEach(s=>d[s.k]=next[s.k]||'');
     if(hasDep)applyDepotage(d,TODAY_ISO,depTotal,depModel);
+    if(d.D8&&d.status!=='Clôturé'){
+     d.status='Clôturé';
+     audit('Clôture automatique du dossier (conteneur récupéré)',d.num,`Conteneur retourné au port (${fmt(d.D8)}) · Dossier clôturé automatiquement.`);
+    }
     d.updatedAt=nowISO();d.updatedBy=S.me;
     audit('Validation suivi séquentiel (au jour le jour)',d.num,ch.map(s=>`${s.label} → ${s.type==='select'?(d[s.k]||'vide'):(fmt(d[s.k])||'vide')}`).join(', '));
     setTimeout(()=>openDossier(id,false),30);
