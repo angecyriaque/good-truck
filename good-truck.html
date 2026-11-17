@@ -875,6 +875,9 @@ const siteReparations=(s=curSite())=>(S.reparations||[]).filter(r=>siteOf(r)===s
 const siteMovements=(s=curSite())=>(S.movements||[]).filter(m=>siteOf(m)===s);
 const siteAutres=(s=curSite())=>(S.autresPalettes||[]).filter(p=>siteOf(p)===s);
 const siteDestinations=(s=curSite())=>(S.destinations||[]).filter(d=>siteOf(d)===s);
+const siteInvoices=(s=curSite())=>(S.invoices||[]).filter(i=>siteOf(i)===s);
+const sitePayments=(s=curSite())=>(S.payments||[]).filter(p=>siteOf(p)===s);
+const siteRelances=(s=curSite())=>(S.relances||[]).filter(r=>siteOf(r)===s);
 const siteOrigins=(s=curSite())=>s==='sanpedro'?['SKCI · Dépôt San-Pedro','Port de San-Pedro']:['Entrepôt Vridi','Port autonome d’Abidjan'];
 
 const curSiteObj=()=>SITES_APP.find(s=>s.id===curSite())||SITES_APP[0];
@@ -982,6 +985,19 @@ function seed(){
   {id:'REC-007',dossier:'GT-2026-108',cont:'TGHU0122309',date:iso(-47),model:'MB4',typeRec:'lavee',cat:'autre',qtyEmise:45,qtyRecue:45,total:45,status:'Validée',by:'u3',valBy:'u4',valAt:ago(-47,14),depotStartAt:ago(-47,10,0),depotEndAt:ago(-47,10,39),obs:'Palettes modèle MB4 (hors MB5 habituel) rangées dans Autre.'}
  ];
  const paletteModels=['MB4','MB7','MB9'];
+ const invoices=[
+  {id:'FAC-2026-001',num:'FAC-2026-001',site:'abidjan',dossier:'GT-2026-101',date:iso(-20),due:iso(10),client:'SKCI',contact:'Kouadio Yao · +225 07 09 11 22 33',address:'Zone Industrielle Yopougon, Abidjan',lines:[{desc:'Dédouanement & Transit Maritime (TC MSCU4821930 / BL-ABJ-55821)',qty:1,unit:'Forfait',price:280000,total:280000},{desc:'Traction routière vers SKCI · Usine Yopougon',qty:1,unit:'Trajet',price:85000,total:85000},{desc:'Manutention, dépotage & mise en stock de 140 palettes MB5',qty:140,unit:'Palettes',price:1200,total:168000}],ht:533000,taxRate:18,tva:95940,ttc:628940,paid:628940,balance:0,status:'Payée',createdBy:'u2',createdAt:ago(-20,10),obs:'Facture acquittée à 100% par virement bancaire.'},
+  {id:'FAC-2026-002',num:'FAC-2026-002',site:'abidjan',dossier:'GT-2026-102',date:iso(-8),due:iso(22),client:'SKCI',contact:'Bintou Koné · +225 07 08 55 44 11',address:'Zone Portuaire de Vridi, Abidjan',lines:[{desc:'Prestation de dédouanement (CMAU0073415 / BL-ABJ-55904)',qty:1,unit:'Forfait',price:280000,total:280000},{desc:'Traction Vridi & manutention dépotage 130 palettes',qty:130,unit:'Palettes',price:1500,total:195000},{desc:'Frais de surestaries maritimes (dépassement franchise 5j)',qty:5,unit:'Jours',price:18000,total:90000}],ht:565000,taxRate:18,tva:101700,ttc:666700,paid:0,balance:666700,status:'Émise',createdBy:'u2',createdAt:ago(-8,14),obs:'Facture transmise pour règlement sous 30 jours.'},
+  {id:'FAC-2026-003',num:'FAC-2026-003',site:'abidjan',dossier:'GT-2026-105',date:iso(-25),due:iso(-5),client:'SAPH',contact:'Alain Kouassi · +225 07 47 88 99 00',address:'Plantation & Usine de Toupah, Dabou',lines:[{desc:'Dédouanement conteneur MSCU5530087 (BL-ABJ-55610)',qty:1,unit:'Forfait',price:280000,total:280000},{desc:'Transport & traction Dabou / Toupah (DST-04)',qty:1,unit:'Trajet',price:110000,total:110000},{desc:'Mise en stock & dépotage 140 palettes (quarantaine)',qty:140,unit:'Palettes',price:1200,total:168000}],ht:558000,taxRate:18,tva:100440,ttc:658440,paid:300000,balance:358440,status:'Partiellement payée',createdBy:'u2',createdAt:ago(-25,9),obs:'Acompte de 300 000 FCFA reçu. Solde échu à recouvrer.'},
+  {id:'FAC-2026-004',num:'FAC-2026-004',site:'abidjan',dossier:'GT-2026-108',date:iso(-2),due:iso(28),client:'ITCA',contact:'M. Niamkey · +225 05 66 77 88 99',address:'Zone Agro-industrielle de Bonoua',lines:[{desc:'Prestation Transit dossier GT-2026-108 (TGHU0122309)',qty:1,unit:'Forfait',price:280000,total:280000},{desc:'Traction vers Bonoua & dépotage 45 palettes MB4',qty:1,unit:'Forfait',price:120000,total:120000}],ht:400000,taxRate:18,tva:72000,ttc:472000,paid:0,balance:472000,status:'Brouillon',createdBy:'u2',createdAt:ago(-2,11),obs:'Projet de facture en cours de validation interne.'}
+ ];
+ const payments=[
+  {id:'REG-2026-001',site:'abidjan',invoiceId:'FAC-2026-001',dossier:'GT-2026-101',client:'SKCI',date:iso(-15),amount:628940,mode:'Virement bancaire',ref:'VIR-SGBCI-882190',bank:'Société Générale CI',by:'u2',obs:'Règlement intégral de la facture FAC-2026-001.'},
+  {id:'REG-2026-002',site:'abidjan',invoiceId:'FAC-2026-003',dossier:'GT-2026-105',client:'SAPH',date:iso(-12),amount:300000,mode:'Chèque',ref:'CHQ-NSIA-440129',bank:'NSIA Banque',by:'u2',obs:'Acompte reçu pour le dossier GT-2026-105.'}
+ ];
+ const relances=[
+  {id:'REL-2026-001',site:'abidjan',invoiceId:'FAC-2026-003',dossier:'GT-2026-105',client:'SAPH',date:iso(-3),level:'Niveau 1 (Rappel aimable)',contact:'Alain Kouassi',phone:'+225 07 47 88 99 00',promiseDate:iso(3),promiseAmount:358440,channel:'Téléphone & Email',agent:'u2',notes:'Promesse de virement du solde (358 440 FCFA) confirmée par le service comptabilité SAPH.'}
+ ];
  const autresPalettes=[
   {id:'AUT-001',model:'MB4',qty:45,etat:'Autre',dossier:'GT-2026-108',cont:'TGHU0122309',date:iso(-47),by:'u4',obs:'Réception REC-007 : 45 palettes modèle MB4'},
   {id:'AUT-002',model:'MB7',qty:30,etat:'Autre',dossier:'GT-2026-101',cont:'MSCU4821930',date:iso(-25),by:'u4',obs:'Lot de 30 palettes modèle MB7 identifiées au dépotage'},
@@ -1073,7 +1089,7 @@ function seed(){
  return {v:15,curSite:'abidjan',me:'u1',users,operators,destinations,receptions,paletteModels,autresPalettes,dossiers,movements:mv,lavages,reparations,deliveries,transports,planifications,convs,
   stockInit:{sale:300,propre_skci:340,propre_global:310,reparation:48,quarantaine:18,autre:45},
   audit:[{t:ago(-1,16,5),user:'u3',action:'Dépotage transmis à l’entrepôt',obj:'GT-2026-103',details:'REC-003 (140 palettes) transféré automatiquement en Stock & Réceptions'},{t:ago(0,9,10),user:'u4',action:'Lavage enregistré',obj:'LAV-004',details:'Lot LOT-2026-34 : 120 palettes lavées affectées au Stock Global'},{t:ago(0,14,0),user:'u4',action:'Opération DOOR SWAP',obj:'REP-002',details:'15 palettes en DOOR SWAP envoyées au lavage (Palettes sales)'}],
-  seq:{MV:k,LV:44,TR:23,PLN:3,LAV:4,REP:3,AUT:3,GT:109,ARM:5,TRS:4,REC:7,DST:6}};
+  invoices,payments,relances,seq:{MV:k,LV:44,TR:23,PLN:3,LAV:4,REP:3,AUT:3,GT:109,ARM:5,TRS:4,REC:7,DST:6,FAC:4,REG:2,REL:1}};
 }
 let S;
 try{S=JSON.parse(localStorage.getItem('goodtruck-v15'))}catch(e){S=null}
@@ -1131,6 +1147,22 @@ if(!S.transfers||!S.transfers.length){
  S.seq.TRF=Math.max(S.seq.TRF||0,3);
 }
 if(!S.seq.TRF)S.seq.TRF=3;
+S.invoices = S.invoices || [];
+S.payments = S.payments || [];
+S.relances = S.relances || [];
+S.seq.FAC = S.seq.FAC || 5;
+S.seq.REG = S.seq.REG || 3;
+S.seq.REL = S.seq.REL || 2;
+
+if(!S.invoices.some(i=>siteOf(i)==='sanpedro')){
+ S.invoices.push(
+  {id:'FAC-SP-2026-01',num:'FAC-SP-2026-01',site:'sanpedro',dossier:'GT-2026-SP-01',date:iso(-10),due:iso(20),client:'SOGB',contact:'Mireille Bérété · +225 01 02 33 44 55',address:'Complexe SOGB, Grand-Béréby',lines:[{desc:'Transit portuaire Port de San-Pedro (CMAU8120341)',qty:1,unit:'Forfait',price:320000,total:320000},{desc:'Traction San-Pedro → Grand-Béréby (130 palettes)',qty:1,unit:'Trajet',price:350000,total:350000},{desc:'Dépotage et manutention palettes au Dépôt San-Pedro',qty:130,unit:'Palettes',price:1200,total:156000}],ht:826000,taxRate:18,tva:148680,ttc:974680,paid:974680,balance:0,status:'Payée',createdBy:'u4',createdAt:ago(-10,9),obs:'Facture réglée par virement SOGB.'},
+  {id:'FAC-SP-2026-02',num:'FAC-SP-2026-02',site:'sanpedro',dossier:'GT-2026-SP-02',date:iso(0),due:iso(30),client:'CHCI',contact:'Didier Soro · +225 07 58 12 34 56',address:'Site Industriel Caoutchouc Cavally',lines:[{desc:'Transit & Dédouanement MSCU9041285 (BL-SP-10518)',qty:1,unit:'Forfait',price:320000,total:320000},{desc:'Traction Dépôt San-Pedro → Cavally (DST-06)',qty:1,unit:'Trajet',price:180000,total:180000},{desc:'Dépotage 140 palettes MB5 affectées au stock',qty:140,unit:'Palettes',price:1200,total:168000}],ht:668000,taxRate:18,tva:120240,ttc:788240,paid:0,balance:788240,status:'Émise',createdBy:'u4',createdAt:ago(0,11),obs:'Facture émise suite à la confirmation du dépotage.'}
+ );
+}
+if(!S.payments.some(p=>siteOf(p)==='sanpedro')){
+ S.payments.push({id:'REG-SP-2026-01',site:'sanpedro',invoiceId:'FAC-SP-2026-01',dossier:'GT-2026-SP-01',client:'SOGB',date:iso(-5),amount:974680,mode:'Virement bancaire',ref:'VIR-ECO-994102',bank:'Ecobank San-Pedro',by:'u4',obs:'Règlement reçu pour FAC-SP-2026-01.'});
+}
 
 /* Enrichissement des opérations du site de San Pedro */
 if(!S.receptions.some(r=>siteOf(r)==='sanpedro')){
@@ -1446,6 +1478,7 @@ function alerts(){
  siteDeliveries(cS).filter(l=>l.qtyRec!=null&&l.qtyRec!==l.qtyShip&&l.status!=='Clôturée').forEach(l=>a.push({k:'warn',ic:'≠',t:`${l.id} : écart de réception`,s:`${l.qtyShip} expédiées, ${l.qtyRec} reçues`,go:()=>goTab('livraisons')}));
  if(dispo('SKCI',cS)<150)a.push({k:'bad',ic:'▼',t:`Stock propre SKCI faible (${siteName(cS)})`,s:`${n0(dispo('SKCI',cS))} disponibles (seuil de sécurité : 150)`,go:()=>{ent='dispo';goTab('entrepot')}});
  if(dispo('Global',cS)<150)a.push({k:'bad',ic:'▼',t:`Stock propre Global faible (${siteName(cS)})`,s:`${n0(dispo('Global',cS))} disponibles (seuil de sécurité : 150)`,go:()=>{ent='dispo';goTab('entrepot')}});
+ siteInvoices(cS).filter(i=>i.status!=='Payée'&&i.due&&i.due<TODAY_ISO).forEach(i=>{const dL=days(TODAY_ISO,i.due);a.push({k:'bad',ic:'💰',t:`${i.num} (${i.client}) : facture échue en retard (+${dL} j)`,s:`Solde dû : ${fcfa(i.balance)} · Dossier ${i.dossier}`,go:()=>goTab('recouvrement')})});
  siteLavages(cS).filter(l=>l.status==='En cours').forEach(l=>a.push({k:'info',ic:'↻',t:`${l.id} : lavage à valider & répartir (SKCI / Global)`,s:`${l.recu} palettes sales du lot ${l.lot}`,go:()=>{ent='lavage';goTab('entrepot')}}));
  const ord={bad:0,warn:1,info:2};return a.sort((x,y)=>ord[x.k]-ord[y.k]);
 }
@@ -1520,6 +1553,8 @@ function scene(name){
   <g class="bub1"><rect x="8" y="10" width="110" height="30" rx="12" fill="var(--info-bg)" stroke="var(--blue)" stroke-width="1.5"/><path d="M22 22h60M22 30h40" stroke="var(--blue)" stroke-width="3" stroke-linecap="round"/></g>
   <g class="bub2"><rect x="96" y="34" width="110" height="28" rx="12" fill="var(--blue)"/><path d="M110 45h70M110 52h44" stroke="#fff" stroke-width="3" stroke-linecap="round"/></g>
   <g class="bub3"><rect x="20" y="58" width="72" height="26" rx="12" fill="var(--info-bg)" stroke="var(--blue)" stroke-width="1.5"/><circle cx="40" cy="71" r="3" fill="var(--blue)"/><circle cx="56" cy="71" r="3" fill="var(--blue)"/><circle cx="72" cy="71" r="3" fill="var(--blue)"/></g></svg>`;
+ if(name==='finance')return `<svg class="scene" viewBox="0 0 360 150" aria-hidden="true"><g transform="translate(40,15)"><rect width="110" height="120" rx="8" fill="var(--surface-2)" stroke="var(--line)" stroke-width="2"/><rect x="35" y="-6" width="40" height="12" rx="3" fill="var(--ill-dark)"/><path d="M20 28h70M20 44h50M20 60h70M20 76h60M20 92h40" stroke="var(--blue)" stroke-width="3" stroke-linecap="round"/></g><g transform="translate(180,30)"><circle cx="50" cy="50" r="45" fill="var(--ok)" opacity=".15"/><circle cx="50" cy="50" r="35" fill="none" stroke="var(--ok)" stroke-width="4"/><text x="50" y="58" font-size="24" font-weight="800" text-anchor="middle" fill="var(--ok)">FCFA</text></g><path d="M280 20l25 15v35l-25 15-25-15V35z" fill="var(--accent)" opacity=".8"/></svg>`;
+ if(name==='money')return `<svg class="scene" viewBox="0 0 360 150" aria-hidden="true"><g transform="translate(30,25)"><rect width="130" height="95" rx="10" fill="var(--navy)"/><circle cx="65" cy="48" r="24" fill="none" stroke="var(--accent)" stroke-width="4"/><rect x="62" y="44" width="6" height="8" rx="2" fill="#fff"/></g><g transform="translate(190,30)">${[0,1,2,3].map(i=>`<g transform="translate(${i*28},${40-i*8})"><ellipse cx="14" cy="45" rx="14" ry="7" fill="var(--ok)"/><rect x="0" y="32" width="28" height="13" fill="var(--ok)"/><ellipse cx="14" cy="32" rx="14" ry="7" fill="#86EFAC"/></g>`).join('')}</g><path d="M220 20l30-10 30 10v20c0 18-12 30-30 36-18-6-30-18-30-36z" fill="var(--blue)" opacity=".85"/><path d="M242 35l6 6 12-14" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round"/></svg>`;
  if(name==='users')return `<svg class="scene" viewBox="0 0 360 150" aria-hidden="true">
   ${[0,1,2].map(i=>`<g transform="translate(${30+i*92},${30+(i%2)*14})"><rect width="80" height="100" rx="8" fill="var(--surface-2)" stroke="var(--line)" stroke-width="2"/><rect x="30" y="-6" width="20" height="10" rx="2" fill="var(--ill-dark)"/>
    <circle cx="40" cy="36" r="14" fill="${['var(--blue)','var(--ok)','var(--accent)'][i]}"/><path d="M18 74c4-12 40-12 44 0" fill="${['var(--blue)','var(--ok)','var(--accent)'][i]}"/><path d="M16 86h48" stroke="var(--line)" stroke-width="4" stroke-linecap="round"/></g>`).join('')}
@@ -1535,12 +1570,14 @@ const TABS=[
  {k:'entrepot',l:'Entrepôt',ic:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M2 9l10-6 10 6v12H2z"/><g class="a-hop"><rect x="7" y="12" width="10" height="5"/><path d="M6 19h12"/></g></svg>`},
  {k:'transport',l:'Transport',ic:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><g class="a-drive"><path d="M1 6h13v10H1zM14 9h4l4 4v3h-8"/></g><g class="a-wheel"><circle cx="6" cy="18" r="2.2" fill="var(--surface)"/></g><g class="a-wheel"><circle cx="18" cy="18" r="2.2" fill="var(--surface)"/></g></svg>`},
  {k:'livraisons',l:'Livraisons',ic:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/><path class="a-check" d="M14.5 15.5l1.8 1.8 3.2-3.6" stroke-width="2.2"/></svg>`},
+ {k:'facturation',l:'Facturation',ic:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8M16 17H8M10 9H8"/></svg>`},
+ {k:'recouvrement',l:'Recouvrement',ic:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 6v12"/></svg>`},
  {k:'operateurs',l:'Opérateurs',ic:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><circle cx="12" cy="5" r="2.5"/><path d="M12 7.5v11M7 11h10"/><path d="M5 14c0 3.5 3 5.5 7 5.5s7-2 7-5.5"/><path d="M4 14l2-2 1.5 2M20 14l-2-2-1.5 2"/></svg>`},
  {k:'chat',l:'Chat',ic:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 4h16v12H9l-5 4z"/><g class="a-dots" fill="currentColor" stroke="none"><circle cx="8.5" cy="10" r="1.3"/><circle cx="12" cy="10" r="1.3"/><circle cx="15.5" cy="10" r="1.3"/></g></svg>`},
  {k:'utilisateurs',l:'Utilisateurs',ic:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c.8-4 3.6-6 7-6s6.2 2 7 6"/><g class="a-wave"><circle cx="17.5" cy="7" r="2.5"/><path d="M16 13.5c2.6-.4 5 1.3 5.8 4.5"/></g></svg>`}];
 
 /* ===================== Navigation ===================== */
-let tab='dashboard', ent='stock', recValSort='desc', prodDate=TODAY_ISO, poolFilter='Tous', trSub='missions', trFilter='Tous', fFilter='tous', fTrans='', fQ='', lvFilter='Tous', opFilter='Tous', opQ='', usub='comptes', chatF='tous', chatQ='', curConv=null, charts=[];
+let tab='dashboard', ent='stock', recValSort='desc', prodDate=TODAY_ISO, poolFilter='Tous', trSub='missions', trFilter='Tous', fFilter='tous', fTrans='', fQ='', lvFilter='Tous', facFilter='Tous', facQ='', recFilter='Tous', recQ='', recSub='echeancier', opFilter='Tous', opQ='', usub='comptes', chatF='tous', chatQ='', curConv=null, charts=[];
 function goTab(t){tab=t;try{history.replaceState(null,'','#'+t)}catch(e){}closeDrawer();render();window.scrollTo({top:0})}
 function renderTabs(){
  const unread=S.convs.reduce((a,c)=>a+(c.unread||0),0);
@@ -1598,7 +1635,7 @@ function render(){
  charts.forEach(c=>{ try{ c.destroy(); }catch(e){} });charts=[];
  const v=$('#view');
  if(!v) return;
- const viewMap={dashboard:vDash,transit:vTransit,entrepot:vEntrepot,transport:vTransport,livraisons:vLivraisons,operateurs:vOperateurs,chat:vChat,utilisateurs:vUsers};
+ const viewMap={dashboard:vDash,transit:vTransit,entrepot:vEntrepot,transport:vTransport,livraisons:vLivraisons,facturation:vFacturation,recouvrement:vRecouvrement,operateurs:vOperateurs,chat:vChat,utilisateurs:vUsers};
  const viewFn=viewMap[tab]||vDash;
  try {
   v.innerHTML=viewFn();
@@ -2881,6 +2918,30 @@ function openDossier(id,edit=false){
   </div>
   ${gauge(d)}
   ${d.depotage?`<section class="panel"><h3 style="margin-bottom:6px">Dépotage & Transmission à l’Entrepôt</h3>${depotageSummary(d)}</section>`:''}
+  <section class="panel" style="margin-bottom:16px;border-left:4px solid var(--blue)">
+   <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+    <h3 style="margin:0;font-size:15px;color:var(--blue)">Aspect Financier & Facturation du dossier</h3>
+    ${(()=>{const inv=(S.invoices||[]).find(i=>i.dossier===d.num);return inv?facStatusBadge(inv.status,inv.due):badge('warn','Non encore facturé','⏳')})()}
+   </div>
+   ${(()=>{
+    const inv=(S.invoices||[]).find(i=>i.dossier===d.num);
+    if(inv){
+     return `<div class="kv" style="margin-bottom:8px">
+      <div><span>Facture N°</span><b class="ref">${esc(inv.num)}</b></div>
+      <div><span>Montant TTC</span><b class="num" style="color:var(--ink)">${fcfa(inv.ttc)}</b></div>
+      <div><span>Encaissé</span><b class="num" style="color:var(--ok)">${fcfa(inv.paid)}</b></div>
+      <div><span>Solde Dû</span><b class="num" style="color:${inv.balance>0?'var(--bad)':'var(--ok)'}">${fcfa(inv.balance)}</b></div>
+     </div>
+     <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button type="button" class="btn small" data-act="viewInvoice" data-id="${inv.id}">👁️ Voir la facture</button>
+      ${inv.balance>0?`<button type="button" class="btn small primary${lockCls('recouvrement')}" data-act="newPayment" data-id="${inv.id}">💳 Encaisser un règlement (${fcfa(inv.balance)})</button>`:''}
+     </div>`;
+    }else{
+     return `<p class="muted" style="margin:0 0 10px;font-size:12.5px">Aucune facture émise pour ce dossier. Les prestations de transit (280 000 FCFA), de traction et de dépotage palettes peuvent être facturées en un clic.</p>
+     <button type="button" class="btn small primary${lockCls('facturation')}" data-act="newInvoice" data-id="${d.id}">+ Émettre la facture pour ce dossier</button>`;
+    }
+   })()}
+  </section>
   <section class="panel"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px"><h3 style="margin:0">1. Informations complètes de l’opération</h3>${arrived?badge('mute','🔒 Infos initiales verrouillées'):badge('info','Modifiables avant arrivée du navire')}</div>
    <div class="kv">
     <div><span>Dossier</span><b>${d.num}</b></div><div><span>N° Conteneur(TC)</span><b class="num">${d.cont}</b></div>
@@ -4606,6 +4667,777 @@ function lCancel(id){if(!guard('livraisons'))return;const l=S.deliveries.find(x=
  openModal(`Annuler ${l.id} ?`,`<p class="full" style="margin:0">La réservation théorique de ${l.qty} palettes (${l.pool||destPool(l.to)}) sera libérée. Cette action est conservée dans l’historique.</p>`+fld('Motif d’annulation','m','textarea',{req:1,full:1}),'Annuler la livraison',data=>{const e=req(data,['m']);if(Object.keys(e).length)return e;
   save(`${l.id} annulée et réservation libérée.`,()=>{l.status='Annulée';l.comments=data.m;const t=S.transports.find(x=>x.id===l.transport);if(t&&t.status==='Planifié')t.status='Brouillon';audit('Livraison annulée',l.id,data.m);closeModal()},submitBtn())})}
 
+/* ===================== Facturation & Recouvrement (Aspects Financiers) ===================== */
+
+const FAC_STATUS_META = {
+ 'Brouillon': { col: 'var(--muted)', bg: 'var(--surface-2)', label: 'Brouillon', ic: '📝' },
+ 'Émise': { col: '#2563EB', bg: '#EFF6FF', label: 'Émise (En attente)', ic: '📤' },
+ 'Partiellement payée': { col: '#D97706', bg: '#FFFBEB', label: 'Partiellement payée', ic: '⏳' },
+ 'Payée': { col: '#059669', bg: '#ECFDF5', label: 'Payée & Soldée', ic: '✓' },
+ 'En retard': { col: '#DC2626', bg: '#FEF2F2', label: 'Échue en retard', ic: '⚠' }
+};
+
+function facStatusBadge(status, due) {
+ const isLate = !['Payée', 'Brouillon'].includes(status) && due && due < TODAY_ISO;
+ const st = isLate ? 'En retard' : status;
+ const m = FAC_STATUS_META[st] || FAC_STATUS_META['Émise'];
+ return `<span class="badge" style="background:${m.bg};color:${m.col};border:1px solid ${m.col};font-weight:700">${m.ic} ${esc(m.label)}</span>`;
+}
+
+function vFacturation() {
+ const cS = curSite(), sObj = curSiteObj();
+ const invoices = siteInvoices(cS);
+ 
+ const q = facQ.toLowerCase();
+ const filtered = invoices.filter(inv => {
+  const isLate = !['Payée', 'Brouillon'].includes(inv.status) && inv.due && inv.due < TODAY_ISO;
+  const matchFilter = facFilter === 'Tous' || (facFilter === 'En retard' ? isLate : inv.status === facFilter);
+  const matchQ = !q || [inv.id, inv.num, inv.dossier, inv.client, inv.contact, inv.obs].join(' ').toLowerCase().includes(q);
+  return matchFilter && matchQ;
+ });
+
+ const totalFactureHT = invoices.reduce((a, i) => a + (+i.ht || 0), 0);
+ const totalFactureTTC = invoices.reduce((a, i) => a + (+i.ttc || 0), 0);
+ const totalEncaisse = invoices.reduce((a, i) => a + (+i.paid || 0), 0);
+ const totalRestant = invoices.reduce((a, i) => a + (+i.balance || 0), 0);
+ const countPayees = invoices.filter(i => i.status === 'Payée').length;
+ const countEnRetard = invoices.filter(i => i.status !== 'Payée' && i.due && i.due < TODAY_ISO).length;
+ const countEnCours = invoices.filter(i => !['Payée', 'Brouillon'].includes(i.status) && (!i.due || i.due >= TODAY_ISO)).length;
+
+ const filterChips = ['Tous', 'Émise', 'Partiellement payée', 'Payée', 'En retard', 'Brouillon'];
+
+ return siteBanner(`Facturation des dossiers de transit, manutention palettes et traction · ${sObj.name}`) +
+ hero('finance', `Facturation · ${sObj.icon} ${sObj.name}`, 'Gestion et émission des factures clients adossées aux dossiers de transit, dépotage et livraisons.',
+  `<div><b>${fcfa(totalFactureTTC)}</b>volume facturé TTC</div><div><b>${fcfa(totalEncaisse)}</b>encaissé</div><div><b>${fcfa(totalRestant)}</b>solde à recouvrer</div>`) +
+ `<div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr));margin-bottom:16px">
+   <div class="kpi" style="cursor:default;border-left:4px solid var(--blue)">
+    <span>Volume Facturé Total</span>
+    <b style="color:var(--blue)">${fcfa(totalFactureTTC)}</b>
+    <small class="muted">HT : <b>${fcfa(totalFactureHT)}</b> · ${invoices.length} factures</small>
+   </div>
+   <div class="kpi t-ok" style="cursor:default">
+    <span>Factures Encaissées</span>
+    <b>${n0(countPayees)}</b>
+    <small class="muted">Total réglé : <b>${fcfa(totalEncaisse)}</b></small>
+   </div>
+   <div class="kpi t-warn" style="cursor:default">
+    <span>Factures En Cours</span>
+    <b>${n0(countEnCours)}</b>
+    <small class="muted">En attente d’échéance</small>
+   </div>
+   <div class="kpi t-bad" style="cursor:default">
+    <span>Factures En Retard</span>
+    <b>${n0(countEnRetard)}</b>
+    <small class="muted">Créances échues non réglées</small>
+   </div>
+  </div>
+
+  <div class="toolbar" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+   <div style="display:flex;gap:8px;align-items:center;flex:1;max-width:480px">
+    <input type="search" id="facQIn" class="field-inline grow" placeholder="Rechercher facture, dossier, client, N° conteneur..." value="${esc(facQ)}" oninput="facQ=this.value;render()">
+   </div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn" data-act="printRecouvrement" title="Imprimer le grand livre et l’état de facturation">🖨️ État Facturation</button>
+    <button class="btn primary${lockCls('facturation')}" data-act="newInvoice">${plus()} Nouvelle facture dossier</button>
+   </div>
+  </div>
+
+  <div class="chips" style="margin-bottom:14px">
+   ${filterChips.map(f => `<button class="chip" data-facfilter="${f}" aria-pressed="${facFilter === f}">${f} <span class="c">${f === 'Tous' ? invoices.length : f === 'En retard' ? countEnRetard : invoices.filter(i => i.status === f).length}</span></button>`).join('')}
+  </div>
+
+  <div class="tablewrap"><table><thead><tr>
+   <th>N° Facture</th>
+   <th>Dossier Transit & TC</th>
+   <th>Client & Destinataire</th>
+   <th>Émission / Échéance</th>
+   <th class="right">Montant HT</th>
+   <th class="right">Montant TTC</th>
+   <th class="right">Encaissé</th>
+   <th class="right">Reste dû</th>
+   <th>Statut</th>
+   <th>Actions</th>
+  </tr></thead><tbody>
+   ${filtered.map(inv => {
+    const isLate = !['Payée', 'Brouillon'].includes(inv.status) && inv.due && inv.due < TODAY_ISO;
+    const daysLate = isLate ? days(TODAY_ISO, inv.due) : 0;
+    const dos = S.dossiers.find(d => d.num === inv.dossier);
+    return `<tr style="border-left:4px solid ${inv.status === 'Payée' ? 'var(--ok)' : isLate ? 'var(--bad)' : 'var(--blue)'}">
+     <td><span class="ref" style="font-size:13.5px;font-weight:700">${esc(inv.num)}</span></td>
+     <td>
+      <button class="refchip" style="border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer;padding:0" data-dossier="${inv.dossier}">${esc(inv.dossier)}</button>
+      ${dos ? `<br><small class="muted num">${esc(dos.cont)} · ${esc(dos.lam)}</small>` : ''}
+     </td>
+     <td><b>${esc(inv.client)}</b><br><small class="muted">${esc(inv.contact || inv.address || '—')}</small></td>
+     <td>
+      <span>${fmt(inv.date)}</span><br>
+      <small style="color:${isLate ? 'var(--bad)' : 'var(--muted)'};font-weight:${isLate ? '700' : 'normal'}">
+       Échéance : ${fmt(inv.due)} ${isLate ? `(+${daysLate} j retard)` : ''}
+      </small>
+     </td>
+     <td class="right num"><b>${n0(inv.ht)}</b></td>
+     <td class="right num"><b style="font-size:14.5px;color:var(--ink)">${n0(inv.ttc)}</b></td>
+     <td class="right num"><b style="color:var(--ok)">${n0(inv.paid)}</b></td>
+     <td class="right num"><b style="color:${inv.balance > 0 ? 'var(--bad)' : 'var(--ok)'}">${n0(inv.balance)}</b></td>
+     <td>${facStatusBadge(inv.status, inv.due)}</td>
+     <td style="white-space:nowrap;display:flex;gap:6px">
+      <button class="btn small" data-act="viewInvoice" data-id="${inv.id}" title="Afficher la facture complète">👁️ Facture</button>
+      ${inv.balance > 0 ? `<button class="btn small primary${lockCls('recouvrement')}" data-act="newPayment" data-id="${inv.id}" title="Enregistrer un encaissement pour cette facture">💳 Encaisser</button>` : ''}
+      ${inv.status === 'Brouillon' ? `<button class="btn small primary${lockCls('facturation')}" data-act="emitInvoice" data-id="${inv.id}" title="Émettre et valider la facture">✓ Émettre</button>` : ''}
+     </td>
+    </tr>`;
+   }).join('') || '<tr><td colspan="10" class="empty">Aucune facture ne correspond à ces critères.</td></tr>'}
+  </tbody></table></div>`;
+}
+
+function vRecouvrement() {
+ const cS = curSite(), sObj = curSiteObj();
+ const invoices = siteInvoices(cS);
+ const payments = sitePayments(cS);
+ const relances = siteRelances(cS);
+
+ const totalFactureTTC = invoices.reduce((a, i) => a + (+i.ttc || 0), 0);
+ const totalEncaisse = invoices.reduce((a, i) => a + (+i.paid || 0), 0);
+ const totalRestant = invoices.reduce((a, i) => a + (+i.balance || 0), 0);
+ const tauxRecouvrement = totalFactureTTC ? Math.round((totalEncaisse / totalFactureTTC) * 100) : 100;
+
+ // Balance Âgée
+ const nonEchues = invoices.filter(i => i.balance > 0 && (!i.due || i.due >= TODAY_ISO));
+ const echues1_30 = invoices.filter(i => {
+  if (i.balance <= 0 || !i.due || i.due >= TODAY_ISO) return false;
+  const d = days(TODAY_ISO, i.due);
+  return d >= 1 && d <= 30;
+ });
+ const echues31_60 = invoices.filter(i => {
+  if (i.balance <= 0 || !i.due || i.due >= TODAY_ISO) return false;
+  const d = days(TODAY_ISO, i.due);
+  return d >= 31 && d <= 60;
+ });
+ const echues60Plus = invoices.filter(i => {
+  if (i.balance <= 0 || !i.due || i.due >= TODAY_ISO) return false;
+  return days(TODAY_ISO, i.due) > 60;
+ });
+
+ const sumNonEchues = nonEchues.reduce((a, i) => a + i.balance, 0);
+ const sum1_30 = echues1_30.reduce((a, i) => a + i.balance, 0);
+ const sum31_60 = echues31_60.reduce((a, i) => a + i.balance, 0);
+ const sum60Plus = echues60Plus.reduce((a, i) => a + i.balance, 0);
+
+ const q = recQ.toLowerCase();
+
+ let tabContent = '';
+ if (recSub === 'echeancier') {
+  const pendingInvoices = invoices.filter(i => i.balance > 0 && (!q || [i.id, i.num, i.dossier, i.client].join(' ').toLowerCase().includes(q)));
+  tabContent = `
+   <div class="toolbar" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+    <div style="display:flex;align-items:center;gap:8px">
+     <h3 style="margin:0">Échéancier des créances clients & relances prioritaires</h3>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+     <button class="btn" data-act="printRecouvrement">🖨️ Imprimer l’état de recouvrement</button>
+     <button class="btn primary${lockCls('recouvrement')}" data-act="newPayment">${plus()} Enregistrer un encaissement</button>
+    </div>
+   </div>
+   <div class="tablewrap"><table><thead><tr>
+    <th>N° Facture</th>
+    <th>Client Débiteur</th>
+    <th>Dossier Transit</th>
+    <th>Date d’échéance</th>
+    <th>Ancienneté du retard</th>
+    <th class="right">Total TTC</th>
+    <th class="right">Acomptes réglés</th>
+    <th class="right">Solde à recouvrer</th>
+    <th>Dernière relance</th>
+    <th>Actions</th>
+   </tr></thead><tbody>
+    ${pendingInvoices.map(inv => {
+     const isLate = inv.due && inv.due < TODAY_ISO;
+     const lateDays = isLate ? days(TODAY_ISO, inv.due) : 0;
+     const lastRel = relances.filter(r => r.invoiceId === inv.id).slice(-1)[0];
+     return `<tr style="border-left:4px solid ${lateDays > 30 ? 'var(--bad)' : isLate ? 'var(--warn)' : 'var(--blue)'}">
+      <td><span class="ref">${esc(inv.num)}</span></td>
+      <td><b>${esc(inv.client)}</b><br><small class="muted">${esc(inv.contact || inv.address || '—')}</small></td>
+      <td><button class="refchip" style="border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer;padding:0" data-dossier="${inv.dossier}">${esc(inv.dossier)}</button></td>
+      <td><b>${fmt(inv.due)}</b></td>
+      <td>${isLate ? `<span class="badge b-bad" style="font-weight:700">En retard de ${lateDays} j</span>` : `<span class="badge b-ok">Dans les délais (${days(inv.due, TODAY_ISO)} j restants)</span>`}</td>
+      <td class="right num"><b>${n0(inv.ttc)}</b></td>
+      <td class="right num"><b style="color:var(--ok)">${n0(inv.paid)}</b></td>
+      <td class="right num"><b style="color:var(--bad);font-size:15px">${n0(inv.balance)} FCFA</b></td>
+      <td>${lastRel ? `<span class="badge b-info">${esc(lastRel.level)}</span><br><small class="muted">${fmt(lastRel.date)}</small>` : '<span class="muted">Aucune relance</span>'}</td>
+      <td style="white-space:nowrap;display:flex;gap:6px">
+       <button class="btn small primary${lockCls('recouvrement')}" data-act="newPayment" data-id="${inv.id}" title="Encaisser un règlement">💳 Encaisser</button>
+       <button class="btn small${lockCls('recouvrement')}" data-act="newRelance" data-id="${inv.id}" title="Enregistrer une relance">📣 Relancer</button>
+       <button class="btn small" data-act="viewInvoice" data-id="${inv.id}" title="Voir facture">👁️</button>
+      </td>
+     </tr>`;
+    }).join('') || '<tr><td colspan="10" class="empty">Toutes les créances sont soldées ! Aucune facture en attente de recouvrement.</td></tr>'}
+   </tbody></table></div>`;
+ } else if (recSub === 'reglements') {
+  const filteredPay = payments.filter(p => !q || [p.id, p.invoiceId, p.dossier, p.client, p.ref, p.bank].join(' ').toLowerCase().includes(q));
+  tabContent = `
+   <div class="toolbar" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+    <div><h3 style="margin:0">Historique complet des encaissements enregistrés</h3></div>
+    <button class="btn primary${lockCls('recouvrement')}" data-act="newPayment">${plus()} Enregistrer un encaissement</button>
+   </div>
+   <div class="tablewrap"><table><thead><tr>
+    <th>Réf. Règlement</th>
+    <th>Date d’encaissement</th>
+    <th>Facture liée</th>
+    <th>Dossier Transit</th>
+    <th>Client</th>
+    <th>Mode de paiement</th>
+    <th>Banque / N° Pièce</th>
+    <th class="right">Montant Encaissé</th>
+    <th>Enregistré par</th>
+   </tr></thead><tbody>
+    ${filteredPay.map(p => `<tr>
+     <td><span class="ref">${esc(p.id)}</span></td>
+     <td><b>${fmt(p.date)}</b></td>
+     <td><button class="refchip" style="border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer;padding:0" data-act="viewInvoice" data-id="${p.invoiceId}">${esc(p.invoiceId)}</button></td>
+     <td><button class="refchip" style="border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer;padding:0" data-dossier="${p.dossier}">${esc(p.dossier)}</button></td>
+     <td><b>${esc(p.client)}</b></td>
+     <td><span class="badge b-info">${esc(p.mode)}</span></td>
+     <td><b>${esc(p.bank || '—')}</b><br><small class="muted num">${esc(p.ref || '—')}</small></td>
+     <td class="right num"><b style="color:var(--ok);font-size:15px">+${n0(p.amount)} FCFA</b></td>
+     <td><b>${esc(user(p.by).name)}</b></td>
+    </tr>`).join('') || '<tr><td colspan="9" class="empty">Aucun encaissement enregistré.</td></tr>'}
+   </tbody></table></div>`;
+ } else if (recSub === 'relances') {
+  const filteredRel = relances.filter(r => !q || [r.id, r.invoiceId, r.dossier, r.client, r.contact, r.notes].join(' ').toLowerCase().includes(q));
+  tabContent = `
+   <div class="toolbar" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+    <div><h3 style="margin:0">Journal des actions de relance et promesses de règlement</h3></div>
+    <button class="btn primary${lockCls('recouvrement')}" data-act="newRelance">${plus()} Nouvelle relance client</button>
+   </div>
+   <div class="tablewrap"><table><thead><tr>
+    <th>Réf. Relance</th>
+    <th>Date</th>
+    <th>Facture liée</th>
+    <th>Client & Interlocuteur</th>
+    <th>Niveau de relance</th>
+    <th>Canal</th>
+    <th>Promesse de règlement</th>
+    <th>Compte-rendu & Notes</th>
+    <th>Agent</th>
+   </tr></thead><tbody>
+    ${filteredRel.map(r => `<tr>
+     <td><span class="ref">${esc(r.id)}</span></td>
+     <td><b>${fmt(r.date)}</b></td>
+     <td><button class="refchip" style="border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer;padding:0" data-act="viewInvoice" data-id="${r.invoiceId}">${esc(r.invoiceId)}</button></td>
+     <td><b>${esc(r.client)}</b><br><small class="muted">${esc(r.contact)} · ${esc(r.phone || '')}</small></td>
+     <td><span class="badge ${r.level.includes('Mise') ? 'b-bad' : r.level.includes('aimable') ? 'b-warn' : 'b-info'}">${esc(r.level)}</span></td>
+     <td><b>${esc(r.channel)}</b></td>
+     <td>
+      ${r.promiseDate ? `<b style="color:var(--ok)">${n0(r.promiseAmount || 0)} FCFA</b><br><small class="muted">au ${fmt(r.promiseDate)}</small>` : '<span class="muted">Aucune promesse</span>'}
+     </td>
+     <td class="wrap" style="max-width:280px">${esc(r.notes || '—')}</td>
+     <td><b>${esc(user(r.agent).name)}</b></td>
+    </tr>`).join('') || '<tr><td colspan="9" class="empty">Aucune action de relance enregistrée.</td></tr>'}
+   </tbody></table></div>`;
+ }
+
+ return siteBanner(`Gestion du recouvrement, balance âgée et suivi des créances · ${sObj.name}`) +
+ hero('money', `Recouvrement · ${sObj.icon} ${sObj.name}`, 'Pilotage de la trésorerie, suivi des encaissements, balance âgée et relances des créances clients.',
+  `<div><b>${tauxRecouvrement}%</b>taux d’encaissement</div><div><b>${fcfa(totalRestant)}</b>solde à recouvrer</div><div><b>${payments.length}</b>règlements enregistrés</div>`) +
+ `<!-- ==================== BALANCE ÂGÉE DES CRÉANCES ==================== -->
+  <section class="panel" style="margin-bottom:16px;border-top:3px solid var(--blue)">
+   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+    <div>
+     <h3 style="margin:0;font-size:16px">Diagnostic de la Balance Âgée des Créances (${sObj.name})</h3>
+     <small class="muted">Ventilation des factures impayées selon leur antériorité d’échéance</small>
+    </div>
+    <span class="badge b-info">Total à recouvrer : <b>${fcfa(totalRestant)}</b></span>
+   </div>
+   <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-bottom:0">
+    <div class="kpi t-ok" style="cursor:default">
+     <span>Non échues (< 30j)</span>
+     <b>${fcfa(sumNonEchues)}</b>
+     <small class="muted">${nonEchues.length} facture${nonEchues.length > 1 ? 's' : ''} dans les délais</small>
+    </div>
+    <div class="kpi t-warn" style="cursor:default">
+     <span>Échues 1 à 30 jours</span>
+     <b>${fcfa(sum1_30)}</b>
+     <small class="muted">${echues1_30.length} facture${echues1_30.length > 1 ? 's' : ''} · Rappels aimables</small>
+    </div>
+    <div class="kpi" style="cursor:default;border-left:4px solid #EA580C">
+     <span style="color:#EA580C">Échues 31 à 60 jours</span>
+     <b style="color:#EA580C">${fcfa(sum31_60)}</b>
+     <small class="muted">${echues31_60.length} facture${echues31_60.length > 1 ? 's' : ''} · Mises en demeure</small>
+    </div>
+    <div class="kpi t-bad" style="cursor:default">
+     <span>En souffrance (> 60 jours)</span>
+     <b>${fcfa(sum60Plus)}</b>
+     <small class="muted">${echues60Plus.length} facture${echues60Plus.length > 1 ? 's' : ''} · Risque contentieux</small>
+    </div>
+   </div>
+  </section>
+
+  <!-- Segments sous-onglets -->
+  <div class="seg" role="group" aria-label="Espaces Recouvrement" style="margin-bottom:14px">
+   <button data-recsub="echeancier" aria-pressed="${recSub === 'echeancier'}">Échéancier & Créances à recouvrer (${invoices.filter(i => i.balance > 0).length})</button>
+   <button data-recsub="reglements" aria-pressed="${recSub === 'reglements'}">Historique des Règlements (${payments.length})</button>
+   <button data-recsub="relances" aria-pressed="${recSub === 'relances'}">Journal des Relances & Promesses (${relances.length})</button>
+  </div>
+  ${tabContent}`;
+}
+
+/* ===================== Actions & Modales Facturation ===================== */
+
+function newInvoice(presetDossierId = null) {
+ if (!guard('facturation')) return;
+ const cS = curSite();
+ const dossiers = siteDossiers(cS);
+ const defDos = dossiers.find(d => d.id === presetDossierId) || dossiers[0];
+ const defDest = destinationsList(cS)[0];
+ const clientName = defDos?.trans?.includes('SKCI') ? 'SKCI' : (defDest?.client || 'SKCI');
+
+ S.seq.FAC = (S.seq.FAC || 5) + 1;
+ const facId = cS === 'sanpedro' ? 'FAC-SP-2026-' + String(S.seq.FAC).padStart(2, '0') : 'FAC-2026-' + String(S.seq.FAC).padStart(3, '0');
+
+ openModal('Émettre une nouvelle facture de dossier',
+  fld('N° de Facture généré', 'num', 'text', { req: 1, value: facId, readonly: 1 }) +
+  fld('Dossier de transit rattaché', 'dossier', 'select', {
+   req: 1,
+   options: dossiers.map(d => [d.num, `${d.num} · TC ${d.cont} (${d.lam || 'Armateur'})`]),
+   value: defDos?.num || ''
+  }) +
+  fld('Client facturé', 'client', 'text', { req: 1, value: clientName, ph: 'Ex. SKCI, SAPH, SOGB, CHCI, ITCA...' }) +
+  fld('Adresse & Contact client', 'clientContact', 'text', { full: 1, value: defDest?.contact || 'Direction financière & Comptabilité', ph: 'Coordonnées de facturation' }) +
+  fld('Date d’émission de la facture', 'date', 'date', { req: 1, value: TODAY_ISO }) +
+  fld('Date d’échéance de règlement (30j)', 'due', 'date', { req: 1, value: iso(30), min: TODAY_ISO }) +
+  `<div class="full" style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);margin:10px 0">
+    <b style="font-size:13.5px;color:var(--text)">Prestations incluses dans la facture (calcul automatique en FCFA) :</b>
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-top:8px">
+     <div><small class="muted">Prestation</small><input type="text" id="inv_p1_desc" value="Transit, dédouanement et franchise portuaire" readonly style="font-size:12px"></div>
+     <div><small class="muted">Quantité</small><input type="number" id="inv_p1_q" value="1" min="1" readonly></div>
+     <div><small class="muted">Tarif HT (FCFA)</small><input type="number" id="inv_p1_p" value="280000" min="0"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-top:8px">
+     <div><small class="muted">Prestation</small><input type="text" id="inv_p2_desc" value="Traction & Transport routier vers destination" readonly style="font-size:12px"></div>
+     <div><small class="muted">Quantité</small><input type="number" id="inv_p2_q" value="1" min="1" readonly></div>
+     <div><small class="muted">Tarif HT (FCFA)</small><input type="number" id="inv_p2_p" value="${defDest ? defDest.tarif || 85000 : 85000}" min="0"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-top:8px">
+     <div><small class="muted">Prestation</small><input type="text" id="inv_p3_desc" value="Manutention, dépotage & reconditionnement palettes" readonly style="font-size:12px"></div>
+     <div><small class="muted">Palettes dépotées</small><input type="number" id="inv_p3_q" value="${defDos?.depotage?.total || 140}" min="0"></div>
+     <div><small class="muted">Prix unit. (FCFA)</small><input type="number" id="inv_p3_p" value="1200" min="0"></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:12px;margin-top:10px;font-size:13px">
+     <span>Taux TVA : <b>18%</b></span>
+    </div>
+   </div>` +
+  fld('Observations / Références bon de commande', 'obs', 'textarea', { full: 1, ph: 'Mentions complémentaires sur la facture...' }),
+  'Émettre la facture', (data, f) => {
+   const e = req(data, ['num', 'dossier', 'client', 'date', 'due']);
+   if (Object.keys(e).length) return e;
+
+   const p1_p = +($('#inv_p1_p')?.value || 280000);
+   const p2_p = +($('#inv_p2_p')?.value || 85000);
+   const p3_q = +($('#inv_p3_q')?.value || 140);
+   const p3_p = +($('#inv_p3_p')?.value || 1200);
+   const p3_tot = p3_q * p3_p;
+
+   const lines = [
+    { desc: $('#inv_p1_desc')?.value || 'Transit, dédouanement et franchise portuaire', qty: 1, unit: 'Forfait', price: p1_p, total: p1_p },
+    { desc: $('#inv_p2_desc')?.value || 'Traction & Transport routier vers destination', qty: 1, unit: 'Trajet', price: p2_p, total: p2_p },
+    { desc: $('#inv_p3_desc')?.value || 'Manutention, dépotage & reconditionnement palettes', qty: p3_q, unit: 'Palettes', price: p3_p, total: p3_tot }
+   ];
+
+   const ht = lines.reduce((a, l) => a + l.total, 0);
+   const tva = Math.round(ht * 0.18);
+   const ttc = ht + tva;
+
+   save(`Facture ${data.num} (${fcfa(ttc)}) émise avec succès.`, () => {
+    S.invoices.unshift({
+     id: data.num,
+     num: data.num,
+     site: curSite(),
+     dossier: data.dossier,
+     date: data.date,
+     due: data.due,
+     client: data.client.trim(),
+     contact: data.clientContact?.trim() || '',
+     address: '',
+     lines,
+     ht,
+     taxRate: 18,
+     tva,
+     ttc,
+     paid: 0,
+     balance: ttc,
+     status: 'Émise',
+     createdBy: S.me,
+     createdAt: nowISO(),
+     obs: data.obs?.trim() || `Facture relative au dossier ${data.dossier}.`
+    });
+    audit('Émission de facture client', data.num, `${data.client} · Total TTC : ${fcfa(ttc)}`);
+    closeModal();
+    setTimeout(() => viewInvoice(data.num), 60);
+   }, submitBtn());
+  }, { wide: true });
+}
+
+function viewInvoice(id) {
+ const inv = (S.invoices || []).find(i => i.id === id || i.num === id);
+ if (!inv) { toast('Facture introuvable.', 'bad'); return; }
+
+ const isPaid = inv.status === 'Payée' || inv.balance <= 0;
+ const isLate = !isPaid && inv.due && inv.due < TODAY_ISO;
+ const siteInfo = SITES_APP.find(s => s.id === (inv.site || siteOf(inv))) || curSiteObj();
+ const dos = S.dossiers.find(d => d.num === inv.dossier);
+ const relatedPayments = (S.payments || []).filter(p => p.invoiceId === inv.id);
+
+ openModal(`Facture Commerciale · ${inv.num}`,
+  `<div class="invoice-sheet" style="background:#fff;color:#0F172A;padding:24px;border:1.5px solid var(--line);border-radius:10px;font-family:'Segoe UI',sans-serif">
+    
+    <!-- En-tête officiel -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #061B33;padding-bottom:16px;margin-bottom:18px">
+     <div>
+      <div style="font-size:22px;font-weight:900;color:#061B33;letter-spacing:.5px">GOOD PACK CI · GOOD TRUCK</div>
+      <div style="font-size:12.5px;color:#64748B;margin-top:4px">
+       Logistique Portuaire, Transit Maritime & Conditionnement de Palettes<br>
+       Hub Opérationnel : <b>${esc(siteInfo.hub)}</b><br>
+       Côte d’Ivoire · N° CC : 1802934 A · RCCM : CI-ABJ-2022-B-10944
+      </div>
+     </div>
+     <div style="text-align:right">
+      <div style="font-size:20px;font-weight:800;color:#1C6FB8">${esc(inv.num)}</div>
+      <div style="font-size:12px;color:#64748B;margin-top:4px">Date d’émission : <b>${fmt(inv.date)}</b><br>Échéance : <b style="color:${isLate ? '#DC2626' : '#0F172A'}">${fmt(inv.due)}</b></div>
+      <div style="margin-top:8px">
+       ${isPaid ? `<span class="badge b-ok" style="font-size:13px;padding:4px 12px">✓ ACQUITTÉE / PAYÉE</span>` : isLate ? `<span class="badge b-bad" style="font-size:13px;padding:4px 12px">⚠ ÉCHUE EN RETARD</span>` : `<span class="badge b-info" style="font-size:13px;padding:4px 12px">À RÉGLER</span>`}
+      </div>
+     </div>
+    </div>
+
+    <!-- Cartouche Client & Dossier -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;background:#F8FAFC;padding:14px;border-radius:8px;border:1px solid #E2E8F0;margin-bottom:18px;font-size:13px">
+     <div>
+      <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748B">Client / Destinataire :</span>
+      <div style="font-size:16px;font-weight:800;color:#061B33;margin:3px 0">${esc(inv.client)}</div>
+      <div>${esc(inv.contact || 'Service Approvisionnement & Logistique')}</div>
+      <div class="muted">${esc(inv.address || 'Côte d’Ivoire')}</div>
+     </div>
+     <div>
+      <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748B">Références Dossier de Transit :</span>
+      <div style="font-size:15px;font-weight:700;color:#1C6FB8;margin:3px 0">Dossier : ${esc(inv.dossier)}</div>
+      ${dos ? `<div>N° Conteneur (TC) : <b class="num">${esc(dos.cont)}</b> · Armateur : <b>${esc(dos.lam)}</b></div><div>Bon de Livraison : <b class="num">${esc(dos.bl)}</b></div>` : ''}
+      <div class="muted">Site d’exécution : <b>${esc(siteInfo.name)}</b></div>
+     </div>
+    </div>
+
+    <!-- Tableau des prestations -->
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:18px">
+     <thead>
+      <tr style="background:#061B33;color:#fff;text-align:left">
+       <th style="padding:8px 10px;border-radius:4px 0 0 4px">Désignation de la prestation</th>
+       <th style="padding:8px 10px;text-align:center">Unité</th>
+       <th style="padding:8px 10px;text-align:right">Quantité</th>
+       <th style="padding:8px 10px;text-align:right">Prix Unitaire HT</th>
+       <th style="padding:8px 10px;text-align:right;border-radius:0 4px 4px 0">Total HT (FCFA)</th>
+      </tr>
+     </thead>
+     <tbody>
+      ${inv.lines.map((l, idx) => `
+       <tr style="border-bottom:1px solid #E2E8F0;background:${idx % 2 === 0 ? '#fff' : '#F8FAFC'}">
+        <td style="padding:8px 10px"><b>${esc(l.desc)}</b></td>
+        <td style="padding:8px 10px;text-align:center">${esc(l.unit || 'U')}</td>
+        <td style="padding:8px 10px;text-align:right" class="num">${n0(l.qty)}</td>
+        <td style="padding:8px 10px;text-align:right" class="num">${n0(l.price)}</td>
+        <td style="padding:8px 10px;text-align:right" class="num"><b>${n0(l.total)}</b></td>
+       </tr>
+      `).join('')}
+     </tbody>
+    </table>
+
+    <!-- Totaux -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px">
+     <div style="font-size:12px;color:#64748B;max-width:340px">
+      <b>Modalités de paiement :</b><br>
+      Paiement par virement bancaire ou chèque à l’ordre de <b>GOOD PACK CI</b> sous 30 jours net.<br>
+      ${inv.obs ? `<span style="color:#0F172A">Observation : ${esc(inv.obs)}</span>` : ''}
+     </div>
+     <div style="min-width:260px;font-size:13.5px">
+      <div style="display:flex;justify-content:space-between;padding:4px 0"><span>Total HT :</span><b class="num">${n0(inv.ht)} FCFA</b></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0"><span>TVA (${inv.taxRate || 18}%) :</span><b class="num">${n0(inv.tva)} FCFA</b></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:2px solid #061B33;border-bottom:2px solid #061B33;font-size:16px;color:#061B33">
+       <span>Net à Payer TTC :</span><b class="num">${n0(inv.ttc)} FCFA</b>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:6px 0;color:var(--ok)">
+       <span>Montant Réglé :</span><b class="num">${n0(inv.paid)} FCFA</b>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:15px;color:${inv.balance > 0 ? '#DC2626' : '#059669'};font-weight:800">
+       <span>Solde Restant Dû :</span><b class="num">${n0(inv.balance)} FCFA</b>
+      </div>
+     </div>
+    </div>
+
+    ${relatedPayments.length ? `
+     <div style="border-top:1px dashed #CBD5E1;padding-top:12px;margin-top:12px">
+      <b style="font-size:12.5px;color:#061B33">Règlements perçus sur cette facture :</b>
+      <div style="font-size:12px;margin-top:4px">
+       ${relatedPayments.map(p => `• <b>${fmt(p.date)}</b> : ${n0(p.amount)} FCFA par <b>${esc(p.mode)}</b> (${esc(p.bank || '')} ${esc(p.ref || '')})`).join('<br>')}
+      </div>
+     </div>
+    ` : ''}
+
+   </div>`,
+  'Fermer', () => { closeModal(); },
+  { wide: true }
+ );
+
+ const actionsBar = $('#mform .actions');
+ if (actionsBar) {
+  actionsBar.innerHTML = `
+   <button type="button" class="btn" data-act="printInvoice" data-id="${inv.id}">🖨️ Imprimer la facture</button>
+   ${inv.balance > 0 ? `<button type="button" class="btn primary${lockCls('recouvrement')}" data-act="newPayment" data-id="${inv.id}">💳 Encaisser un règlement (${fcfa(inv.balance)})</button>` : ''}
+   <button type="button" class="btn" data-act="closeModal">Fermer</button>
+  `;
+ }
+}
+
+function printInvoice(id) {
+ const inv = (S.invoices || []).find(i => i.id === id || i.num === id);
+ if (!inv) return;
+ const siteInfo = SITES_APP.find(s => s.id === (inv.site || siteOf(inv))) || curSiteObj();
+ const dos = S.dossiers.find(d => d.num === inv.dossier);
+ const isPaid = inv.status === 'Payée' || inv.balance <= 0;
+
+ const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Facture ${inv.num} · GOOD PACK CI</title>
+ <style>
+  *{box-sizing:border-box}body{font-family:'Segoe UI',Arial,sans-serif;margin:0;padding:28px;background:#fff;color:#102235}
+  .sheet{max-width:800px;margin:0 auto;border:2px solid #061B33;padding:24px;border-radius:8px}
+  .hdr{display:flex;justify-content:space-between;border-bottom:2px solid #061B33;padding-bottom:14px;margin-bottom:16px}
+  .logo{font-size:22px;font-weight:900;color:#061B33}
+  .sub{font-size:12px;color:#54677B;margin-top:3px}
+  .num{font-family:'Roboto Mono',Consolas,monospace}
+  table{width:100%;border-collapse:collapse;margin:18px 0;font-size:13px}
+  th,td{border:1px solid #D8E1EC;padding:8px 10px;text-align:left}
+  th{background:#EDF2F8;color:#061B33;font-weight:700}
+  .right{text-align:right}
+  .stamp{display:inline-block;padding:6px 16px;border:3px solid #059669;color:#059669;font-weight:900;border-radius:6px;transform:rotate(-3deg);font-size:16px}
+ </style></head><body>
+ <div class="sheet">
+  <div class="hdr">
+   <div><div class="logo">GOOD PACK CI · GOOD TRUCK</div><div class="sub">Hub Opérationnel : ${esc(siteInfo.hub)}<br>N° CC : 1802934 A · RCCM : CI-ABJ-2022-B-10944</div></div>
+   <div style="text-align:right"><h2 style="margin:0;color:#1C6FB8">${esc(inv.num)}</h2><div style="font-size:12px;margin-top:4px">Date : <b>${fmt(inv.date)}</b><br>Échéance : <b>${fmt(inv.due)}</b></div></div>
+  </div>
+  <div style="display:flex;justify-content:space-between;background:#F8FAFC;padding:12px;border:1px solid #D8E1EC;margin-bottom:16px;font-size:13px">
+   <div><b>Client :</b> ${esc(inv.client)}<br>${esc(inv.contact || '')}</div>
+   <div><b>Dossier Transit :</b> ${esc(inv.dossier)}<br>${dos ? `TC : ${esc(dos.cont)} · BL : ${esc(dos.bl)}` : ''}</div>
+  </div>
+  <table>
+   <thead><tr><th>Prestation</th><th style="text-align:center">Unité</th><th class="right">Qté</th><th class="right">Prix Unitaire</th><th class="right">Total HT (FCFA)</th></tr></thead>
+   <tbody>
+    ${inv.lines.map(l => `<tr><td><b>${esc(l.desc)}</b></td><td style="text-align:center">${esc(l.unit || 'U')}</td><td class="right">${n0(l.qty)}</td><td class="right">${n0(l.price)}</td><td class="right"><b>${n0(l.total)}</b></td></tr>`).join('')}
+   </tbody>
+  </table>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start">
+   <div>${isPaid ? `<div class="stamp">ACQUITTÉE / PAYÉE</div>` : `<div style="font-size:12px;color:#54677B">Règlement sous 30 jours par virement bancaire.</div>`}</div>
+   <div style="min-width:240px;font-size:13.5px">
+    <div style="display:flex;justify-content:space-between;padding:3px 0"><span>Total HT :</span><b>${n0(inv.ht)} FCFA</b></div>
+    <div style="display:flex;justify-content:space-between;padding:3px 0"><span>TVA 18% :</span><b>${n0(inv.tva)} FCFA</b></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:2px solid #061B33;font-size:16px;color:#061B33"><span>Net à Payer :</span><b>${n0(inv.ttc)} FCFA</b></div>
+    <div style="display:flex;justify-content:space-between;padding:3px 0;color:#059669"><span>Réglé :</span><b>${n0(inv.paid)} FCFA</b></div>
+    <div style="display:flex;justify-content:space-between;padding:3px 0;color:${inv.balance > 0 ? '#DC2626' : '#059669'};font-weight:700"><span>Reste Dû :</span><b>${n0(inv.balance)} FCFA</b></div>
+   </div>
+  </div>
+ </div><script>window.print()<\/script></body></html>`;
+ const w = window.open('', '_blank');
+ if (w) { w.document.write(html); w.document.close(); }
+}
+
+function emitInvoice(id) {
+ if (!guard('facturation')) return;
+ const inv = (S.invoices || []).find(i => i.id === id);
+ if (!inv) return;
+ save(`Facture ${inv.num} émise avec succès.`, () => {
+  inv.status = 'Émise';
+  audit('Émission de facture', inv.num, `Passage de Brouillon à Émise pour ${inv.client}`);
+ });
+}
+
+/* ===================== Actions & Modales Recouvrement ===================== */
+
+function newPayment(presetInvId = null) {
+ if (!guard('recouvrement')) return;
+ const cS = curSite();
+ const invoices = siteInvoices(cS).filter(i => i.balance > 0);
+ if (!invoices.length) {
+  toast('Aucune facture en attente de règlement sur ce site.', 'info');
+  return;
+ }
+ const defInv = invoices.find(i => i.id === presetInvId || i.num === presetInvId) || invoices[0];
+ S.seq.REG = (S.seq.REG || 2) + 1;
+ const regId = cS === 'sanpedro' ? 'REG-SP-2026-' + String(S.seq.REG).padStart(2, '0') : 'REG-2026-' + String(S.seq.REG).padStart(3, '0');
+
+ openModal('Enregistrer un encaissement / règlement client',
+  fld('Réf. Règlement généré', 'num', 'text', { req: 1, value: regId, readonly: 1 }) +
+  fld('Facture concernée', 'invoiceId', 'select', {
+   req: 1,
+   options: invoices.map(i => [i.id, `${i.num} · ${i.client} (Reste dû : ${fcfa(i.balance)}) · Dossier ${i.dossier}`]),
+   value: defInv.id
+  }) +
+  fld('Montant encaissé (FCFA)', 'amount', 'number', { req: 1, min: 1, value: defInv.balance, full: 1 }) +
+  fld('Date d’encaissement', 'date', 'date', { req: 1, value: TODAY_ISO }) +
+  fld('Mode de règlement', 'mode', 'select', {
+   req: 1,
+   options: [['Virement bancaire', 'Virement bancaire'], ['Chèque', 'Chèque bancaire'], ['Traite', 'Traite / Billet à ordre'], ['Espèces', 'Versement espèces']],
+   value: 'Virement bancaire'
+  }) +
+  fld('Banque de domiciliation', 'bank', 'text', { ph: 'Ex. SGBCI, NSIA Banque, Ecobank, BACI, SIB...' }) +
+  fld('N° de pièce / Virement / Chèque', 'ref', 'text', { ph: 'Ex. VIR-884102 ou CHQ-0041289' }) +
+  fld('Commentaire / Observations', 'obs', 'textarea', { full: 1, ph: 'Observations relatives à l’encaissement...' }),
+  'Valider l’encaissement', data => {
+   const e = req(data, ['num', 'invoiceId', 'amount', 'date', 'mode']);
+   const amt = +data.amount;
+   if (!Number.isInteger(amt) || amt <= 0) e.amount = 'Saisissez un montant valide supérieur à 0.';
+   const inv = (S.invoices || []).find(i => i.id === data.invoiceId);
+   if (inv && amt > inv.balance) e.amount = `Le montant saisi (${fcfa(amt)}) dépasse le solde restant dû (${fcfa(inv.balance)}).`;
+   if (Object.keys(e).length) return e;
+
+   save(`Encaissement de ${fcfa(amt)} enregistré pour la facture ${inv.num}.`, () => {
+    inv.paid = (inv.paid || 0) + amt;
+    inv.balance = Math.max(0, inv.ttc - inv.paid);
+    inv.status = inv.balance === 0 ? 'Payée' : 'Partiellement payée';
+
+    S.payments.unshift({
+     id: data.num,
+     site: curSite(),
+     invoiceId: inv.id,
+     dossier: inv.dossier,
+     client: inv.client,
+     date: data.date,
+     amount: amt,
+     mode: data.mode,
+     bank: data.bank?.trim() || '—',
+     ref: data.ref?.trim() || '—',
+     by: S.me,
+     obs: data.obs?.trim() || `Encaissement sur facture ${inv.num}`
+    });
+
+    audit('Encaissement client enregistré', data.num, `${inv.client} : ${fcfa(amt)} réglés sur ${inv.num}`);
+    closeModal();
+    if (tab === 'facturation' || tab === 'recouvrement') render();
+   }, submitBtn());
+  }
+ );
+}
+
+function newRelance(presetInvId = null) {
+ if (!guard('recouvrement')) return;
+ const cS = curSite();
+ const invoices = siteInvoices(cS).filter(i => i.balance > 0);
+ if (!invoices.length) {
+  toast('Aucune facture débitrice à relancer.', 'info');
+  return;
+ }
+ const defInv = invoices.find(i => i.id === presetInvId || i.num === presetInvId) || invoices[0];
+ S.seq.REL = (S.seq.REL || 1) + 1;
+ const relId = 'REL-2026-' + String(S.seq.REL).padStart(3, '0');
+
+ openModal('Enregistrer une action de relance client',
+  fld('Réf. Relance', 'num', 'text', { req: 1, value: relId, readonly: 1 }) +
+  fld('Facture concernée', 'invoiceId', 'select', {
+   req: 1,
+   options: invoices.map(i => [i.id, `${i.num} · ${i.client} (Solde : ${fcfa(i.balance)})`]),
+   value: defInv.id
+  }) +
+  fld('Niveau de la relance', 'level', 'select', {
+   req: 1,
+   options: [
+    ['Niveau 1 (Rappel aimable)', 'Niveau 1 : Rappel aimable (téléphone / email)'],
+    ['Niveau 2 (Mise en demeure)', 'Niveau 2 : Mise en demeure officielle'],
+    ['Niveau 3 (Contentieux)', 'Niveau 3 : Contentieux & suspension des dépotages'],
+    ['Relance préventive', 'Relance préventive avant échéance']
+   ],
+   value: 'Niveau 1 (Rappel aimable)'
+  }) +
+  fld('Canal de communication', 'channel', 'select', {
+   req: 1,
+   options: [['Téléphone', 'Appel téléphonique'], ['Email', 'Email officiel'], ['Téléphone & Email', 'Téléphone & Email'], ['Courrier officiel', 'Courrier avec accusé de réception'], ['Visite sur site', 'Visite sur site client']],
+   value: 'Téléphone & Email'
+  }) +
+  fld('Interlocuteur contacté', 'contact', 'text', { req: 1, value: defInv.contact || 'Comptabilité fournisseurs' }) +
+  fld('Téléphone interlocuteur', 'phone', 'text', { ph: '+225 07 ...' }) +
+  fld('Date de promesse de règlement (si convenue)', 'promiseDate', 'date', { min: TODAY_ISO }) +
+  fld('Montant promis (FCFA)', 'promiseAmount', 'number', { value: defInv.balance, min: 1 }) +
+  fld('Compte-rendu de l’échange', 'notes', 'textarea', { req: 1, full: 1, ph: 'Synthèse des engagements pris par le client lors de la relance...' }),
+  'Enregistrer la relance', data => {
+   const e = req(data, ['num', 'invoiceId', 'level', 'channel', 'contact', 'notes']);
+   if (Object.keys(e).length) return e;
+   const inv = (S.invoices || []).find(i => i.id === data.invoiceId);
+
+   save(`Action de relance enregistrée pour ${inv.client}.`, () => {
+    S.relances.unshift({
+     id: data.num,
+     site: curSite(),
+     invoiceId: inv.id,
+     dossier: inv.dossier,
+     client: inv.client,
+     date: TODAY_ISO,
+     level: data.level,
+     channel: data.channel,
+     contact: data.contact.trim(),
+     phone: data.phone?.trim() || '',
+     promiseDate: data.promiseDate || '',
+     promiseAmount: +data.promiseAmount || 0,
+     notes: data.notes.trim(),
+     agent: S.me
+    });
+
+    audit('Relance client enregistrée', data.num, `${data.level} adressé à ${inv.client} (${inv.num})`);
+    closeModal();
+    if (tab === 'recouvrement') render();
+   }, submitBtn());
+  }
+ );
+}
+
+function printRecouvrement() {
+ const cS = curSite(), sObj = curSiteObj();
+ const invoices = siteInvoices(cS).filter(i => i.balance > 0);
+ const totalDû = invoices.reduce((a, i) => a + i.balance, 0);
+
+ const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>État du Recouvrement · ${sObj.name}</title>
+ <style>
+  *{box-sizing:border-box}body{font-family:'Segoe UI',Arial,sans-serif;margin:0;padding:28px;background:#fff;color:#102235}
+  .sheet{max-width:860px;margin:0 auto;border:2px solid #061B33;padding:24px;border-radius:8px}
+  .hdr{display:flex;justify-content:space-between;border-bottom:2px solid #061B33;padding-bottom:14px;margin-bottom:16px}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:12.5px}
+  th,td{border:1px solid #D8E1EC;padding:8px 10px;text-align:left}
+  th{background:#EDF2F8;color:#061B33;font-weight:700}
+  .right{text-align:right}
+ </style></head><body>
+ <div class="sheet">
+  <div class="hdr">
+   <div><h2 style="margin:0;color:#061B33">GOOD PACK CI · ÉTAT DU RECOUVREMENT</h2><div style="font-size:12px;color:#64748B;margin-top:3px">Site opérationnel : <b>${esc(sObj.name)} (${esc(sObj.hub)})</b><br>Édité le ${fmt(TODAY_ISO)}</div></div>
+   <div style="text-align:right"><div style="font-size:12px;color:#64748B">Total créances à recouvrer :</div><div style="font-size:20px;font-weight:800;color:#DC2626">${fcfa(totalDû)}</div></div>
+  </div>
+  <table>
+   <thead><tr><th>Facture</th><th>Dossier</th><th>Client</th><th>Échéance</th><th>Retard</th><th class="right">Total TTC</th><th class="right">Encaissé</th><th class="right">Solde Dû (FCFA)</th></tr></thead>
+   <tbody>
+    ${invoices.map(i => {
+     const isLate = i.due && i.due < TODAY_ISO;
+     const lateD = isLate ? days(TODAY_ISO, i.due) : 0;
+     return `<tr>
+      <td><b>${esc(i.num)}</b></td>
+      <td>${esc(i.dossier)}</td>
+      <td><b>${esc(i.client)}</b></td>
+      <td>${fmt(i.due)}</td>
+      <td style="color:${isLate ? '#DC2626' : '#059669'};font-weight:${isLate ? '700' : 'normal'}">${isLate ? `+${lateD} j retard` : 'Dans les délais'}</td>
+      <td class="right">${n0(i.ttc)}</td>
+      <td class="right" style="color:#059669">${n0(i.paid)}</td>
+      <td class="right"><b style="color:#DC2626">${n0(i.balance)}</b></td>
+     </tr>`;
+    }).join('') || '<tr><td colspan="8">Aucune créance en souffrance.</td></tr>'}
+   </tbody>
+  </table>
+ </div><script>window.print()<\/script></body></html>`;
+ const w = window.open('', '_blank');
+ if (w) { w.document.write(html); w.document.close(); }
+}
+
+
 /* ===================== Opérateurs (Armateurs & Transporteurs) ===================== */
 function opBadge(type){
  if(type==='Armateur')return `<span class="badge b-info" style="background:var(--info-bg);color:var(--info);border-color:var(--blue);font-weight:700"><span aria-hidden="true">⚓</span> Armateur · Maritime</span>`;
@@ -4996,6 +5828,13 @@ document.addEventListener('click',e=>{
   validerReceptionDepotage:()=>validerReceptionDepotage(id),
   goValidateRec:()=>{closeDrawer();ent='stock';goTab('entrepot');setTimeout(()=>validerReceptionDepotage(id),80)},
   editOperateur:()=>editOperateur(id),toggleOperateur:()=>toggleOperateur(id),
+  newInvoice:()=>newInvoice(id),
+  viewInvoice:()=>viewInvoice(id),
+  printInvoice:()=>printInvoice(id),
+  emitInvoice:()=>emitInvoice(id),
+  newPayment:()=>newPayment(id),
+  newRelance:()=>newRelance(id),
+  printRecouvrement:()=>printRecouvrement(),
   tPlan:()=>tPlan(id),tStartLoad:()=>tStartLoad(id),tStart:()=>tStart(id),tDeliver:()=>tDeliver(id),tClose:()=>tClose(id),tIncident:()=>tIncident(id),
   lReserve:()=>lReserve(id),lShip:()=>lShip(id),lReceive:()=>lReceive(id),lClose:()=>lClose(id),lCancel:()=>lCancel(id),
   editInit:()=>editInit(id),confirmArrival:()=>confirmArrival(id),validerDepotage:()=>validerDepotage(id),cancelEditDates:()=>openDossier(id,false),
