@@ -4370,6 +4370,114 @@ function confirmerCamionPlanif(id){
 
 const newDemandeTransport = () => newTransport();
 
+
+/* ===================== Synthèse des Transports Réalisés ===================== */
+function renderTransportSynthese(cS = curSite()){
+ const allTrs = siteTransports(cS);
+ const doneTrs = allTrs.filter(t => ['Clôturé','Livré'].includes(t.status) || Boolean(t.arrR));
+ const totPal = doneTrs.reduce((sum, t) => sum + (t.qty || 0), 0);
+ const totSkci = doneTrs.filter(t => (t.pool || destPool(t.to)) === 'SKCI').reduce((sum, t) => sum + (t.qty || 0), 0);
+ const totGlobal = doneTrs.filter(t => (t.pool || destPool(t.to)) === 'Global').reduce((sum, t) => sum + (t.qty || 0), 0);
+ const incidentsCount = doneTrs.filter(t => (t.incidents || []).length > 0).length;
+
+ return `
+ <!-- SYNTHÈSE DES TRANSPORTS RÉALISÉS -->
+ <section class="panel" style="margin-top:28px;padding:0;border-radius:14px;border:1px solid #CBD5E1;border-left:6px solid #0284C7;overflow:hidden;background:var(--surface);box-shadow:0 4px 16px rgba(2,132,199,0.07)">
+  <div style="background:linear-gradient(135deg,#F0F9FF 0%,#E0F2FE 100%);padding:16px 20px;border-bottom:1px solid #BAE6FD;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap">
+   <div style="display:flex;align-items:center;gap:12px">
+    <span style="background:#0284C7;color:#FFF;padding:5px 12px;border-radius:8px;font-size:11px;font-weight:800;letter-spacing:0.6px;box-shadow:0 2px 4px rgba(2,132,199,0.3)">SYNTHÈSE TRANSPORTS</span>
+    <div>
+     <h3 style="margin:0;font-size:17px;color:#0369A1;font-weight:800;display:flex;align-items:center;gap:8px">
+      📊 Synthèse de tous les Transports Réalisés (${curSiteObj().name})
+     </h3>
+     <small style="color:#0284C7;font-size:13px">
+      Historique complet de distribution. Cliquez sur une ligne pour ouvrir le détail intégral (préparation, réservation stock, chargement et livraison).
+     </small>
+    </div>
+   </div>
+   <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <span class="badge b-ok" style="font-size:12.5px;padding:5px 10px"><b>${doneTrs.length}</b> transport${doneTrs.length>1?'s':''} réalisé${doneTrs.length>1?'s':''}</span>
+    <span class="badge b-info" style="font-size:12.5px;padding:5px 10px">Total : <b>${n0(totPal)}</b> palettes</span>
+   </div>
+  </div>
+
+  <!-- KPIs Synthèse -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;padding:16px 20px 12px;background:#F8FAFC;border-bottom:1px solid var(--line)">
+   <div style="background:var(--surface);padding:10px 14px;border-radius:10px;border:1px solid var(--line);border-left:4px solid var(--blue)">
+    <small class="muted" style="font-size:11px;text-transform:uppercase;font-weight:700">Missions Clôturées</small>
+    <div style="font-size:20px;font-weight:800;color:var(--text);margin-top:2px">${doneTrs.length} <small style="font-size:12px;font-weight:600;color:var(--muted)">/ ${allTrs.length} planifiés</small></div>
+   </div>
+   <div style="background:var(--surface);padding:10px 14px;border-radius:10px;border:1px solid var(--line);border-left:4px solid var(--skci)">
+    <small class="muted" style="font-size:11px;text-transform:uppercase;font-weight:700">Palettes Stock SKCI</small>
+    <div style="font-size:20px;font-weight:800;color:var(--skci);margin-top:2px">${n0(totSkci)} <small style="font-size:12px;font-weight:600;color:var(--muted)">palettes</small></div>
+   </div>
+   <div style="background:var(--surface);padding:10px 14px;border-radius:10px;border:1px solid var(--line);border-left:4px solid var(--global)">
+    <small class="muted" style="font-size:11px;text-transform:uppercase;font-weight:700">Palettes Stock Global</small>
+    <div style="font-size:20px;font-weight:800;color:var(--global);margin-top:2px">${n0(totGlobal)} <small style="font-size:12px;font-weight:600;color:var(--muted)">palettes</small></div>
+   </div>
+   <div style="background:var(--surface);padding:10px 14px;border-radius:10px;border:1px solid var(--line);border-left:4px solid ${incidentsCount?'var(--bad)':'var(--ok)'}">
+    <small class="muted" style="font-size:11px;text-transform:uppercase;font-weight:700">Qualité de service</small>
+    <div style="font-size:20px;font-weight:800;color:${incidentsCount?'var(--bad)':'var(--ok)'};margin-top:2px">
+     ${incidentsCount ? `${incidentsCount} incident${incidentsCount>1?'s':''}` : '100% sans incident'}
+    </div>
+   </div>
+  </div>
+
+  <!-- Tableau de synthèse cliquable -->
+  <div style="padding:16px 20px">
+   <div class="tablewrap" style="margin:0">
+    <table>
+     <thead>
+      <tr>
+       <th>Réf. Transport</th>
+       <th>Demande / ITR</th>
+       <th>Destination & Client</th>
+       <th>Bassin Stock</th>
+       <th>Transporteur & Camion</th>
+       <th>Chauffeur</th>
+       <th class="right">Palettes</th>
+       <th>Départ (Prévu / Réel)</th>
+       <th>Arrivée (Prévue / Réelle)</th>
+       <th>Statut</th>
+       <th>Action</th>
+      </tr>
+     </thead>
+     <tbody>
+      ${doneTrs.length ? doneTrs.map(t => {
+        const pl = t.pool || destPool(t.to);
+        const pln = (S.planifications||[]).find(p => p.transport === t.id || p.liv === t.liv);
+        const lv = (S.deliveries||[]).find(l => l.id === t.liv || l.transport === t.id);
+        const refItr = t.itr || pln?.itr || lv?.itr || t.po || '—';
+        const isClosed = t.status === 'Clôturé';
+        return `
+        <tr class="click" data-act="openTransportDetails" data-id="${esc(t.id)}" style="cursor:pointer" title="Cliquez pour afficher tous les détails depuis la préparation jusqu'à la livraison">
+         <td><span class="ref" style="font-size:13px;font-weight:700">${esc(t.id)}</span></td>
+         <td><span class="num" style="font-weight:700">${esc(refItr)}</span>${pln ? `<br><small class="muted">${esc(pln.id)}</small>` : ''}</td>
+         <td><b>${esc(t.to)}</b><br><small class="muted">Départ : ${esc(t.from)}</small></td>
+         <td>${poolBadge(pl)}</td>
+         <td><b>${esc(t.trans)}</b><br><span class="num" style="font-weight:700;color:var(--blue)">${esc(t.veh)}</span></td>
+         <td><b>${esc(t.driver||'—')}</b></td>
+         <td class="right num"><b style="font-size:15px;color:var(--ink)">${n0(t.qty)}</b></td>
+         <td><small>${fmt(t.depP)}</small><br><b>${fmt(t.depR)||'—'}</b></td>
+         <td><small>${fmt(t.arrP)}</small><br><b>${fmt(t.arrR)||'—'}</b></td>
+         <td>${badge(isClosed ? 'ok' : 'info', t.status, isClosed ? '✓' : '🚚')}</td>
+         <td style="white-space:nowrap">
+          <button class="btn small primary" data-act="openTransportDetails" data-id="${esc(t.id)}" style="padding:4px 10px;font-size:12px">
+           🔍 Détail complet
+          </button>
+         </td>
+        </tr>`;
+      }).join('') : `<tr><td colspan="11" class="empty">Aucun transport réalisé dans l’historique.</td></tr>`}
+     </tbody>
+    </table>
+   </div>
+   <p class="muted" style="margin:10px 0 0;font-size:12px;display:flex;align-items:center;gap:6px">
+    💡 <b>Astuce :</b> Cliquez sur une ligne ou sur « 🔍 Détail complet » pour consulter la traçabilité intégrale : préparation de commande, validation du stock, confirmation du camion, contrôle du chargement et accusé de réception client.
+   </p>
+  </div>
+ </section>`;
+}
+
 /* Détails complets d’un transport / mission / livraison */
 function openTransportDetails(id){
  const t = (S.transports||[]).find(x=>x.id===id) || (S.planifications||[]).find(x=>x.id===id);
@@ -4382,48 +4490,174 @@ function openTransportDetails(id){
   toast('Fiche de transport introuvable.','warn');
   return;
  }
- const pl = t.pool || destPool(t.to);
- const acts = {
-  'Brouillon': `<button class="btn primary small" onclick="closeModal();tPlan('${t.id}')">Valider & Réserver le stock</button>`,
-  'Planifié': `<button class="btn primary small" onclick="closeModal();tStart('${t.id}')">Démarrer l’expédition</button>`,
-  'En cours': `<button class="btn primary small" onclick="closeModal();tDeliver('${t.id}')">Confirmer la livraison</button>`,
-  'Livré': `<button class="btn primary small" onclick="closeModal();tClose('${t.id}')">Clôturer</button>`
- }[t.status] || '';
 
- openModal(`Fiche détaillée du Transport · ${t.id}`,
-  `<div class="full" style="display:flex;flex-direction:column;gap:12px;font-size:13.5px">
-   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px;background:var(--surface-2);border-radius:10px;border:1px solid var(--line)">
+ const pln = (S.planifications||[]).find(p => p.transport === t.id || (t.liv && p.liv === t.liv) || p.id === t.id);
+ const tr = (S.transports||[]).find(x => x.id === t.id || (pln && x.id === pln.transport));
+ const target = tr || t;
+ const pl = target.pool || destPool(target.to);
+ const lv = (S.deliveries||[]).find(l => l.id === target.liv || (pln && l.id === pln.liv));
+ const refItr = target.itr || pln?.itr || lv?.itr || target.po || pln?.po || '—';
+ const refPo = target.po || pln?.po || lv?.po || '—';
+
+ // Durée de chargement
+ let loadDurStr = '—';
+ if(target.loadStartAt && target.loadEndAt){
+  loadDurStr = fmtLoadDur(Math.max(0, new Date(target.loadEndAt).getTime() - new Date(target.loadStartAt).getTime()));
+ } else if(target.loadStartAt){
+  loadDurStr = fmtLoadDur(Math.max(0, Date.now() - new Date(target.loadStartAt).getTime())) + ' (en cours)';
+ }
+
+ // Construction de la frise chronologique détaillée : de la préparation à la livraison
+ const stepsFlow = [
+  {
+   title: '1. Préparation de commande & Demande de transport',
+   sub: 'Émission du besoin logistique, référence client ITR / PO et quantité de palettes.',
+   date: pln?.createdAt ? fmtT(pln.createdAt) : (target.depP ? fmt(target.depP) : '—'),
+   author: pln?.createdBy ? user(pln.createdBy).name : 'Service Planification / Logistique',
+   done: true,
+   statusTag: pln ? badge('ok', 'Demande ' + pln.id, '✓') : badge('info', 'Planning actif', '✓'),
+   detail: `Quantité demandée : <b>${n0(target.qty)}</b> palettes propres (${pl}) · Trajet : <b>${esc(target.from)}</b> → <b>${esc(target.to)}</b>`
+  },
+  {
+   title: '2. Validation Stock Entrepôt (Disponibilité & Réservation)',
+   sub: 'Contrôle physique des palettes lavées disponibles et déduction théorique sur le stock.',
+   date: pln?.stockValAt ? fmtT(pln.stockValAt) : (target.shipped || target.status !== 'Brouillon' ? (target.depP ? fmt(target.depP) : 'Validé') : 'En attente'),
+   author: pln?.stockValBy ? user(pln.stockValBy).name : 'Responsable Entrepôt Vridi',
+   done: Boolean(pln?.stockValAt || target.shipped || ['Planifié','En cours','Livré','Clôturé'].includes(target.status)),
+   statusTag: target.shipped ? badge('ok', 'Sorti physiquement', '✓') : badge('warn', 'Stock réservé théoriquement', '◫'),
+   detail: `Bassin déduit : <b>Stock ${pl}</b> (priorité ${pl==='SKCI'?'exclusive sites SKCI':'clients externes SAPH/SOGB'})`
+  },
+  {
+   title: '3. Affectation Transporteur, Camion & Chauffeur',
+   sub: 'Désignation de la société de transport, contrôle de la carte grise camion et coordonnées chauffeur.',
+   date: pln?.camionValAt ? fmtT(pln.camionValAt) : (target.trans ? (target.depP ? fmt(target.depP) : 'Confirmé') : 'En attente'),
+   author: pln?.camionValBy ? user(pln.camionValBy).name : 'Superviseur Transport',
+   done: Boolean(target.trans && target.veh),
+   statusTag: target.trans ? badge('ok', 'Camion confirmé', '🚚') : badge('bad', 'En attente camion', '⏳'),
+   detail: `Transporteur : <b>${esc(target.trans||'Non affecté')}</b> · Immatriculation : <b class="num" style="color:var(--blue)">${esc(target.veh||'—')}</b> · Conducteur : <b>${esc(target.driver||'—')}</b> ${target.driverPhone ? '· Tél : '+esc(target.driverPhone) : ''}`
+  },
+  {
+   title: '4. Quai de chargement & Contrôle départ',
+   sub: 'Mise à quai, contrôle qualitatif des palettes propres, chargement du camion et sortie physique de stock.',
+   date: target.loadStartAt ? fmtT(target.loadStartAt) : (target.depR ? fmt(target.depR) : 'En attente de chargement'),
+   author: target.loadEndBy ? user(target.loadEndBy).name : (target.loadStartBy ? user(target.loadStartBy).name : 'Équipe Manutention Quai'),
+   done: Boolean(target.shipped || target.depR || target.loadStartAt),
+   statusTag: target.loadEndAt ? badge('ok', 'Chargé & Départ', '✓') : (target.loadStartAt ? badge('warn', 'Chargement en cours', '⏳') : badge('mute', 'En attente quai')),
+   detail: target.loadStartAt ? `Début chargement : <b>${fmtT(target.loadStartAt)}</b> ${target.loadEndAt ? '· Fin : <b>'+fmtT(target.loadEndAt)+'</b>' : ''} · Durée : <b style="color:var(--blue)">${loadDurStr}</b>` : 'Le camion attend la mise à quai pour démarrer le chargement.'
+  },
+  {
+   title: '5. Acheminement Routier & Livraison Client',
+   sub: 'Suivi du transit routier entre le site de départ et le quai de livraison récepteur.',
+   date: target.depR ? (target.arrR ? `Départ ${fmt(target.depR)} → Arrivée ${fmt(target.arrR)}` : `Parti le ${fmt(target.depR)} (En transit)`) : `Prévu le ${fmt(target.depP)}`,
+   author: 'Transporteur ' + (target.trans || ''),
+   done: Boolean(target.depR),
+   statusTag: target.status === 'Clôturé' ? badge('ok', 'Livré & Conforme', '✓') : (target.status === 'En cours' ? badge('info', 'En route', '🚚') : badge('mute', 'Programmé')),
+   detail: `Départ réel : <b>${fmt(target.depR)||'Non parti'}</b> · Arrivée effective : <b>${fmt(target.arrR)||'En route'}</b> · Destination : <b>${esc(target.to)}</b>`
+  },
+  {
+   title: '6. Réception Client & Clôture de l’opération',
+   sub: 'Accusé de réception client sur site, rapprochement des quantités reçues vs expédiées et réserves éventuelles.',
+   date: target.arrR ? fmt(target.arrR) : (lv?.status === 'Clôturée' ? 'Livré' : 'En attente réception'),
+   author: lv?.resp ? user(lv.resp).name : 'Réceptionnaire Client',
+   done: Boolean(target.status === 'Clôturé' || lv?.status === 'Clôturée'),
+   statusTag: (target.status === 'Clôturé' || lv?.status === 'Clôturée') ? badge('ok', 'Clôturé & Rapproché', '✓') : badge('mute', 'Non clôturé'),
+   detail: (lv?.qtyRec != null) ? `Quantité reçue : <b style="color:var(--ok);font-size:15px">${n0(lv.qtyRec)}</b> / ${n0(target.qty)} expédiées ${lv.damaged ? '· <b style="color:var(--bad)">'+lv.damaged+' endommagée(s)</b>' : '· 0 réserve'} ${lv.comments ? '<br><small class="muted">Commentaire : '+esc(lv.comments)+'</small>' : ''}` : 'Réception finale en attente de validation par le client.'
+  }
+ ];
+
+ const acts = {
+  'Brouillon': `<button class="btn primary small" onclick="closeModal();tPlan('${target.id}')">Valider & Réserver le stock</button>`,
+  'Planifié': `<button class="btn primary small" onclick="closeModal();tStart('${target.id}')">Démarrer l’expédition</button>`,
+  'En cours': `<button class="btn primary small" onclick="closeModal();tDeliver('${target.id}')">Confirmer la livraison</button>`,
+  'Livré': `<button class="btn primary small" onclick="closeModal();tClose('${target.id}')">Clôturer</button>`
+ }[target.status] || '';
+
+ openModal(`Détail Intégral du Transport · ${target.id}`,
+  `<div class="full" style="display:flex;flex-direction:column;gap:14px;font-size:13.5px">
+   
+   <!-- En-tête mission -->
+   <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 18px;background:linear-gradient(135deg,var(--surface-2) 0%,var(--surface) 100%);border-radius:12px;border:1px solid var(--line);box-shadow:0 2px 6px rgba(0,0,0,0.03)">
     <div>
-     <h2 style="margin:0;font-size:20px;display:flex;align-items:center;gap:8px">🚚 ${esc(t.id)} ${poolBadge(pl)} ${badge(t.status==='Clôturé'?'mute':t.status==='Livré'?'ok':t.status==='En cours'?'info':'warn',t.status)}</h2>
-     <span class="muted" style="font-size:13px">${esc(t.trans)} · Camion : <b>${esc(t.veh)}</b> · Chauffeur : <b>${esc(t.driver||'—')}</b></span>
+     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <h2 style="margin:0;font-size:22px;display:flex;align-items:center;gap:8px">🚚 ${esc(target.id)}</h2>
+      ${poolBadge(pl)}
+      ${badge(target.status==='Clôturé'?'ok':target.status==='Livré'?'ok':target.status==='En cours'?'info':'warn', target.status, target.status==='Clôturé'?'✓':'🚚')}
+     </div>
+     <div class="muted" style="font-size:13px;margin-top:4px">
+      Transporteur : <b>${esc(target.trans||'Non affecté')}</b> · Camion : <b class="num" style="color:var(--blue)">${esc(target.veh||'—')}</b> · Chauffeur : <b>${esc(target.driver||'—')}</b>
+     </div>
     </div>
     <div style="text-align:right">
-     <div style="font-size:22px;font-weight:700;color:var(--blue)">${n0(t.qty)} <small style="font-size:13px;font-weight:400;color:var(--text)">palettes (${pl})</small></div>
-     <small class="muted">${t.shipped?'Sortie physique enregistrée':'Réservation théorique active'}</small>
+     <div style="font-size:24px;font-weight:800;color:var(--blue)">${n0(target.qty)} <small style="font-size:13px;font-weight:600;color:var(--text)">palettes propres (${pl})</small></div>
+     <small class="muted">${target.shipped ? '✓ Sortie physique effectuée' : '◫ Réservation théorique active'}</small>
     </div>
    </div>
-   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
-    <div style="padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface)">
-     <b class="muted" style="font-size:11px;text-transform:uppercase">Trajet</b>
-     <div style="margin-top:4px">Départ : <b>${esc(t.from)}</b></div>
-     <div style="color:var(--blue)">Destination : <b>${esc(t.to)}</b></div>
+
+   <!-- Fiches d'informations synthétiques -->
+   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px">
+    <div style="padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface)">
+     <b class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px">Trajet & Itinéraire</b>
+     <div style="margin-top:6px;font-size:13.5px">Départ : <b>${esc(target.from)}</b></div>
+     <div style="color:var(--blue);font-size:13.5px">Destination : <b>${esc(target.to)}</b></div>
     </div>
-    <div style="padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface)">
-     <b class="muted" style="font-size:11px;text-transform:uppercase">Dates & Horaires</b>
-     <div style="margin-top:4px">Départ prévu : <b>${fmt(t.depP)}</b> ${t.depR?'· Réel : '+fmt(t.depR):''}</div>
-     <div>Arrivée prévue : <b>${fmt(t.arrP)}</b> ${t.arrR?'· Réelle : '+fmt(t.arrR):''}</div>
+    <div style="padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface)">
+     <b class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px">Calendrier & Horaires</b>
+     <div style="margin-top:6px">Départ prévu : <b>${fmt(target.depP)}</b> ${target.depR ? '· Réel : <b style="color:var(--ok)">'+fmt(target.depR)+'</b>' : ''}</div>
+     <div>Arrivée prévue : <b>${fmt(target.arrP)}</b> ${target.arrR ? '· Réelle : <b style="color:var(--ok)">'+fmt(target.arrR)+'</b>' : ''}</div>
     </div>
-    <div style="padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface)">
-     <b class="muted" style="font-size:11px;text-transform:uppercase">Rattachements</b>
-     <div style="margin-top:4px">Réf. ITR / PO : <b>${esc(t.itr||t.po||'—')}</b></div>
-     <div>Livraison liée : <b>${esc(t.liv||'—')}</b></div>
+    <div style="padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface)">
+     <b class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px">Références & Commandes</b>
+     <div style="margin-top:6px">Réf. ITR client : <b class="num" style="color:var(--blue)">${esc(refItr)}</b></div>
+     <div>Réf. PO / Bon : <b class="num">${esc(refPo)}</b> ${lv ? '· Livraison : <b>'+esc(lv.id)+'</b>' : ''}</div>
+    </div>
+    <div style="padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface)">
+     <b class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px">Chargement au Quai</b>
+     <div style="margin-top:6px">Durée chargement : <b style="color:var(--blue)">${loadDurStr}</b></div>
+     <small class="muted">${target.loadEndAt ? 'Terminé le '+fmtT(target.loadEndAt) : (target.loadStartAt ? 'Démarré le '+fmtT(target.loadStartAt) : 'Non démarré')}</small>
     </div>
    </div>
-   ${(t.incidents||[]).length?`<div class="panel" style="border-left:4px solid var(--bad);padding:10px 14px"><b style="color:var(--bad)">Incident signalé :</b> ${esc(t.incidents[t.incidents.length-1])}</div>`:''}
+
+   <!-- Frise détaillée : De la préparation de commande à la livraison finale -->
+   <div style="border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden">
+    <div style="background:var(--surface-2);padding:10px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between">
+      <b style="font-size:13.5px;color:var(--text);display:flex;align-items:center;gap:6px">
+        📍 Déroulement séquentiel du transport (De la préparation à la livraison)
+      </b>
+      <span class="badge b-info" style="font-size:11px">6 étapes tracées</span>
+    </div>
+    <div style="padding:14px 18px;display:flex;flex-direction:column;gap:12px">
+      ${stepsFlow.map((s, idx) => `
+        <div style="display:flex;gap:14px;align-items:flex-start;position:relative">
+          <div style="display:flex;flex-direction:column;align-items:center;margin-top:2px">
+            <span style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:${s.done?'#10B981':'#CBD5E1'};color:#FFF;font-size:12px;font-weight:800">
+              ${s.done ? '✓' : (idx + 1)}
+            </span>
+            ${idx < stepsFlow.length - 1 ? '<div style="width:2px;height:38px;background:'+(s.done?'#A7F3D0':'#E2E8F0')+';margin:4px 0"></div>' : ''}
+          </div>
+          <div style="flex:1;min-width:0;padding-bottom:4px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">
+              <div style="font-weight:700;font-size:14px;color:${s.done?'var(--text)':'var(--muted)'}">${s.title}</div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="muted" style="font-size:12px">${s.date}</span>
+                ${s.statusTag}
+              </div>
+            </div>
+            <div style="font-size:12.5px;color:var(--muted);margin-top:2px">${s.sub}</div>
+            <div style="font-size:13px;color:var(--text);margin-top:4px;padding:6px 10px;background:var(--surface-2);border-radius:6px;border-left:3px solid ${s.done?'var(--ok)':'var(--line)'}">
+              ${s.detail}
+            </div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+   </div>
+
+   ${(target.incidents||[]).length?`<div class="panel" style="border-left:4px solid var(--bad);padding:10px 14px"><b style="color:var(--bad)">Incident signalé :</b> ${esc(target.incidents[target.incidents.length-1])}</div>`:''}
    ${acts?`<div style="display:flex;justify-content:flex-end;gap:8px;padding-top:6px">${acts}</div>`:''}
   </div>`,
   'Fermer',
-  ()=>closeModal()
+  ()=>closeModal(),
+  {wide: true}
  );
 }
 
@@ -4479,7 +4713,7 @@ function vTransport(){
  }
  return hero('truck','Transport & Planification des Destinations','Planification des expéditions vers les destinations clients repertoriées.',
   `<div><b>${n0(dispo('SKCI'))}</b>dispo Stock SKCI</div><div><b>${n0(dispo('Global'))}</b>dispo Stock Global</div><div><b>${n0(reserved('Tous'))}</b>réservées par Transport</div>`)+
-  subBar+stockBanner+content;
+  subBar+stockBanner+content+renderTransportSynthese(cS);
 }
 function tCard(t){
  const i=TSTEPS.indexOf(t.status),late=trLate(t),run=t.status==='En cours';
