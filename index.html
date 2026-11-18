@@ -2819,7 +2819,7 @@ function depotageSummary(d){
    </div>
    <div style="display:flex;gap:6px;align-items:center">
     ${rec?.cat?depCatBadge(rec.cat,rec.model||d.depotage.model||'MB5'):''}
-    ${d.depotage.status==='Validée'?badge('ok','Validé en Entrepôt','✓'):`<button type="button" class="btn small primary" data-act="goValidateRec" data-id="${d.depotage.recId}">Valider en Entrepôt →</button>`}
+    ${d.depotage.status==='Validée'?badge('ok','Validé en Entrepôt','✓'):badge('warn','En attente validation Entrepôt','⏳')}
    </div>
   </div>
  </div>`;
