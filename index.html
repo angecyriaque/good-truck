@@ -3296,7 +3296,7 @@ function printFicheProd(){
 
 function vEntrepot(){
  const cS=curSite();
- const s=stock(cS),f=flows(cS);
+ const s=stock(cS),f=flows(cS),totalStock=(s.propre||0)+(s.sale||0)+(s.reparation||0)+(s.quarantaine||0)+(s.autre||0);
  const recs=siteReceptions(cS),pendRecs=recs.filter(r=>r.status==='En attente');
  const reps=siteReparations(cS);
  const openReps=reps.filter(r=>r.status!=='Terminée');
