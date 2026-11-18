@@ -1406,10 +1406,7 @@ function delay(d){
 const badge=(k,label,ic)=>`<span class="badge b-${k}">${ic?`<i aria-hidden="true">${ic}</i>`:''}${esc(label)}</span>`;
 const dBadge=d=>{const x=delay(d);if(x.label===x.app)return '';const v=x.n??x.el;const daysTxt=(v!=null&&!x.label.includes('j'))?v+' j · ':'';return badge(x.k,daysTxt+x.label,x.ic)};
 const appBadge=d=>{const x=delay(d);const v=x.n??x.el;const daysTxt=v!=null?v+' j · ':'';const label=x.app&&x.app!=='—'?daysTxt+x.app:'—';return badge(x.appK,label,x.app==='On Time'?'✓':x.app==='Off Time'?'✕':'')};
-function delayCell(d){const x=delay(d),v=x.n??x.el;if(v==null)return '<span class="muted">—</span>';
- const restTxt=x.diffFin!=null?(x.diffFin<=0?`<small class="muted">(${Math.abs(x.diffFin)} j restants)</small>`:`<small style="color:var(--bad)">(+${x.diffFin} j retard)</small>`):'';
- return `<span class="num">${x.stopped?'Retourné':'En cours'}&nbsp;${restTxt}</span>`;
-}
+function delayCell(d){return ''}
 
 function stock(site=curSite()){
  if(site==='all'){
@@ -2244,7 +2241,7 @@ function vDash(){
        <td><b class="num">${d.cont}</b></td>
        <td>${esc(d.lam)}</td>
        <td><span class="muted">${esc(d.bl||'—')}</span></td>
-       <td>${appBadge(d)}<div style="margin-top:3px">${delayCell(d)}</div></td>
+       <td>${appBadge(d)}</td>
        <td>${badge(d.status==='Dépoté'?'info':'warn',d.status)}</td>
        <td><button class="btn small" data-dossier="${d.id}">Fiche</button></td>
       </tr>`).join('')||'<tr><td colspan="7" class="empty">Aucun dossier en cours de traitement pour ce site.</td></tr>'}
@@ -2273,7 +2270,7 @@ function vDash(){
        <td><b class="num" style="opacity:0.85">${d.cont}</b></td>
        <td>${esc(d.lam)}</td>
        <td><span class="muted">${esc(d.bl||'—')}</span></td>
-       <td>${appBadge(d)}<div style="margin-top:3px">${delayCell(d)}</div></td>
+       <td>${appBadge(d)}</td>
        <td>${badge('ok','Clôturé')}</td>
        <td><button class="btn small" data-dossier="${d.id}">Fiche</button></td>
       </tr>`).join('')||'<tr><td colspan="7" class="empty">Aucun dossier clôturé enregistré pour ce site.</td></tr>'}
@@ -2788,7 +2785,7 @@ function renderDossierRow(d,isClosed){
   <td>${fmt(d.D1)||'<span class="muted">—</span>'}</td>
   <td>${fmt(d.D4)||'<span class="muted">—</span>'}</td>
   <td>${badge(isClosed?'ok':'info',d.status)}</td>
-  <td style="white-space:nowrap">${appBadge(d)}<div style="margin-top:4px">${delayCell(d)}</div></td>
+  <td style="white-space:nowrap">${appBadge(d)}</td>
  </tr>`;
 }
 const plus=()=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>`;
