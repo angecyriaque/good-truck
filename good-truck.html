@@ -931,14 +931,14 @@ const SEQ_STEPS=[
  {step:5,k:'D7',label:'Mail de récupération',type:'date',prev:'D6',prevLabel:'Date de dépotage'},
  {step:6,k:'D8',label:'Date de récupération (retour conteneur · clôture du dossier)',type:'date',prev:'D7',prevLabel:'Mail de récupération'}];
 const ECARTS=[
- ['1. Arrivée réelle navire − ETA Navire','D3','D2'],
- ['2. Mise en livraison − Arrivée réelle navire','D4','D3'],
- ['3. Date de réception − Mise en livraison','D5','D4'],
- ['4. Date de dépotage − Date de réception','D6','D5'],
- ['5. Mail de récupération − Date de dépotage','D7','D6'],
- ['6. Date de récupération − Mail de récupération','D8','D7'],
- ['Franchise courue (Retour conteneur − Arrivée navire)','D8','D3'],
- ['Écart vs Fin de franchise (Retour conteneur − Fin)','D8','D1']];
+ ['Arrivée du Navire','D3','D2'],
+ ['Durée de mise en livraison','D4','D3'],
+ ['Durée de la réception','D5','D4'],
+ ['Durée du dépotage','D6','D5'],
+ ['Délai d’envoi du mail de récupération','D7','D6'],
+ ['Délai de récupération','D8','D7'],
+ ['Franchise courue','D8','D3'],
+ ['Durée du traitement','D8','D1']];
 const TSTEPS=['Brouillon','Planifié','En cours','Livré','Clôturé'];
 const LSTEPS=['Brouillon','Réservée','Expédiée','Livrée','Clôturée'];
 
@@ -2914,7 +2914,7 @@ function openDossier(id,edit=false){
    ${clos?`<button class="btn${lockCls('transit')}" data-act="reopen" data-id="${d.id}">Rouvrir le dossier</button>`:`
     ${!arrived?`<button class="btn${lockCls('transit')}" data-act="editInit" data-id="${d.id}">Modifier infos initiales</button><button class="btn primary${lockCls('transit')}" data-act="confirmArrival" data-id="${d.id}">Confirmer l’arrivée navire (ATA)</button>`:`<button class="btn primary${lockCls('transit')}" data-act="${edit?'saveDates':'editDates'}" data-id="${d.id}">${edit?'Enregistrer le suivi':'Renseigner le suivi'}</button>`}
     ${arrived&&d.D5&&!d.depotage?`<button class="btn primary${lockCls('transit')}" data-act="validerDepotage" data-id="${d.id}">Confirmer le dépotage</button>`:''}
-    <button class="btn${lockCls('transit')}" data-act="closeDossier" data-id="${d.id}">Clôturer</button>`}
+    `}
    <button class="btn" data-act="openConv" data-dossier="${d.id}">${conv?'Ouvrir la discussion':'Démarrer une discussion'}</button>
    <button class="btn" data-act="copyFiche" data-id="${d.id}">Copier la fiche</button>
   </div>
@@ -2979,7 +2979,7 @@ function openDossier(id,edit=false){
    }).join('')}</form>
    ${!clos&&arrived?`<div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px">${edit?`<button class="btn" data-act="cancelEditDates" data-id="${d.id}">Annuler</button><button class="btn primary${lockCls('transit')}" data-act="saveDates" data-id="${d.id}">Enregistrer le suivi</button>`:`<button class="btn primary${lockCls('transit')}" data-act="editDates" data-id="${d.id}">Renseigner le suivi</button>`}</div>`:''}
   </section>
-  <section class="panel"><h3>Écarts calculés</h3><div class="ecarts-grid">${ECARTS.map(([l,a,b])=>{
+  <section class="panel"><h3>Calcul des écarts</h3><div class="ecarts-grid">${ECARTS.map(([l,a,b])=>{
    const ok=d[a]&&d[b];const v=ok?days(d[a],d[b]):null;
    const isFinDiff=a==='D8'&&b==='D1';
    let valHtml,col='var(--text)';
@@ -3004,7 +3004,7 @@ function openDossier(id,edit=false){
     if(v<0)col='var(--bad)';
     valHtml=`<span>${v} j</span>${v<0?'<span class="badge b-bad">⚠ écart</span>':''}`;
    }
-   return `<div class="ecart-card"><div class="ec-lbl">${l} <span style="opacity:.75">(${a} − ${b})</span></div><div class="ec-val" style="color:${col}">${valHtml}</div></div>`}).join('')}</div></section>
+   return `<div class="ecart-card"><div class="ec-lbl">${l}</div><div class="ec-val" style="color:${col}">${valHtml}</div></div>`}).join('')}</div></section>
   <section class="panel"><h3>Chronologie</h3><ul class="timeline">${ev.map(e=>`<li class="${e.fut?'future':''}"><b>${e.l}</b><small>${e.t?fmt(e.t):`<span class="badge b-bad" style="margin-top:2px">Non renseignée</span>`}${e.s&&!e.code?' · '+esc(e.s):''}</small></li>`).join('')}</ul></section>
   <section class="panel"><h3>Commentaires et historique</h3>
    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px">${d.comments.slice().reverse().map(c=>`<article class="comment"><header><span class="avatar" style="width:24px;height:24px;font-size:10px;background:${user(c.author).c}">${initials(user(c.author).name)}</span><b>${esc(user(c.author).name)}</b>${fmtT(c.t)}</header>${esc(c.text)}</article>`).join('')||'<p class="muted" style="margin:0">Aucun commentaire.</p>'}</div>
