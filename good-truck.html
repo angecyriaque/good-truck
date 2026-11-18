@@ -3310,21 +3310,30 @@ function vEntrepot(){
  ];
 
  /* Tableau des réceptions en attente dans Stock & Réceptions : uniquement quantité totale à recevoir et date de dépotage */
- const pendingRecTable=()=>`<section class="panel" style="margin-bottom:16px;border-color:${pendRecs.length?'var(--accent)':'var(--line)'}">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-   <div><h3 style="margin:0">Réceptions de dépotage en attente de validation en Entrepôt</h3><small class="muted">Transférées automatiquement dès la confirmation du dépotage dans le volet Transit.</small></div>
+ const pendingRecTable=()=>`<section class="panel" style="margin-bottom:20px;padding:0;border-radius:14px;border:1px solid #DDD6FE;border-left:6px solid #7C3AED;overflow:hidden;background:var(--surface);box-shadow:0 2px 8px rgba(124,58,237,0.05)">
+  <div style="background:linear-gradient(135deg,#F5F3FF 0%,#EDE9FE 100%);padding:14px 18px;border-bottom:1px solid #DDD6FE;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+   <div style="display:flex;align-items:center;gap:12px">
+    <span style="background:#7C3AED;color:#FFF;padding:4px 10px;border-radius:7px;font-size:11px;font-weight:800;letter-spacing:0.6px;box-shadow:0 1px 3px rgba(124,58,237,0.3)">RUBRIQUE 3</span>
+    <div>
+     <h3 style="margin:0;font-size:15.5px;color:#5B21B6;font-weight:700">3. Réceptions de dépotage en attente de validation en Entrepôt</h3>
+     <small style="color:#6D28D9;font-size:12.5px">Transférées automatiquement dès la confirmation du dépotage dans le volet Transit.</small>
+    </div>
+   </div>
    ${pendRecs.length?badge('warn',`${pendRecs.length} réception${pendRecs.length>1?'s':''} en attente de validation`,'📥'):badge('ok','Aucune réception en attente','✓')}
   </div>
-  <div class="tablewrap"><table><thead><tr><th>Réception</th><th>Dossier / Conteneur</th><th>Date de dépotage</th><th class="right">Quantité totale à recevoir</th><th>Statut</th><th>Action</th></tr></thead><tbody>
-  ${pendRecs.map(r=>`<tr>
-    <td><span class="ref">${r.id}</span></td>
-    <td><button class="refchip" style="border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer;padding:0" data-dossier="${r.dossier}">${r.dossier}</button><br><small class="muted num">${r.cont}</small></td>
-    <td><b>${fmt(r.date)}</b></td>
-    <td class="right num"><b style="font-size:16px">${n0(r.total)}</b>${r.model&&r.model!=='MB5'?` <span class="badge b-autre">${esc(r.model)}</span>`:''}</td>
-    <td>${badge('warn','En attente','⏳')}</td>
-    <td style="white-space:nowrap"><button class="btn small primary${lockCls('entrepot')}" data-act="validerReceptionDepotage" data-id="${r.id}">Valider dans le stock</button></td>
-   </tr>`).join('')||`<tr><td colspan="6" class="empty">Aucune réception de dépotage en attente.</td></tr>`}
-  </tbody></table></div></section>`;
+  <div style="padding:14px 18px">
+   <div class="tablewrap"><table style="margin:0"><thead><tr><th>Réception</th><th>Dossier / Conteneur</th><th>Date de dépotage</th><th class="right">Quantité totale à recevoir</th><th>Statut</th><th>Action</th></tr></thead><tbody>
+   ${pendRecs.map(r=>`<tr>
+     <td><span class="ref">${r.id}</span></td>
+     <td><button class="refchip" style="border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer;padding:0" data-dossier="${r.dossier}">${r.dossier}</button><br><small class="muted num">${r.cont}</small></td>
+     <td><b>${fmt(r.date)}</b></td>
+     <td class="right num"><b style="font-size:16px">${n0(r.total)}</b>${r.model&&r.model!=='MB5'?` <span class="badge b-autre">${esc(r.model)}</span>`:''}</td>
+     <td>${badge('warn','En attente','⏳')}</td>
+     <td style="white-space:nowrap"><button class="btn small primary${lockCls('entrepot')}" data-act="validerReceptionDepotage" data-id="${r.id}">Valider dans le stock</button></td>
+    </tr>`).join('')||`<tr><td colspan="6" class="empty">Aucune réception de dépotage en attente.</td></tr>`}
+   </tbody></table></div>
+  </div>
+ </section>`;
 
  /* Dépotages non encore validés mis à part + Historique des dépotages validés rangé par date de validation dans le stock */
  const validRecs=recs.filter(r=>r.status==='Validée').slice().sort((a,b)=>{
@@ -3391,48 +3400,69 @@ function vEntrepot(){
 
  const pendPlns=sitePlanifs(cS).filter(p=>p.status==='En attente Entrepôt');
  const waitLoadTrs=siteTransports(cS).filter(t=>t.status==='Planifié');
- const pendingPlnStockTable=()=>`<section class="panel" style="margin-bottom:16px;border-color:${pendPlns.length?'var(--warn)':'var(--line)'}">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-   <div><h3 style="margin:0">1. Demandes de transport en attente de validation Stock (Planification)</h3><small class="muted">Validez la disponibilité du stock (Stock SKCI ou Stock Global) pour autoriser l’arrivée des camions au chargement.</small></div>
-   ${pendPlns.length?badge('warn',`${pendPlns.length} demande${pendPlns.length>1?'s':''} en attente de validation stock`,'⏳'):badge('ok','Aucune demande de transport en attente','✓')}
-  </div>
-  <div class="tablewrap"><table><thead><tr><th>Réf. Demande</th><th>Destination</th><th>Stock requis</th><th class="right">Quantité demandée</th><th>Chargement souhaité</th><th>Action Entrepôt</th></tr></thead><tbody>
-  ${pendPlns.map(p=>{
-   const dest=destInfo(p.to),pool=p.pool||dest?.pool||destPool(p.to)||'Global',disp=dispo(pool),enough=disp>=p.qty;
-   return `<tr class="click" data-act="openTransportDetails" data-id="${esc(p.id)}" title="Cliquez sur l’opération pour afficher les détails du transport">
-    <td><span class="ref">${esc(p.id)}</span></td>
-    <td><b>${esc(p.to)}</b></td>
-    <td>${poolBadge(pool)}<br><small class="muted">Dispo : <b class="num" style="color:${enough?'var(--ok)':'var(--bad)'}">${n0(disp)}</b></small></td>
-    <td class="right num"><b style="font-size:16px">${n0(p.qty)}</b></td>
-    <td><b>${fmt(p.depP)}</b> → ${fmt(p.arrP)}</td>
-    <td style="white-space:nowrap"><button class="btn small primary${lockCls('entrepot')}" data-act="validerStockPlanif" data-id="${p.id}">✓ Confirmer Stock disponible</button></td>
-   </tr>`;
-  }).join('')||`<tr><td colspan="6" class="empty">Aucune demande de transport en attente de validation stock.</td></tr>`}
-  </tbody></table></div></section>
-  <section class="panel" style="margin-bottom:16px;border-color:${waitLoadTrs.length?'var(--blue)':'var(--line)'}">
-   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-    <div><h3 style="margin:0">2. Camions confirmés au chargement — Décompte & Expédition (Entrepôt)</h3><small class="muted">Démarrez le chargement pour décompter sa durée, puis cliquez sur « Débuter l’expédition » pour enclencher le transport.</small></div>
+ const pendingPlnStockTable=()=>`<!-- CADRANT RUBRIQUE 1 : VALIDATION STOCK PLANIFICATION -->
+  <section class="panel" style="margin-bottom:20px;padding:0;border-radius:14px;border:1px solid #FDE68A;border-left:6px solid #D97706;overflow:hidden;background:var(--surface);box-shadow:0 2px 8px rgba(217,119,6,0.06)">
+   <div style="background:linear-gradient(135deg,#FFFBEB 0%,#FEF3C7 100%);padding:14px 18px;border-bottom:1px solid #FDE68A;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:12px">
+     <span style="background:#D97706;color:#FFF;padding:4px 10px;border-radius:7px;font-size:11px;font-weight:800;letter-spacing:0.6px;box-shadow:0 1px 3px rgba(217,119,6,0.3)">RUBRIQUE 1</span>
+     <div>
+      <h3 style="margin:0;font-size:15.5px;color:#92400E;font-weight:700">1. Demandes de transport en attente de validation Stock (Planification)</h3>
+      <small style="color:#B45309;font-size:12.5px">Validez la disponibilité du stock (Stock SKCI ou Stock Global) pour autoriser l’arrivée des camions au chargement.</small>
+     </div>
+    </div>
+    ${pendPlns.length?badge('warn',`${pendPlns.length} demande${pendPlns.length>1?'s':''} en attente de validation stock`,'⏳'):badge('ok','Aucune demande de transport en attente','✓')}
+   </div>
+   <div style="padding:14px 18px">
+    <div class="tablewrap"><table style="margin:0"><thead><tr><th>Réf. Demande</th><th>Destination</th><th>Stock requis</th><th class="right">Quantité demandée</th><th>Chargement souhaité</th><th>Action Entrepôt</th></tr></thead><tbody>
+    ${pendPlns.map(p=>{
+     const dest=destInfo(p.to),pool=p.pool||dest?.pool||destPool(p.to)||'Global',disp=dispo(pool),enough=disp>=p.qty;
+     return `<tr class="click" data-act="openTransportDetails" data-id="${esc(p.id)}" title="Cliquez sur l’opération pour afficher les détails du transport">
+      <td><span class="ref">${esc(p.id)}</span></td>
+      <td><b>${esc(p.to)}</b></td>
+      <td>${poolBadge(pool)}<br><small class="muted">Dispo : <b class="num" style="color:${enough?'var(--ok)':'var(--bad)'}">${n0(disp)}</b></small></td>
+      <td class="right num"><b style="font-size:16px">${n0(p.qty)}</b></td>
+      <td><b>${fmt(p.depP)}</b> → ${fmt(p.arrP)}</td>
+      <td style="white-space:nowrap"><button class="btn small primary${lockCls('entrepot')}" data-act="validerStockPlanif" data-id="${p.id}">✓ Confirmer Stock disponible</button></td>
+     </tr>`;
+    }).join('')||`<tr><td colspan="6" class="empty">Aucune demande de transport en attente de validation stock.</td></tr>`}
+    </tbody></table></div>
+   </div>
+  </section>
+
+  <!-- CADRANT RUBRIQUE 2 : CAMIONS CONFIRMÉS AU CHARGEMENT -->
+  <section class="panel" style="margin-bottom:20px;padding:0;border-radius:14px;border:1px solid #BFDBFE;border-left:6px solid #2563EB;overflow:hidden;background:var(--surface);box-shadow:0 2px 8px rgba(37,99,235,0.06)">
+   <div style="background:linear-gradient(135deg,#EFF6FF 0%,#DBEAFE 100%);padding:14px 18px;border-bottom:1px solid #BFDBFE;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:12px">
+     <span style="background:#2563EB;color:#FFF;padding:4px 10px;border-radius:7px;font-size:11px;font-weight:800;letter-spacing:0.6px;box-shadow:0 1px 3px rgba(37,99,235,0.3)">RUBRIQUE 2</span>
+     <div>
+      <h3 style="margin:0;font-size:15.5px;color:#1E40AF;font-weight:700">2. Camions confirmés au chargement — Décompte & Expédition (Entrepôt)</h3>
+      <small style="color:#1D4ED8;font-size:12.5px">Démarrez le chargement pour décompter sa durée, puis cliquez sur « Débuter l’expédition » pour enclencher le transport.</small>
+     </div>
+    </div>
     ${waitLoadTrs.length?badge('info',`${waitLoadTrs.length} camion${waitLoadTrs.length>1?'s':''} au quai`,'🚚'):badge('ok','Aucun chargement en attente','✓')}
    </div>
-   <div class="tablewrap"><table><thead><tr><th>Transport</th><th>Destination</th><th>Transporteur · Camion · Chauffeur</th><th>Bassin de stock</th><th class="right">Palettes à charger</th><th>Dates prévues (Départ → Arrivée)</th><th>Durée du chargement</th><th>Action</th></tr></thead><tbody>
-   ${waitLoadTrs.map(t=>{
-    const pl=t.pool||destPool(t.to);
-    const pln=(S.planifications||[]).find(p=>p.transport===t.id);
-    const actBtn=t.loadStartAt
-     ?`<button class="btn small${lockCls('entrepot')}" style="background:#FACC15;border-color:#EAB308;color:#1E293B;font-weight:700" data-act="tStart" data-id="${esc(t.id)}">Débuter l’expédition</button>`
-     :`<button class="btn small primary${lockCls('entrepot')}" data-act="tStartLoad" data-id="${esc(t.id)}">Démarrer le chargement</button>`;
-    return `<tr class="click" data-act="openTransportDetails" data-id="${esc(t.id)}" title="Cliquez sur l’opération pour afficher les détails du transport">
-     <td><span class="ref">${esc(t.id)}</span>${pln?`<br><small class="muted">Demande : <b>${esc(pln.id)}</b></small>`:''}</td>
-     <td><b>${esc(t.to)}</b></td>
-     <td><b>${esc(t.trans)}</b><br><span class="num" style="font-weight:700;color:var(--blue)">${esc(t.veh)}</span> · <b>${esc(t.driver)}</b></td>
-     <td>${poolBadge(pl)}</td>
-     <td class="right num"><b style="font-size:16px">${n0(t.qty)}</b></td>
-     <td><b>${fmt(t.depP)}</b> → ${fmt(t.arrP)}</td>
-     <td>${loadTimerHtml(t)}</td>
-     <td style="white-space:nowrap">${actBtn}</td>
-    </tr>`;
-   }).join('')||`<tr><td colspan="8" class="empty">Aucun camion en attente de chargement.</td></tr>`}
-   </tbody></table></div></section>`;
+   <div style="padding:14px 18px">
+    <div class="tablewrap"><table style="margin:0"><thead><tr><th>Transport</th><th>Destination</th><th>Transporteur · Camion · Chauffeur</th><th>Bassin de stock</th><th class="right">Palettes à charger</th><th>Dates prévues (Départ → Arrivée)</th><th>Durée du chargement</th><th>Action</th></tr></thead><tbody>
+    ${waitLoadTrs.map(t=>{
+     const pl=t.pool||destPool(t.to);
+     const pln=(S.planifications||[]).find(p=>p.transport===t.id);
+     const actBtn=t.loadStartAt
+      ?`<button class="btn small${lockCls('entrepot')}" style="background:#FACC15;border-color:#EAB308;color:#1E293B;font-weight:700" data-act="tStart" data-id="${esc(t.id)}">Débuter l’expédition</button>`
+      :`<button class="btn small primary${lockCls('entrepot')}" data-act="tStartLoad" data-id="${esc(t.id)}">Démarrer le chargement</button>`;
+     return `<tr class="click" data-act="openTransportDetails" data-id="${esc(t.id)}" title="Cliquez sur l’opération pour afficher les détails du transport">
+      <td><span class="ref">${esc(t.id)}</span>${pln?`<br><small class="muted">Demande : <b>${esc(pln.id)}</b></small>`:''}</td>
+      <td><b>${esc(t.to)}</b></td>
+      <td><b>${esc(t.trans)}</b><br><span class="num" style="font-weight:700;color:var(--blue)">${esc(t.veh)}</span> · <b>${esc(t.driver)}</b></td>
+      <td>${poolBadge(pl)}</td>
+      <td class="right num"><b style="font-size:16px">${n0(t.qty)}</b></td>
+      <td><b>${fmt(t.depP)}</b> → ${fmt(t.arrP)}</td>
+      <td>${loadTimerHtml(t)}</td>
+      <td style="white-space:nowrap">${actBtn}</td>
+     </tr>`;
+    }).join('')||`<tr><td colspan="8" class="empty">Aucun camion en attente de chargement.</td></tr>`}
+    </tbody></table></div>
+   </div>
+  </section>`;
 
  const cycleBar=`<div class="toolbar" style="justify-content:flex-end;gap:8px;flex-wrap:wrap">
   <button class="btn${lockCls('entrepot')}" data-act="openAutresPalettes" style="border-color:var(--autre-line);background:var(--autre-bg);color:var(--autre)">Palettes Autre : <b>${n0(s.autre)}</b> · Créer / Détail</button>
@@ -3444,22 +3474,37 @@ function vEntrepot(){
  if(ent==='stock')body=cycleBar+
    pendingPlnStockTable()+
    pendingRecTable()+
-   `<div class="cats" style="grid-template-columns:repeat(auto-fit,minmax(175px,1fr))">${CATS.map(c=>{
-    const resC=c.pool?reserved(c.pool):0,dispC=c.pool?dispo(c.pool):s[c.k];
-    const cls=c.pool==='SKCI'?' cat-skci':c.pool==='Global'?' cat-global':c.isAutre?' cat-autre':'';
-    const col=c.pool==='SKCI'?'var(--skci)':c.pool==='Global'?'var(--global)':c.isAutre?'var(--autre)':`var(${c.c})`;
-    const clickAttr=c.isAutre?`data-act="openAutresPalettes" style="cursor:pointer" title="Cliquez pour voir le détail ou créer de nouvelles palettes dans Autre"`:'';
-    return `<article class="cat${cls}" ${clickAttr}><div class="lbl">${c.label}</div>${catIcon(c)}<b>${n0(s[c.k])}</b>
-    ${c.pool?`<div style="font-size:12px;color:var(--muted);margin-bottom:4px">Réservé : <b class="num" style="color:var(--warn)">${n0(resC)}</b> · Dispo : <b class="num" style="color:${col}">${n0(dispC)}</b></div>`:c.isAutre?`<div style="font-size:12px;color:var(--autre);font-weight:700;margin-bottom:4px">${autresModelsList().join(', ')} · + Créer / Détail →</div>`:`<div style="font-size:12px;color:var(--muted);margin-bottom:4px">Stock disponible : <b class="num">${n0(s[c.k])}</b></div>`}
-    <div class="meta">${c.pool?poolBadge(c.pool):c.isAutre?`<span class="badge b-autre">➕ Créer / Détail</span>`:`<span>Stock : <b>${n0(s[c.k])}</b></span>`}${c.liv?badge('ok','Livrable','✓'):badge('mute','Non livrable')}</div></article>`;
-   }).join('')}</div>
-   <div class="tablewrap"><table><thead><tr><th>Catégorie de stock</th><th>Rôle dans le cycle de vie</th><th class="right">En stock</th><th class="right">Réservé (Transport)</th><th class="right">Stock disponible</th></tr></thead><tbody>
-   ${CATS.map(c=>{
-    const resC=c.pool?reserved(c.pool):null,dispC=c.pool?dispo(c.pool):s[c.k];
-    const rowSt=c.pool==='SKCI'?'background:var(--skci-bg);border-left:4px solid var(--skci)':c.pool==='Global'?'background:var(--global-bg);border-left:4px solid var(--global)':c.isAutre?'background:var(--autre-bg);border-left:4px solid var(--autre);cursor:pointer':'';
-    const col=c.pool==='SKCI'?'var(--skci)':c.pool==='Global'?'var(--global)':c.isAutre?'var(--autre)':'';
-    return `<tr style="${rowSt}" ${c.isAutre?'data-act="openAutresPalettes"':''}><td><b style="${col?`color:${col}`:''}">${c.label}</b> ${c.pool?poolBadge(c.pool):c.isAutre?`<button type="button" class="btn small" data-act="openAutresPalettes" style="margin-left:6px;border-color:var(--autre-line);color:var(--autre)">+ Créer / Voir détail</button>`:''}</td><td><small class="muted">${esc(c.desc)}</small></td><td class="right num"><b>${n0(s[c.k])}</b></td><td class="right num">${resC!=null?`<b style="color:var(--warn)">${n0(resC)}</b>`:'—'}</td><td class="right num">${c.liv?`<b style="color:${col};font-size:16px">${n0(dispC)}</b>`:`<b class="num">${n0(s[c.k])}</b> <small class="muted">(non livrable)</small>`}</td></tr>`;
-   }).join('')}</tbody></table></div>`;
+   `<!-- CADRANT RUBRIQUE 4 : SITUATION & DISPONIBILITÉ DES STOCKS -->
+   <section class="panel" style="margin-bottom:20px;padding:0;border-radius:14px;border:1px solid #CBD5E1;border-left:6px solid #0F766E;overflow:hidden;background:var(--surface);box-shadow:0 2px 8px rgba(15,118,110,0.06)">
+    <div style="background:linear-gradient(135deg,#F0FDFA 0%,#CCFBF1 100%);padding:14px 18px;border-bottom:1px solid #99F6E4;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+     <div style="display:flex;align-items:center;gap:12px">
+      <span style="background:#0F766E;color:#FFF;padding:4px 10px;border-radius:7px;font-size:11px;font-weight:800;letter-spacing:0.6px;box-shadow:0 1px 3px rgba(15,118,110,0.3)">RUBRIQUE 4</span>
+      <div>
+       <h3 style="margin:0;font-size:15.5px;color:#115E59;font-weight:700">4. Situation & Disponibilité des Stocks de Palettes (${curSiteObj().name})</h3>
+       <small style="color:#0F766E;font-size:12.5px">Suivi en temps réel des catégories de palettes, réservations transport et stocks disponibles au quai.</small>
+      </div>
+     </div>
+     <span class="badge b-ok" style="font-size:12px;font-weight:700">Total : ${n0(totalStock)} palettes</span>
+    </div>
+    <div style="padding:16px 18px">
+     <div class="cats" style="grid-template-columns:repeat(auto-fit,minmax(175px,1fr));margin-bottom:14px">${CATS.map(c=>{
+      const resC=c.pool?reserved(c.pool):0,dispC=c.pool?dispo(c.pool):s[c.k];
+      const cls=c.pool==='SKCI'?' cat-skci':c.pool==='Global'?' cat-global':c.isAutre?' cat-autre':'';
+      const col=c.pool==='SKCI'?'var(--skci)':c.pool==='Global'?'var(--global)':c.isAutre?'var(--autre)':`var(${c.c})`;
+      const clickAttr=c.isAutre?'data-act="openAutresPalettes" style="cursor:pointer" title="Cliquez pour voir le détail ou créer de nouvelles palettes dans Autre"':'';
+      return `<article class="cat${cls}" ${clickAttr}><div class="lbl">${c.label}</div>${catIcon(c)}<b>${n0(s[c.k])}</b>
+      ${c.pool?`<div style="font-size:12px;color:var(--muted);margin-bottom:4px">Réservé : <b class="num" style="color:var(--warn)">${n0(resC)}</b> · Dispo : <b class="num" style="color:${col}">${n0(dispC)}</b></div>`:c.isAutre?`<div style="font-size:12px;color:var(--autre);font-weight:700;margin-bottom:4px">${autresModelsList().join(', ')} · + Créer / Détail →</div>`:`<div style="font-size:12px;color:var(--muted);margin-bottom:4px">Stock disponible : <b class="num">${n0(s[c.k])}</b></div>`}
+      <div class="meta">${c.pool?poolBadge(c.pool):c.isAutre?`<span class="badge b-autre">➕ Créer / Détail</span>`:`<span>Stock : <b>${n0(s[c.k])}</b></span>`}${c.liv?badge('ok','Livrable','✓'):badge('mute','Non livrable')}</div></article>`;
+     }).join('')}</div>
+     <div class="tablewrap"><table style="margin:0"><thead><tr><th>Catégorie de stock</th><th>Rôle dans le cycle de vie</th><th class="right">En stock</th><th class="right">Réservé (Transport)</th><th class="right">Stock disponible</th></tr></thead><tbody>
+     ${CATS.map(c=>{
+      const resC=c.pool?reserved(c.pool):null,dispC=c.pool?dispo(c.pool):s[c.k];
+      const rowSt=c.pool==='SKCI'?'background:var(--skci-bg);border-left:4px solid var(--skci)':c.pool==='Global'?'background:var(--global-bg);border-left:4px solid var(--global)':c.isAutre?'background:var(--autre-bg);border-left:4px solid var(--autre);cursor:pointer':'';
+      const col=c.pool==='SKCI'?'var(--skci)':c.pool==='Global'?'var(--global)':c.isAutre?'var(--autre)':'';
+      return `<tr style="${rowSt}" ${c.isAutre?'data-act="openAutresPalettes"':''}><td><b style="${col?`color:${col}`:''}">${c.label}</b> ${c.pool?poolBadge(c.pool):c.isAutre?`<button type="button" class="btn small" data-act="openAutresPalettes" style="margin-left:6px;border-color:var(--autre-line);color:var(--autre)">+ Créer / Voir détail</button>`:''}</td><td><small class="muted">${esc(c.desc)}</small></td><td class="right num"><b>${n0(s[c.k])}</b></td><td class="right num">${resC!=null?`<b style="color:var(--warn)">${n0(resC)}</b>`:'—'}</td><td class="right num">${c.liv?`<b style="color:${col};font-size:16px">${n0(dispC)}</b>`:`<b class="num">${n0(s[c.k])}</b> <small class="muted">(non livrable)</small>`}</td></tr>`;
+     }).join('')}</tbody></table></div>
+    </div>
+   </section>`;
  if(ent==='transferts'){
   const cS=curSite();
   const allTrfs=(S.transfers||[]).filter(t=>t.fromSite===cS||t.toSite===cS);
