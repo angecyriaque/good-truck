@@ -974,7 +974,7 @@ function seed(){
   D('GT-2026-106','CMAU0901176','BL-ABJ-55712',ARMATEURS[1],TRANSPORTEURS[1],{D1:-7,D2:-29,D3:-28,D4:-26,D5:-25,D6:-24,D7:-23,D8:-33},'Clôturé',[C('u3',-5,'Date de retour du conteneur à vérifier : elle précède l’arrivée du navire.')],DEP(-24,130,'MB5','Validée','REC-005','reparation')),
   D('GT-2026-107','MSKU0310984','BL-ABJ-55958',ARMATEURS[2],TRANSPORTEURS[2],{D1:-4,D2:-25,D3:-25,D4:-16,D5:-15,D6:-12,D7:-3},'Ouvert',[C('u3',-3,'Mail de récupération envoyé, la franchise continue de courir tant que le conteneur n’est pas retourné.')],DEP(-12,140,'MB5','En attente','REC-006','')),
   D('GT-2026-108','TGHU0122309','BL-ABJ-55402',ARMATEURS[3],TRANSPORTEURS[3],{D1:-37,D2:-58,D3:-58,D4:-52,D5:-50,D6:-47,D7:-38,D8:-36},'Clôturé',[C('u2',-36,'Conteneur retourné à 22 jours (+1 j après fin de franchise) : procédure revue avec le transitaire.')],DEP(-47,45,'MB4','Validée','REC-007','autre')),
-  D('GT-2026-109','MSCU6610452','BL-ABJ-56133',ARMATEURS[0],'',{D1:23,D2:2})
+  D('GT-2026-109','MSCU6610452','BL-ABJ-56133',ARMATEURS[0],'',{D2:2})
  ];
  const receptions=[
   {id:'REC-001',dossier:'GT-2026-101',cont:'MSCU4821930',date:iso(-30),model:'MB5',typeRec:'sale',cat:'sale',qtyEmise:140,qtyRecue:140,total:140,status:'Validée',by:'u3',valBy:'u4',valAt:ago(-30,14),depotStartAt:ago(-30,11,15),depotEndAt:ago(-30,12,8),obs:'Lot de palettes sales MB5 orienté vers le lavage.'},
@@ -1567,7 +1567,7 @@ const TABS=[
  {k:'transit',l:'Transit',ic:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><g class="a-bob"><path d="M3 14h18l-2.5 5h-13z"/><path d="M7 14V9h5v5M12 11h4v3"/></g><path d="M2 22c2-1.3 4-1.3 6 0s4 1.3 6 0 4-1.3 6 0" stroke-width="1.6"/></svg>`},
  {k:'entrepot',l:'Entrepôt',ic:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M2 9l10-6 10 6v12H2z"/><g class="a-hop"><rect x="7" y="12" width="10" height="5"/><path d="M6 19h12"/></g></svg>`},
  {k:'transport',l:'Transport',ic:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><g class="a-drive"><path d="M1 6h13v10H1zM14 9h4l4 4v3h-8"/></g><g class="a-wheel"><circle cx="6" cy="18" r="2.2" fill="var(--surface)"/></g><g class="a-wheel"><circle cx="18" cy="18" r="2.2" fill="var(--surface)"/></g></svg>`},
- {k:'livraisons',l:'Livraisons',ic:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/><path class="a-check" d="M14.5 15.5l1.8 1.8 3.2-3.6" stroke-width="2.2"/></svg>`},
+ {k:'livraisons',l:'Planning de Livraison',ic:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/><path class="a-check" d="M14.5 15.5l1.8 1.8 3.2-3.6" stroke-width="2.2"/></svg>`},
  {k:'facturation',l:'Facturation',ic:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8M16 17H8M10 9H8"/></svg>`},
  {k:'recouvrement',l:'Recouvrement',ic:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 6v12"/></svg>`},
  {k:'operateurs',l:'Opérateurs',ic:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><circle cx="12" cy="5" r="2.5"/><path d="M12 7.5v11M7 11h10"/><path d="M5 14c0 3.5 3 5.5 7 5.5s7-2 7-5.5"/><path d="M4 14l2-2 1.5 2M20 14l-2-2-1.5 2"/></svg>`},
@@ -1653,7 +1653,8 @@ function render(){
 }
 
 /* Helper bandeau de site actif présent sur toutes les interfaces */
-function siteBanner(subtitle=''){
+function siteBanner(subtitle='', showTransfert = true){
+ const isTransit = (tab === 'transit') || !showTransfert;
  const c = curSite();
  const o = curSiteObj();
  $$('#siteSwitch .site-btn').forEach(btn=>{btn.classList.toggle('active',btn.dataset.site===c)});
@@ -2782,7 +2783,7 @@ function renderDossierRow(d,isClosed){
   <td>${esc(d.lam)}</td>
   <td>${fmt(d.D2)||'<span class="muted">—</span>'}</td>
   <td>${d.D3?`<b>${fmt(d.D3)}</b>`:'<span class="badge b-bad" style="font-size:11px">En attente</span>'}</td>
-  <td>${fmt(d.D1)||'<span class="muted">—</span>'}</td>
+  <td>${d.D3&&d.D1?fmt(d.D1):'<span class="muted">—</span>'}</td>
   <td>${fmt(d.D4)||'<span class="muted">—</span>'}</td>
   <td>${badge(isClosed?'ok':'info',d.status)}</td>
   <td style="white-space:nowrap">${appBadge(d)}</td>
@@ -2891,17 +2892,17 @@ function openDossier(id,edit=false){
  const ev=[{t:d.createdAt.slice(0,10),l:'Création du dossier',s:'par '+user(d.createdBy).name},...DATES.map(([k,l])=>({t:d[k],l,s:k,code:k}))]
    .map(e=>({...e,fut:!e.t})).sort((a,b)=>a.fut-b.fut||(a.t||'').localeCompare(b.t||''));
  if(clos)ev.push({t:d.updatedAt.slice(0,10),l:'Clôture du dossier',s:''});
- $('#drawer').innerHTML=`<header><div class="grow"><h2>${d.num}</h2><div class="muted" style="font-size:14px">N° Conteneur(TC) ${d.cont} · BL ${d.bl} · ${esc(d.lam)}${d.trans?' · Transporteur : '+esc(d.trans):''}</div><div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${badge(clos?'ok':'info',clos?'✓ Clôturé (Conteneur récupéré)':'⏳ En cours (Franchise active)')}${appBadge(d)}${arrived?badge('ok','Navire arrivé (ATA) : '+fmt(d.D3),'✓'):badge('bad','En attente d’arrivée navire (ATA)','◷')}</div></div><button class="close" data-act="closeDrawer" aria-label="Fermer">×</button></header>
+ $('#drawer').innerHTML=`<header><div class="grow"><h2>${d.num}</h2><div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${badge(clos?'ok':'info',clos?'✓ Clôturé (Conteneur récupéré)':'⏳ En cours (Franchise active)')}${appBadge(d)}${arrived?badge('ok','Navire arrivé (ATA) : '+fmt(d.D3),'✓'):badge('bad','En attente d’arrivée navire (ATA)','◷')}</div></div><button class="close" data-act="closeDrawer" aria-label="Fermer">×</button></header>
  <div class="body">
   <div style="display:flex;gap:8px;flex-wrap:wrap">
    ${clos?`<button class="btn${lockCls('transit')}" data-act="reopen" data-id="${d.id}">Rouvrir le dossier</button>`:`
     ${!arrived?`<button class="btn${lockCls('transit')}" data-act="editInit" data-id="${d.id}">Modifier infos initiales</button><button class="btn primary${lockCls('transit')}" data-act="confirmArrival" data-id="${d.id}">Confirmer l’arrivée navire (ATA)</button>`:`<button class="btn primary${lockCls('transit')}" data-act="${edit?'saveDates':'editDates'}" data-id="${d.id}">${edit?'Enregistrer le suivi':'Renseigner le suivi'}</button>`}
     ${arrived&&d.D5&&!d.depotage?`<button class="btn primary${lockCls('transit')}" data-act="validerDepotage" data-id="${d.id}">Confirmer le dépotage</button>`:''}
     `}
-   <button class="btn" data-act="openConv" data-dossier="${d.id}">${conv?'Ouvrir la discussion':'Démarrer une discussion'}</button>
+   <button class="btn" data-act="openConv" data-dossier="${d.id}">Discuter</button>
    <button class="btn" data-act="copyFiche" data-id="${d.id}">Copier la fiche</button>
   </div>
-  ${gauge(d)}
+  
   
   
   <section class="panel"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px"><h3 style="margin:0">1. Informations complètes de l’opération</h3>${arrived?badge('mute','🔒 Infos initiales verrouillées'):badge('info','Modifiables avant arrivée du navire')}</div>
@@ -2911,13 +2912,13 @@ function openDossier(id,edit=false){
     <div><span>Transporteur affecté</span><b>${d.trans?esc(d.trans):'<span class="muted">Non affecté</span>'}</b></div><div><span>Palettes dépotées</span><b>${d.depotage?`${n0(d.depotage.total)} palettes (${esc(d.depotage.model||'MB5')})`:'<span class="muted">En attente de dépotage</span>'}</b></div>
     <div><span>ETA Navire</span><b>${fmt(d.D2)||'—'}</b></div>
     <div><span>Date ATA (Arrivée navire)</span><b>${d.D3?`${fmt(d.D3)} (confirmée)`:'<span class="badge b-bad">En attente d’arrivée</span>'}</b></div>
-    <div><span>Fin de franchise</span><b>${d.D1?`${fmt(d.D1)} <small style="color:var(--muted);font-weight:normal">(auto : ${d.D3?'ATA':'ETA'} + 21j)</small>`:'—'}</b></div>
+    <div><span>Fin de franchise</span><b>${d.D3&&d.D1?`${fmt(d.D1)} <small style="color:var(--muted);font-weight:normal">(auto : ATA + 21j)</small>`:'<span class="muted">— (en attente ATA)</span>'}</b></div>
     <div><span>Mise en livraison</span><b>${fmt(d.D4)||'—'}</b></div>
     <div><span>Date de réception</span><b>${fmt(d.D5)||'—'}</b></div><div><span>Date de dépotage</span><b>${fmt(d.D6)||'—'}</b></div>
     <div><span>Mail de récupération</span><b>${fmt(d.D7)||'—'}</b></div><div><span>Retour conteneur (Récupération)</span><b>${fmt(d.D8)||'—'}</b></div>
     <div><span>Créé par</span><b>${esc(user(d.createdBy).name)}</b></div><div><span>Dernière modification</span><b>${fmtT(d.updatedAt)} par ${esc(user(d.updatedBy).name)}</b></div>
    </div></section>
-  <section class="panel"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><h3 style="margin:0">2. Suivi séquentiel des opérations (au jour le jour)</h3>${!arrived?badge('bad','Confirmez d’abord l’arrivée du navire','!'):badge('info','Date du jour : '+fmt(TODAY_ISO))}</div>
+  <section class="panel"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><h3 style="margin:0">2. Suivi quotidien de l'opération</h3>${!arrived?badge('bad','Confirmez d’abord l’arrivée du navire','!'):badge('info','Date du jour : '+fmt(TODAY_ISO))}</div>
    <p class="muted" style="margin:0 0 10px;font-size:12.5px">Aucune date antérieure ne peut être saisie : chaque validation prend en compte la date du jour de validation (<b>${fmt(TODAY_ISO)}</b>).</p>
    <form id="datesForm" data-id="${d.id}" class="dates" style="grid-template-columns:1fr">${SEQ_STEPS.map(s=>{
     const prevOk=Boolean(d[s.prev]),val=d[s.k]||'';
@@ -3055,7 +3056,7 @@ function newDossier(){
    if(data.D3&&data.D3>TODAY_ISO)e.D3='La date ATA ne peut pas être dans le futur.';
    if(Object.keys(e).length)return e;
    const ata=data.D3?.trim()||'';
-   const finFranchise=ata?addDays(ata,21):(data.D2?addDays(data.D2,21):'');
+   const finFranchise=ata?addDays(ata,21):'';
    const n='GT-2026-'+(++S.seq.GT);
    save(`Dossier ${n} créé.`,()=>{
     const d={id:n,num:n,site:curSite(),cont:data.cont.trim().toUpperCase(),bl:data.bl.trim(),lam:data.lam,trans:'',status:'Ouvert',createdBy:S.me,createdAt:nowISO(),updatedBy:S.me,updatedAt:nowISO(),comments:[],D1:finFranchise,D2:data.D2,D3:ata,D4:'',D5:'',D6:'',D7:'',D8:''};
@@ -3104,7 +3105,7 @@ function editInit(id){
    if(data.D3&&data.D3>TODAY_ISO)e.D3='La date ATA ne peut pas être dans le futur.';
    if(Object.keys(e).length)return e;
    const ata=data.D3?.trim()||'';
-   const finFranchise=ata?addDays(ata,21):(data.D2?addDays(data.D2,21):'');
+   const finFranchise=ata?addDays(ata,21):'';
    save(`Informations initiales de ${newNum} mises à jour.`,()=>{
     const oldNum=d.num;
     d.id=newNum;d.num=newNum;d.cont=data.cont.trim().toUpperCase();d.bl=data.bl.trim();d.lam=data.lam;d.D2=data.D2;d.D3=ata;d.D1=finFranchise;
@@ -3139,7 +3140,7 @@ function confirmArrival(id){
     <span>ℹ️ <b>Fin de franchise calculée :</b></span>
     <span id="previewFranchise" style="font-weight:700;color:var(--blue)"><b>${fmt(addDays(TODAY_ISO,21))}</b> (ATA + 21 jours)</span>
    </div>`+
-  `<p class="full note" style="margin:0">On ne renseigne pas la date de franchise : elle se calcule automatiquement en ajoutant <b>21 jours</b> à la date d’arrivée effective du navire (ATA). Une fois confirmée, les informations initiales seront verrouillées et le suivi séquentiel débutera par la « Mise en livraison ».</p>`,
+  `<p class="full note" style="margin:0">On ne renseigne pas la date de franchise : elle se calcule automatiquement en ajoutant <b>21 jours</b> à la date d’arrivée effective du navire (ATA). Une fois confirmée, les informations initiales seront verrouillées et le suivi quotidien débutera par la « Mise en livraison ».</p>`,
   'Confirmer l’arrivée (ATA) et verrouiller',data=>{
    const ata=data.D3||TODAY_ISO;
    const finFranchise=addDays(ata,21);
@@ -4401,28 +4402,6 @@ function renderTransportSynthese(cS = curSite()){
    </div>
   </div>
 
-  <!-- KPIs Synthèse -->
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;padding:16px 20px 12px;background:#F8FAFC;border-bottom:1px solid var(--line)">
-   <div style="background:var(--surface);padding:10px 14px;border-radius:10px;border:1px solid var(--line);border-left:4px solid var(--blue)">
-    <small class="muted" style="font-size:11px;text-transform:uppercase;font-weight:700">Missions Clôturées</small>
-    <div style="font-size:20px;font-weight:800;color:var(--text);margin-top:2px">${doneTrs.length} <small style="font-size:12px;font-weight:600;color:var(--muted)">/ ${allTrs.length} planifiés</small></div>
-   </div>
-   <div style="background:var(--surface);padding:10px 14px;border-radius:10px;border:1px solid var(--line);border-left:4px solid var(--skci)">
-    <small class="muted" style="font-size:11px;text-transform:uppercase;font-weight:700">Palettes Stock SKCI</small>
-    <div style="font-size:20px;font-weight:800;color:var(--skci);margin-top:2px">${n0(totSkci)} <small style="font-size:12px;font-weight:600;color:var(--muted)">palettes</small></div>
-   </div>
-   <div style="background:var(--surface);padding:10px 14px;border-radius:10px;border:1px solid var(--line);border-left:4px solid var(--global)">
-    <small class="muted" style="font-size:11px;text-transform:uppercase;font-weight:700">Palettes Stock Global</small>
-    <div style="font-size:20px;font-weight:800;color:var(--global);margin-top:2px">${n0(totGlobal)} <small style="font-size:12px;font-weight:600;color:var(--muted)">palettes</small></div>
-   </div>
-   <div style="background:var(--surface);padding:10px 14px;border-radius:10px;border:1px solid var(--line);border-left:4px solid ${incidentsCount?'var(--bad)':'var(--ok)'}">
-    <small class="muted" style="font-size:11px;text-transform:uppercase;font-weight:700">Qualité de service</small>
-    <div style="font-size:20px;font-weight:800;color:${incidentsCount?'var(--bad)':'var(--ok)'};margin-top:2px">
-     ${incidentsCount ? `${incidentsCount} incident${incidentsCount>1?'s':''}` : '100% sans incident'}
-    </div>
-   </div>
-  </div>
-
   <!-- Tableau de synthèse cliquable -->
   <div style="padding:16px 20px">
    <div class="tablewrap" style="margin:0">
@@ -4431,15 +4410,14 @@ function renderTransportSynthese(cS = curSite()){
       <tr>
        <th>Réf. Transport</th>
        <th>Demande / ITR</th>
-       <th>Destination & Client</th>
+       <th>Trajet & Destination</th>
        <th>Bassin Stock</th>
        <th>Transporteur & Camion</th>
        <th>Chauffeur</th>
        <th class="right">Palettes</th>
-       <th>Départ (Prévu / Réel)</th>
-       <th>Arrivée (Prévue / Réelle)</th>
-       <th>Statut</th>
-       <th>Action</th>
+       <th>Départ réel</th>
+       <th>Arrivée réelle</th>
+       <th>Incidents</th>
       </tr>
      </thead>
      <tbody>
@@ -4458,16 +4436,11 @@ function renderTransportSynthese(cS = curSite()){
          <td><b>${esc(t.trans)}</b><br><span class="num" style="font-weight:700;color:var(--blue)">${esc(t.veh)}</span></td>
          <td><b>${esc(t.driver||'—')}</b></td>
          <td class="right num"><b style="font-size:15px;color:var(--ink)">${n0(t.qty)}</b></td>
-         <td><small>${fmt(t.depP)}</small><br><b>${fmt(t.depR)||'—'}</b></td>
-         <td><small>${fmt(t.arrP)}</small><br><b>${fmt(t.arrR)||'—'}</b></td>
-         <td>${badge(isClosed ? 'ok' : 'info', t.status, isClosed ? '✓' : '🚚')}</td>
-         <td style="white-space:nowrap">
-          <button class="btn small primary" data-act="openTransportDetails" data-id="${esc(t.id)}" style="padding:4px 10px;font-size:12px">
-           🔍 Détail complet
-          </button>
-         </td>
+         <td><b>${fmt(t.depR)||'—'}</b></td>
+         <td><b>${fmt(t.arrR)||'—'}</b></td>
+         <td>${(t.incidents||[]).length ? t.incidents.map((inc,idx)=>`<div style="font-size:12px;color:var(--bad);margin-bottom:2px">⚠️ <b>Incident ${idx+1} :</b> ${esc(inc)}</div>`).join('') : '<span class="muted" style="font-size:12px">Aucun</span>'}</td>
         </tr>`;
-      }).join('') : `<tr><td colspan="11" class="empty">Aucun transport réalisé dans l’historique.</td></tr>`}
+      }).join('') : `<tr><td colspan="10" class="empty">Aucun transport réalisé dans l’historique.</td></tr>`}
      </tbody>
     </table>
    </div>
@@ -4516,7 +4489,7 @@ function openTransportDetails(id){
    author: pln?.createdBy ? user(pln.createdBy).name : 'Service Planification / Logistique',
    done: true,
    statusTag: pln ? badge('ok', 'Demande ' + pln.id, '✓') : badge('info', 'Planning actif', '✓'),
-   detail: `Quantité demandée : <b>${n0(target.qty)}</b> palettes propres (${pl}) · Trajet : <b>${esc(target.from)}</b> → <b>${esc(target.to)}</b>`
+   detail: `Quantité demandée : <b>${n0(target.qty)}</b> palettes propres (${pl})`
   },
   {
    title: '2. Validation Stock Entrepôt (Disponibilité & Réservation)',
@@ -4525,7 +4498,7 @@ function openTransportDetails(id){
    author: pln?.stockValBy ? user(pln.stockValBy).name : 'Responsable Entrepôt Vridi',
    done: Boolean(pln?.stockValAt || target.shipped || ['Planifié','En cours','Livré','Clôturé'].includes(target.status)),
    statusTag: target.shipped ? badge('ok', 'Sorti physiquement', '✓') : badge('warn', 'Stock réservé théoriquement', '◫'),
-   detail: `Bassin déduit : <b>Stock ${pl}</b> (priorité ${pl==='SKCI'?'exclusive sites SKCI':'clients externes SAPH/SOGB'})`
+   detail: `Quantité validée en stock : <b>${n0(target.qty)}</b> palettes propres (Stock ${pl})`
   },
   {
    title: '3. Affectation Transporteur, Camion & Chauffeur',
@@ -4589,7 +4562,7 @@ function openTransportDetails(id){
     </div>
     <div style="text-align:right">
      <div style="font-size:24px;font-weight:800;color:var(--blue)">${n0(target.qty)} <small style="font-size:13px;font-weight:600;color:var(--text)">palettes propres (${pl})</small></div>
-     <small class="muted">${target.shipped ? '✓ Sortie physique effectuée' : '◫ Réservation théorique active'}</small>
+     <small class="muted">${target.shipped ? '✓ Sortie physique' : '◫ Réservation théorique active'}</small>
     </div>
    </div>
 
@@ -4600,15 +4573,19 @@ function openTransportDetails(id){
      <div style="margin-top:6px;font-size:13.5px">Départ : <b>${esc(target.from)}</b></div>
      <div style="color:var(--blue);font-size:13.5px">Destination : <b>${esc(target.to)}</b></div>
     </div>
-    <div style="padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface)">
-     <b class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px">Calendrier & Horaires</b>
-     <div style="margin-top:6px">Départ prévu : <b>${fmt(target.depP)}</b> ${target.depR ? '· Réel : <b style="color:var(--ok)">'+fmt(target.depR)+'</b>' : ''}</div>
-     <div>Arrivée prévue : <b>${fmt(target.arrP)}</b> ${target.arrR ? '· Réelle : <b style="color:var(--ok)">'+fmt(target.arrR)+'</b>' : ''}</div>
+    <div style="padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);display:flex;flex-direction:column;gap:3px">
+     <b class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Calendrier & Horaires</b>
+     <div>Départ prévu : <b>${fmt(target.depP)||'—'}</b></div>
+     <div>Départ réel : <b style="color:${target.depR?'var(--ok)':'var(--text)'}">${fmt(target.depR)||'—'}</b></div>
+     <div>Arrivée prévue : <b>${fmt(target.arrP)||'—'}</b></div>
+     <div>Arrivée réelle : <b style="color:${target.arrR?'var(--ok)':'var(--text)'}">${fmt(target.arrR)||'—'}</b></div>
     </div>
-    <div style="padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface)">
-     <b class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px">Références & Commandes</b>
-     <div style="margin-top:6px">Réf. ITR client : <b class="num" style="color:var(--blue)">${esc(refItr)}</b></div>
-     <div>Réf. PO / Bon : <b class="num">${esc(refPo)}</b> ${lv ? '· Livraison : <b>'+esc(lv.id)+'</b>' : ''}</div>
+    <div style="padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);display:flex;flex-direction:column;gap:3px">
+     <b class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Références & Commandes</b>
+     <div>Réf. ITR client : <b class="num" style="color:var(--blue)">${esc(refItr)}</b></div>
+     <div>Réf. PO / Bon : <b class="num">${esc(refPo)}</b></div>
+     <div>Planning / Livraison : <b>${lv ? esc(lv.id) : (target.liv ? esc(target.liv) : '—')}</b></div>
+     <div>Demande Planification : <b>${pln ? esc(pln.id) : '—'}</b></div>
     </div>
     <div style="padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface)">
      <b class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px">Chargement au Quai</b>
@@ -4664,12 +4641,14 @@ function openTransportDetails(id){
 /* ===================== Transport & Destinations Clients ===================== */
 function vTransport(){
  const cS=curSite();
- const sts=['Tous','Planifié','En cours','Livré','Clôturé','Brouillon','Incident'];
- const list=siteTransports(cS).filter(t=>trFilter==='Tous'||(trFilter==='Incident'?t.incidents.length:t.status===trFilter)).slice().reverse();
+ const sts=['Tous','En cours','Planifié','Brouillon','Incident'];
+ const list=siteTransports(cS).filter(t=>t.status!=='Clôturé'&&(!t.arrR||t.status==='En cours')&&(trFilter==='Tous'||(trFilter==='Incident'?t.incidents.length:t.status===trFilter))).slice().reverse();
+ const pendPlns=sitePlanifications(cS).filter(p=>!p.stockValAt||!p.camionValAt);
  const dests=siteDestinations(cS);
  const subBar=`<div class="seg" role="group" aria-label="Espaces Transport" style="margin-bottom:14px">
-  <button data-trsub="missions" aria-pressed="${trSub==='missions'}">Planification & Suivi des Transports (${list.length})</button>
-  <button data-trsub="destinations" aria-pressed="${trSub==='destinations'}">Destinations & Adresses Clients conservées (${dests.length})</button>
+  <button data-trsub="missions" aria-pressed="${trSub==='missions'}">Transports en cours (${list.length})</button>
+  <button data-trsub="planning" aria-pressed="${trSub==='planning'}">Planning & Commandes en attente de validation (${pendPlns.length})</button>
+  <button data-trsub="destinations" aria-pressed="${trSub==='destinations'}">Trajets & Destinations (${dests.length})</button>
  </div>`;
  const stockBanner=`<div class="panel" style="margin-bottom:14px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
   <div style="font-size:13px">
@@ -4683,17 +4662,47 @@ function vTransport(){
  </div>`;
 
  let content='';
- if(trSub==='destinations'){
-  content=`<div class="toolbar">
-   <span class="muted grow">Créez et conservez ici toutes les destinations clients répertoriées et leur bassin de stock rattaché (<b>Stock SKCI</b> ou <b>Stock Global</b>).</span>
-   <button class="btn primary${lockCls('transport')}" data-act="newDestination">${plus()}Nouvelle destination client</button>
+ if(trSub==='planning'){
+  const origin = curSite() === 'abidjan' ? 'Entrepôt Vridi' : 'Dépôt San Pedro';
+  content = `<div class="toolbar">
+   <span class="muted grow">Commandes et demandes de transport en attente de validation (contrôle disponibilité stock entrepôt et affectation camion).</span>
+   <button class="btn primary${lockCls('transport')}" data-act="newTransport">${plus()}Nouveau transport direct</button>
   </div>
-  <div class="tablewrap"><table><thead><tr><th>Réf.</th><th>Destination / Site de livraison</th><th>Client</th><th>Bassin de stock affecté</th><th>Adresse complète conservée</th><th>Contact sur site</th><th>Transports liés</th><th>Actions</th></tr></thead><tbody>
+  <div class="tablewrap"><table>
+   <thead><tr><th>Réf. Demande</th><th>Réf. ITR client</th><th>Date prévue</th><th>Trajet (Origine → Destination)</th><th>Bassin Stock</th><th class="right">Palettes</th><th>Validation Stock</th><th>Affectation Camion</th><th>Action</th></tr></thead>
+   <tbody>
+    ${pendPlns.map(p => {
+      const pl = p.pool || destPool(p.to);
+      const stockOk = Boolean(p.stockValAt);
+      const camOk = Boolean(p.camionValAt);
+      return `<tr class="click" data-act="openTransportDetails" data-id="${esc(p.id)}" style="cursor:pointer" title="Afficher les détails de la commande">
+       <td><span class="ref">${esc(p.id)}</span></td>
+       <td><b class="num">${esc(p.itr||p.po||'—')}</b></td>
+       <td>${fmt(p.dateP)}</td>
+       <td><b>${esc(p.from||origin)}</b> → <b style="color:var(--blue)">${esc(p.to)}</b></td>
+       <td>${poolBadge(pl)}</td>
+       <td class="right num"><b style="font-size:14px">${n0(p.qty)}</b></td>
+       <td>${stockOk ? badge('ok','Stock validé ('+fmtT(p.stockValAt)+')','✓') : badge('warn','En attente validation Stock','⏳')}</td>
+       <td>${camOk ? badge('ok',p.trans+' · '+p.veh,'🚚') : badge('bad','En attente affectation camion','◷')}</td>
+       <td style="white-space:nowrap">
+        <button class="btn small primary" data-act="openTransportDetails" data-id="${esc(p.id)}">Consulter & Valider</button>
+       </td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="9" class="empty">Aucune commande de transport en attente de validation.</td></tr>'}
+   </tbody>
+  </table></div>`;
+ }else if(trSub==='destinations'){
+  const origin = curSite() === 'abidjan' ? 'Entrepôt Vridi (Abidjan)' : 'Dépôt Portuaire (San Pedro)';
+  content=`<div class="toolbar">
+   <span class="muted grow">Répertoire des trajets opérationnels : point de prise en charge (origine) vers point de livraison (destination client) avec détails nécessaires et bassin de stock.</span>
+   <button class="btn primary${lockCls('transport')}" data-act="newDestination">${plus()}Nouveau trajet / Destination</button>
+  </div>
+  <div class="tablewrap"><table><thead><tr><th>Réf.</th><th>Trajet (Prise en charge → Livraison)</th><th>Client</th><th>Bassin de stock</th><th>Détails & Adresse livraison</th><th>Contact sur site</th><th>Transports réalisés</th><th>Action</th></tr></thead><tbody>
    ${dests.map(d=>{
     const trCnt=siteTransports(cS).filter(t=>t.to===d.name).length;
     return `<tr style="border-left:4px solid ${d.pool==='SKCI'?'var(--skci)':'var(--global)'}">
      <td><span class="ref">${esc(d.id)}</span></td>
-     <td><b>${esc(d.name)}</b></td>
+     <td><div style="font-weight:700;color:var(--text);font-size:13.5px">🛫 ${esc(origin)}</div><div style="font-weight:700;color:var(--blue);font-size:13.5px;margin-top:2px">🎯 ${esc(d.name)}</div></td>
      <td><b>${esc(d.client)}</b></td>
      <td>${poolBadge(d.pool)}<br><small class="muted">${d.pool==='SKCI'?'Déduit le Stock SKCI':'Déduit le Stock Global'}</small></td>
      <td>${esc(d.address)}</td>
@@ -4701,7 +4710,7 @@ function vTransport(){
      <td><b>${trCnt}</b> transport${trCnt>1?'s':''}</td>
      <td><button class="btn small${lockCls('transport')}" data-act="editDestination" data-id="${d.id}">Modifier</button></td>
     </tr>`;
-   }).join('')||`<tr><td colspan="8" class="empty">Aucune destination enregistrée.</td></tr>`}
+   }).join('')||`<tr><td colspan="8" class="empty">Aucun trajet enregistré.</td></tr>`}
   </tbody></table></div>`;
  }else{
   content=`<div class="toolbar">
@@ -4723,16 +4732,16 @@ function tCard(t){
   'Planifié':`<button class="btn small primary${lockCls('transport')}" data-act="tStart" data-id="${t.id}">Démarrer l’expédition</button>`,
   'En cours':`<button class="btn small primary${lockCls('transport')}" data-act="tDeliver" data-id="${t.id}">Confirmer la livraison</button>`,
   'Livré':`<button class="btn small primary${lockCls('transport')}" data-act="tClose" data-id="${t.id}">Clôturer</button>`}[t.status]||'';
- const resBadge=['Planifié','Réservé'].includes(t.status)&&!t.shipped?badge('warn',`Réservé théoriquement sur Stock ${pl} (−${t.qty})`,'◫'):t.shipped?badge('ok',`Sorti physiquement du Stock ${pl}`,'✓'):'';
- return `<article class="tcard" data-act="openTransportDetails" data-id="${esc(t.id)}" style="cursor:pointer" title="Cliquez sur la carte pour afficher tous les détails du transport"><div class="head"><div><h3>${t.id}</h3><span class="muted" style="font-size:13px">${esc(t.trans)} · ${t.veh} · ${esc(t.driver)}</span></div>
-  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">${poolBadge(pl)}${badge(t.status==='Clôturé'?'mute':t.status==='Livré'?'ok':t.status==='En cours'?'info':'mute',t.status)}</div>${resBadge}${late?badge('warn','En retard','◷'):''}${t.incidents.length?badge('bad','Incident','⚠'):''}</div></div>
+ const resBadge=['Planifié','Réservé'].includes(t.status)&&!t.shipped?badge('warn',`Réservé théoriquement sur Stock ${pl} (−${t.qty})`,'◫'):t.shipped?badge('ok','Sortie physique','✓'):'';
+ return `<article class="tcard" data-act="openTransportDetails" data-id="${esc(t.id)}" style="cursor:pointer" title="Cliquez sur la carte pour afficher tous les détails du transport"><div class="head"><div><h3>${t.id}</h3><div style="font-size:13px;margin-top:4px;display:flex;flex-direction:column;gap:2px"><div>Transporteur : <b>${esc(t.trans)}</b></div><div>Camion : <b class="num" style="color:var(--blue)">${esc(t.veh)}</b></div><div>Chauffeur : <b>${esc(t.driver||'—')}</b></div></div></div>
+  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">${poolBadge(pl)}${badge(t.status==='Clôturé'?'mute':t.status==='Livré'?'ok':t.status==='En cours'?'info':'mute',t.status)}</div>${resBadge}${late?badge('warn','En retard','◷'):''}${t.incidents.length>1?badge('bad',`⚠️ ${t.incidents.length} incidents`,'!'):t.incidents.length===1&&t.status==='En cours'?badge('bad','Incident','⚠'):''}</div></div>
   <div class="route"><svg viewBox="0 0 320 42" preserveAspectRatio="none" aria-hidden="true"><line x1="10" y1="26" x2="310" y2="26" stroke="var(--line)" stroke-width="4" stroke-linecap="round"/>
    <line x1="10" y1="26" x2="${x}" y2="26" stroke="var(--blue)" stroke-width="4" stroke-linecap="round"/><circle cx="10" cy="26" r="6" fill="var(--blue)"/><circle cx="310" cy="26" r="6" fill="${i>=3?'var(--ok)':'var(--line)'}"/>
    <g transform="translate(${x-16},8)"><g class="${run?'shake':''}"><rect x="0" y="2" width="20" height="12" rx="1" fill="var(--blue)"/><path d="M20 5h6l5 5v4H20z" fill="var(--accent)"/></g><g class="${run?'wheel':''}"><circle cx="7" cy="16" r="3" fill="var(--wheel)"/></g><g class="${run?'wheel':''}"><circle cx="25" cy="16" r="3" fill="var(--wheel)"/></g></g></svg></div>
   <div class="route" style="height:auto;margin-top:-6px"><div class="pins"><span>${esc(t.from)}</span><span style="text-align:right">${esc(t.to)}</span></div></div>
   <div class="steps" aria-label="Étape ${i+1} sur 5">${TSTEPS.map((s,j)=>`<span class="${j<=i?'on':''}" title="${s}"></span>`).join('')}</div>
-  <div class="meta"><span>Départ prévu / réel</span><b>${fmt(t.depP)} / ${fmt(t.depR)||'—'}</b><span>Arrivée prévue / réelle</span><b>${fmt(t.arrP)} / ${fmt(t.arrR)||'—'}</b><span>Palettes propres (${pl})</span><b>${n0(t.qty)}</b><span>Livraison · Réf. ITR</span><b>${t.liv||'—'} · ${t.itr||'—'}</b></div>
-  ${t.incidents.length?`<div class="comment" style="font-size:13px;border-color:var(--bad)"><b style="color:var(--bad)">Incident :</b> ${esc(t.incidents[t.incidents.length-1])}</div>`:''}
+  <div class="meta" style="grid-template-columns:1fr 1fr;gap:8px 12px"><div><div style="margin-bottom:2px">Départ prévu : <b>${fmt(t.depP)||'—'}</b></div><div>Départ réel : <b style="color:${t.depR?'var(--ok)':'var(--text)'}">${fmt(t.depR)||'—'}</b></div></div><div><div style="margin-bottom:2px">Arrivée prévue : <b>${fmt(t.arrP)||'—'}</b></div><div>Arrivée réelle : <b style="color:${t.arrR?'var(--ok)':'var(--text)'}">${fmt(t.arrR)||'—'}</b></div></div><div>Palettes propres (${pl}) : <b>${n0(t.qty)}</b></div><div>Planning / ITR : <b>${t.liv||'—'} · ${t.itr||'—'}</b></div></div>
+  ${t.status==='En cours'&&t.incidents.length===1?`<div class="comment" style="font-size:13px;border-color:var(--bad)"><b style="color:var(--bad)">Incident :</b> ${esc(t.incidents[0])}</div>`:t.status==='En cours'&&t.incidents.length>1?`<div class="comment" style="font-size:13px;border-color:var(--bad);background:#FEF2F2"><div style="display:flex;align-items:center;gap:6px;color:var(--bad);font-weight:700"><span class="badge b-bad" style="font-size:11px">⚠️ ${t.incidents.length} incidents enregistrés</span><span>Signalisation d'incidents multiples sur ce transport</span></div><div style="font-size:12px;color:var(--text);margin-top:4px">Dernier incident : ${esc(t.incidents[t.incidents.length-1])}</div></div>`:''}
   <div class="acts">${acts}${!['Clôturé','Annulé'].includes(t.status)?`<button class="btn small${lockCls('transport')}" data-act="tIncident" data-id="${t.id}">Signaler un incident</button>`:''}</div></article>`;
 }
 
@@ -4945,7 +4954,7 @@ function vLivraisons(){
   'Expédiée':`<button class="btn small${lockCls('livraisons')}" style="background:#86EFAC;border-color:#22C55E;color:#064E3B;font-weight:700" data-act="lReceive" data-id="${l.id}">Confirmer la livraison</button>`,
   'Livrée':`<button class="btn small primary${lockCls('livraisons')}" data-act="lClose" data-id="${l.id}">Clôturer</button>`})[l.status]||'';
  const kind=s=>({'Brouillon':'mute','Réservée':'warn','Expédiée':'info','Livrée':'ok','Clôturée':'mute','Annulée':'bad'})[s];
- return hero('delivery','Livraisons & Planning de réservation','Suivi du planning de livraison client : réservation théorique sur le Stock SKCI (sites SKCI) ou Global (autres clients), expédition et rapprochement des quantités reçues.',
+ return hero('delivery','Planning de Livraison','Suivi du planning de livraison client : réservation théorique sur le Stock SKCI (sites SKCI) ou Global (autres clients), expédition et rapprochement des quantités reçues.',
   `<div><b>${n0(reserved('SKCI'))}</b>réservées SKCI</div><div><b>${n0(reserved('Global'))}</b>réservées Global</div><div><b>${siteDeliveries(cS).filter(l=>l.status==='Expédiée').length}</b>en cours d’acheminement</div>`)+
  `<div class="toolbar"><div class="chips grow">${sts.map(s=>`<button class="chip" data-lf="${s}" aria-pressed="${lvFilter===s}">${s}</button>`).join('')}</div><button class="btn primary${lockCls('livraisons')}" data-act="newLivraison">${plus()}Nouvelle livraison</button></div>
  <div class="tablewrap"><table><thead><tr><th>Livraison</th><th>Réf. ITR / PO</th><th>Date prévue</th><th>Destination & Bassin</th><th class="right">Prévue</th><th class="right">Expédiée</th><th class="right">Reçue</th><th>Transport</th><th>Statut</th><th>Action</th></tr></thead><tbody>
@@ -6201,7 +6210,7 @@ document.addEventListener('click',e=>{
      audit('Clôture automatique du dossier (conteneur récupéré)',d.num,`Conteneur retourné au port (${fmt(d.D8)}) · Dossier clôturé automatiquement.`);
     }
     d.updatedAt=nowISO();d.updatedBy=S.me;
-    audit('Validation suivi séquentiel (au jour le jour)',d.num,ch.map(s=>`${s.label} → ${s.type==='select'?(d[s.k]||'vide'):(fmt(d[s.k])||'vide')}`).join(', '));
+    audit('Validation suivi quotidien',d.num,ch.map(s=>`${s.label} → ${s.type==='select'?(d[s.k]||'vide'):(fmt(d[s.k])||'vide')}`).join(', '));
     setTimeout(()=>openDossier(id,false),30);
    },a)},
   addComment:()=>{if(!guard('transit'))return;const v=$('#newc').value.trim();if(!v){toast('Écrivez un commentaire avant de publier.','bad');return}const d=S.dossiers.find(x=>x.id===id);
