@@ -4996,7 +4996,7 @@ function vTransport(){
   const origin = curSite() === 'abidjan' ? 'Entrepôt Vridi' : 'Dépôt San-Pedro';
   content = `<div class="toolbar">
    <span class="muted grow">Commandes et demandes de transport en attente de validation (contrôle disponibilité stock entrepôt et affectation camion).</span>
-   <button class="btn primary${lockCls('transport')}" data-act="newTransport">${plus()}Nouveau transport direct</button>
+   <button class="btn primary" onclick="goTab('livraisons')">${plus()}Programmer un transport (Planning)</button>
   </div>
   <div class="tablewrap"><table>
    <thead><tr><th>Réf. Demande</th><th>Numéro ITR</th><th>Purchase Order (PO)</th><th>Date planification</th><th>Destination</th><th class="right">Quantité</th><th>Validation Stock</th><th>Affectation Camion</th><th>Action</th></tr></thead>
@@ -5076,7 +5076,7 @@ function vTransport(){
   content=`<div class="toolbar">
    <div class="chips grow">${sts.map(s=>`<button class="chip" data-tf="${s}" aria-pressed="${trFilter===s}">${s}</button>`).join('')}</div>
    <button class="btn${lockCls('transport')}" data-act="newDestination">${plus()}Nouvelle destination</button>
-   <button class="btn primary${lockCls('transport')}" data-act="newTransport">${plus()}Nouveau transport</button>
+   <button class="btn primary" onclick="goTab('livraisons')">📅 Programmer un transport (Planning)</button>
   </div>
   <div class="tcards">${list.map(tCard).join('')||'<p class="empty">Aucun transport pour ce filtre.</p>'}</div>`;
  }
@@ -5158,86 +5158,9 @@ function editDestination(id){
 }
 
 function newTransport(){
- if(!guard('transport'))return;
- const freeLv=siteDeliveries().filter(l=>!l.transport&&!['Clôturée','Annulée'].includes(l.status));
- const origin = curSite() === 'sanpedro' ? 'Dépôt San-Pedro' : 'Entrepôt Vridi';
- const dstList=destinationsList();
- const trajetOpts=dstList.map(d=>[d.name,`${origin} ➔ ${d.name} (${d.client})`]);
- const defDst=dstList[0]||null;
- const defItr = String(1000000000 + (S.seq.ITR = (S.seq.ITR || 55) + 1));
- const defPo = String(2000088100 + (S.seq.PO = (S.seq.PO || 55) + 1));
-
- openModal('Planifier & Réserver un transport vers une destination client',
-  `<div class="full" style="padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px">
-   <span><b>Stocks de Palettes propres disponibles :</b></span>
-   <div style="display:flex;gap:8px;flex-wrap:wrap">
-    <span class="badge b-skci">Stock SKCI : <b>${n0(dispo('SKCI'))}</b> dispo</span>
-    <span class="badge b-global">Stock Global : <b>${n0(dispo('Global'))}</b> dispo</span>
-   </div>
-  </div>`+
-  fld('Trajet pré-enregistré (Départ ➔ Arrivée)','trajet','select',{req:1,options:trajetOpts,value:trajetOpts[0]?.[0]||''})+
-  fld('Planning existant associé','liv','select',{options:freeLv.map(l=>[l.id,`${l.id} · ${l.qty} palettes · ITR ${l.itr||'—'} · ${l.to}`]),blank:'Créer automatiquement le planning associé'})+
-  fld('Numéro ITR (10 chiffres)','itr','text',{ph:'Ex. 1000000035',value:defItr})+
-  fld('Purchase Order (PO - 10 chiffres)','po','text',{ph:'Ex. 2000088140',value:defPo})+
-  fld('Transporteur','trans','select',{req:1,options:transporteursList(),blank:'Choisir un transporteur'})+
-  fld('Immatriculation camion','veh','text',{req:1,ph:'AB-1234-CI'})+
-  fld('Conducteur','driver','text',{ph:'Nom du chauffeur'})+
-  fld('Date de planification (Départ prévu)','depP','date',{req:1,value:iso(1),min:TODAY_ISO})+
-  fld('Date d’arrivée prévue','arrP','date',{req:1,value:iso(1),min:TODAY_ISO})+
-  fld('Quantité à transporter (palettes propres)','qty','number',{req:1,min:1,full:1,value:200})+
-  `<p class="note">Règle métier : Départ obligatoire depuis ${origin}. L'ITR et le Purchase Order (PO) comportent exactement 10 chiffres et sont uniques.</p>`,
-  'Valider le transport',data=>{
-   const e=req(data,['trajet','trans','veh','depP','arrP','qty']);
-   const q=+data.qty;
-   const to=data.trajet;
-   const from=origin;
-   const pool=destPool(to);
-   const catK=propreCat(pool);
-   const itr=String(data.itr||'').trim();
-   const po=String(data.po||'').trim();
-
-   if(itr){
-    if(!/^\d{10}$/.test(itr)){
-     e.itr='Le numéro ITR doit comporter exactement 10 chiffres.';
-    } else {
-     const isDupItr = (S.deliveries||[]).some(l=>l.itr===itr) || (S.transports||[]).some(t=>t.itr===itr) || (S.planifications||[]).some(p=>p.itr===itr);
-     if(isDupItr) e.itr='Ce numéro ITR existe déjà.';
-    }
-   }
-
-   if(po){
-    if(!/^\d{10}$/.test(po)){
-     e.po='Le Purchase Order (PO) doit comporter exactement 10 chiffres.';
-    } else {
-     const isDupPo = (S.deliveries||[]).some(l=>l.po===po) || (S.transports||[]).some(t=>t.po===po) || (S.planifications||[]).some(p=>p.po===po);
-     if(isDupPo) e.po='Ce Purchase Order (PO) existe déjà.';
-    }
-   }
-
-   if(data.depP<TODAY_ISO)e.depP='La date de départ ne peut être antérieure à aujourd’hui.';
-   if(data.arrP<data.depP)e.arrP='L’arrivée doit être postérieure ou égale au départ.';
-   if(q>dispo(pool))e.qty=`Stock ${pool} insuffisant (${n0(dispo(pool))} disponibles, ${n0(q)} demandées).`;
-   if(Object.keys(e).length)return e;
-
-   save(`Transport validé pour ${to} (${n0(q)} palettes, Stock ${pool} déduit théoriquement).`,()=>{
-    const id=nextId('TR',4);
-    let livId=data.liv;
-    let lv=livId?(S.deliveries||[]).find(x=>x.id===livId):null;
-    if(!lv){
-     livId=nextId('LV',4);
-     lv={id:livId,site:curSite(),itr:itr||defItr,po:po||defPo,dateP:data.depP,from,to,pool,cat:catK,qty:q,qtyShip:null,qtyRec:null,damaged:0,transport:id,resp:S.me,status:'Réservée',comments:'Générée automatiquement par le transport.'};
-     S.deliveries.push(lv);
-    }else{
-     lv.transport=id;
-     if(lv.status==='Brouillon')lv.status='Réservée';
-     if(itr)lv.itr=itr;
-     if(po)lv.po=po;
-    }
-    S.transports.push({id,site:curSite(),liv:livId,itr:itr||lv.itr||'',po:po||lv.po||'',trans:data.trans,veh:data.veh.trim().toUpperCase(),driver:(data.driver||'—').trim(),from,to,pool,depP:data.depP,arrP:data.arrP,depR:'',arrR:'',qty:q,shipped:false,status:'Planifié',loadStartAt:'',loadEndAt:'',incidents:[]});
-    audit('Planification transport',id,`${q} palettes (${pool}) vers ${to} · ${data.trans} (${data.veh})`);
-    closeModal();
-   },submitBtn());
-  });
+ toast("Règle métier : La programmation des transports s’effectue uniquement dans le Planning.", "info");
+ goTab('livraisons');
+ setTimeout(() => newLivraison(), 120);
 }
 
 function tPlan(id){
@@ -5336,7 +5259,7 @@ function vLivraisons(){
  const kind=s=>({'Brouillon':'mute','Réservée':'warn','Expédiée':'info','Livrée':'ok','Clôturée':'mute','Annulée':'bad'})[s];
  return hero('delivery','Planning','Suivi du planning de livraison client : réservation théorique sur le Stock SKCI (sites SKCI) ou Global (autres clients), expédition et rapprochement des quantités reçues.',
   `<div><b>${n0(siteDeliveries(cS).filter(l=>['Brouillon','Réservée'].includes(l.status)).length)}</b>en attente</div><div><b>${siteDeliveries(cS).filter(l=>l.status==='Expédiée').length}</b>en acheminement</div><div><b>${siteDeliveries(cS).filter(l=>['Livrée','Clôturée'].includes(l.status)).length}</b>livrées / clôturées</div>`)+
- `<div class="toolbar"><div class="chips grow">${sts.map(s=>`<button class="chip" data-lf="${s}" aria-pressed="${lvFilter===s}">${s}</button>`).join('')}</div><button class="btn primary${lockCls('livraisons')}" data-act="newLivraison">${plus()}Nouveau planning</button></div>
+ `<div class="toolbar"><div class="chips grow">${sts.map(s=>`<button class="chip" data-lf="${s}" aria-pressed="${lvFilter===s}">${s}</button>`).join('')}</div><button class="btn primary${lockCls('livraisons')}" data-act="newLivraison">${plus()}Programmer un transport</button></div>
  <div class="tablewrap"><table><thead><tr><th>Réf. Planning</th><th>Numéro ITR</th><th>Purchase Order (PO)</th><th>Date planification</th><th>Destination</th><th class="right">Quantité</th><th class="right">Expédiée</th><th class="right">Reçue</th><th>Transport</th><th>Statut</th><th>Action</th></tr></thead><tbody>
  ${list.map(l=>{const pl=l.pool||destPool(l.to);return `<tr><td><span class="ref">${l.id}</span></td><td><b class="num" style="color:var(--blue)">${esc(l.itr||'—')}</b></td><td><b class="num">${esc(l.po||'—')}</b></td><td><b>${fmt(l.dateP)}</b>${lvLate(l)?'<br>'+badge('warn','En retard','◷'):''}</td><td><b style="color:var(--text);font-size:13.5px">${esc(l.to)}</b></td>
   <td class="right num"><b style="font-size:15px">${n0(l.qty)}</b></td><td class="right num">${l.qtyShip??'—'}</td><td class="right num">${l.qtyRec??'—'}${l.qtyRec!=null&&l.qtyRec!==l.qtyShip?`<br><span class="badge b-warn">≠ ${l.qtyShip-l.qtyRec}</span>`:''}</td>
