@@ -2850,7 +2850,44 @@ function validerDepotage(id){
   });
 }
 
+
+function validerMiseEnLivraison(id){
+ if(!guard('transit'))return;
+ const d=S.dossiers.find(x=>x.id===id);if(!d)return;
+ if(!d.D3){toast('L’arrivée du navire (ATA) doit être confirmée avant la mise en livraison.','bad');return}
+ openModal(`Mise en livraison & Transporteur · ${d.num}`,
+  `<div class="full" style="padding:12px 14px;border:1px solid #BAE6FD;border-left:5px solid #0284C7;border-radius:10px;background:#F0F9FF;margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+     <div>
+      <b style="color:#0369A1;font-size:14.5px">Conteneur ${esc(d.cont)} · BL ${esc(d.bl)}</b>
+      <div style="font-size:12.5px;color:var(--text);margin-top:2px">
+       Armateur : <b>${esc(d.lam)}</b> · Arrivée navire (ATA) : <b>${fmt(d.D3)}</b> · Fin de franchise : <b>${fmt(d.D1)}</b>
+      </div>
+     </div>
+     <span class="badge" style="background:#0284C7;color:#FFF;font-weight:700">Étape Transit</span>
+    </div>
+   </div>`+
+  fld('Date effective de mise en livraison','D4','date',{req:1,value:d.D4||TODAY_ISO,min:d.D3||TODAY_ISO})+
+  fld('Sélectionner le transporteur routier','trans','select',{req:1,options:transporteursList(),value:d.trans||transporteursList()[0]||'',blank:'— Choisir le transporteur —'})+
+  `<p class="note">Règle de gestion : Quand on sélectionne la <b>Mise en livraison</b>, on renseigne obligatoirement le <b>Transporteur routier</b> désigné. Les deux informations sont enregistrées simultanément.</p>`,
+  'Valider la mise en livraison & le transporteur',data=>{
+   const e=req(data,['D4','trans']);
+   if(!data.trans)e.trans='Veuillez sélectionner le transporteur routier.';
+   if(data.D4&&d.D3&&data.D4<d.D3)e.D4='La date de mise en livraison ne peut précéder l’arrivée effective du navire (ATA).';
+   if(Object.keys(e).length)return e;
+   save(`Mise en livraison validée au ${fmt(data.D4)} avec le transporteur ${data.trans}.`,()=>{
+    d.D4=data.D4;
+    d.trans=data.trans.trim();
+    d.updatedAt=nowISO();d.updatedBy=S.me;
+    audit('Validation Mise en livraison & Transporteur',d.num,`Date: ${fmt(data.D4)} · Transporteur: ${d.trans}`);
+    closeModal();
+    setTimeout(()=>openDossier(d.id,false),50);
+   },submitBtn());
+  });
+}
+
 function syncSeqForm(){
+
  const f=$('#datesForm');if(!f)return;
  const dId=f.dataset.id,d=S.dossiers.find(x=>x.id===dId);if(!d)return;
  let prevVal=d.D3;
@@ -2955,7 +2992,7 @@ function openDossier(id,edit=false){
      let actBtn='';
      if(prevOk&&!val&&!clos){
       if(s.k==='D6')actBtn=`<button type="button" class="btn small primary${lockCls('transit')}" data-act="validerDepotage" data-id="${d.id}">Confirmer dépotage</button>`;
-      else if(s.type==='select')actBtn=`<button type="button" class="btn small primary${lockCls('transit')}" data-act="editDates" data-id="${d.id}">Choisir le transporteur</button>`;
+      else if(s.k==='D4'||s.type==='select')actBtn=`<button type="button" class="btn small primary${lockCls('transit')}" data-act="validerMiseEnLivraison" data-id="${d.id}">Mise en livraison & Transporteur</button>`;
       else if(s.k==='D8')actBtn=`<button type="button" class="btn small primary${lockCls('transit')}" data-act="validerStepJour" data-id="${d.id}" data-step="${s.k}" style="background:#059669;border-color:#047857">Valider récupération & Clôturer</button>`;
       else actBtn=`<button type="button" class="btn small primary${lockCls('transit')}" data-act="validerStepJour" data-id="${d.id}" data-step="${s.k}">Valider ce jour</button>`;
      }
@@ -6599,9 +6636,10 @@ document.addEventListener('click',e=>{
   printRecouvrement:()=>printRecouvrement(),
   tPlan:()=>tPlan(id),tStartLoad:()=>tStartLoad(id),tStart:()=>tStart(id),tDeliver:()=>tDeliver(id),tClose:()=>tClose(id),tIncident:()=>tIncident(id),
   lReserve:()=>lReserve(id),lShip:()=>lShip(id),lReceive:()=>lReceive(id),lClose:()=>lClose(id),lCancel:()=>cancelPlanif(id),cancelPlanif:()=>cancelPlanif(id),pCancel:()=>cancelPlanif(id),programmerTransportPlanif:()=>programmerTransportPlanif(id),
-  editInit:()=>editInit(id),confirmArrival:()=>confirmArrival(id),validerDepotage:()=>validerDepotage(id),cancelEditDates:()=>openDossier(id,false),
+  editInit:()=>editInit(id),confirmArrival:()=>confirmArrival(id),validerDepotage:()=>validerDepotage(id),validerMiseEnLivraison:()=>validerMiseEnLivraison(id),cancelEditDates:()=>openDossier(id,false),
   validerStepJour:()=>{if(!guard('transit'))return;const d=S.dossiers.find(x=>x.id===id);if(!d||!d.D3)return;
    const sk=a.dataset.step,st=SEQ_STEPS.find(x=>x.k===sk);if(!st||d[sk])return;
+   if(sk==='D4'||sk==='trans'){validerMiseEnLivraison(id);return;}
    if(!d[st.prev]){toast(`Validez d’abord « ${st.prevLabel} ».`,'bad');return}
    const isRecovery=sk==='D8';
    const successMsg=isRecovery
@@ -6627,6 +6665,7 @@ document.addEventListener('click',e=>{
     const chk=f.querySelector(`[data-chk="${s.k}"]`);
     const raw=s.type==='date'?(chk?.checked?TODAY_ISO:(vals[s.k]||'')):(vals[s.k]||'');
     if(!prevOk&&raw){toast(`Ordre séquentiel non respecté : validez d’abord « ${s.prevLabel} » avant « ${s.label} ».`,'bad');return}
+    if(s.k==='D4'&&raw&&!vals.trans&&!d.trans){toast('Lors de la mise en livraison, veuillez sélectionner le transporteur.','bad');return}
     if(s.type==='date'&&raw&&raw<TODAY_ISO){toast(`Aucune date antérieure ne peut être saisie pour « ${s.label} ». C’est la date du jour (${fmt(TODAY_ISO)}) qui est prise en compte.`,'bad');return}
     next[s.k]=prevOk?(s.type==='date'&&raw?TODAY_ISO:raw):'';
    }
