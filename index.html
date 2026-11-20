@@ -3045,43 +3045,23 @@ function newDossier(){
   fld('N° Bon de Livraison','bl','text',{req:1,ph:'BL-ABJ-…'})+
   fld('Armateur','lam','select',{req:1,full:1,options:armateursList(),blank:'Choisir'})+
   fld('ETA Navire','D2','date',{req:1,value:iso(2),min:TODAY_ISO})+
-  fld('Date ATA (Arrivée navire)','D3','date',{max:TODAY_ISO,ph:'Laisser vide si en mer'})+
   `<div class="full" style="background:var(--surface-2);border:1px dashed var(--blue);border-radius:8px;padding:10px 14px;font-size:13px;display:flex;align-items:center;justify-content:space-between;margin:4px 0 8px">
     <span>ℹ️ <b>Fin de franchise calculée :</b></span>
-    <span id="previewFranchise" style="font-weight:700;color:var(--blue)">Automatique (+21 jours après ATA Navire)</span>
+    <span id="previewFranchise" style="font-weight:700;color:var(--muted)">En attente d’arrivée navire (ATA + 21j)</span>
    </div>`+
   fld('Premier commentaire','c','textarea',{full:1})+
-  `<p class="note">La date de franchise ne se renseigne pas : elle est calculée automatiquement par le système en ajoutant 21 jours à la date d’arrivée du navire (ATA). Si le navire est encore en mer, l’échéance prévisionnelle est basée sur l’ETA + 21 jours.</p>`,
+  `<p class="note">La date ATA (Arrivée navire) et la fin de franchise ne sont pas saisies à la création. Vous confirmerez l’arrivée effective du navire via le bouton dédié dès l’accostage au port, ce qui déclenchera automatiquement le calcul des 21 jours de franchise.</p>`,
   'Créer le dossier',data=>{
    const e=req(data,['cont','bl','lam','D2']);
    if(data.cont&&!/^[A-Za-z]{4}\d{7}$/.test(data.cont.trim()))e.cont='Format attendu : 4 lettres et 7 chiffres (zéros conservés).';
    if(data.D2&&data.D2<TODAY_ISO)e.D2='Aucune date antérieure ne doit être saisie.';
-   if(data.D3&&data.D3>TODAY_ISO)e.D3='La date ATA ne peut pas être dans le futur.';
    if(Object.keys(e).length)return e;
-   const ata=data.D3?.trim()||'';
-   const finFranchise=ata?addDays(ata,21):'';
    const n='GT-2026-'+(++S.seq.GT);
    save(`Dossier ${n} créé.`,()=>{
-    const d={id:n,num:n,site:curSite(),cont:data.cont.trim().toUpperCase(),bl:data.bl.trim(),lam:data.lam,trans:'',status:'Ouvert',createdBy:S.me,createdAt:nowISO(),updatedBy:S.me,updatedAt:nowISO(),comments:[],D1:finFranchise,D2:data.D2,D3:ata,D4:'',D5:'',D6:'',D7:'',D8:''};
+    const d={id:n,num:n,site:curSite(),cont:data.cont.trim().toUpperCase(),bl:data.bl.trim(),lam:data.lam,trans:'',status:'Ouvert',createdBy:S.me,createdAt:nowISO(),updatedBy:S.me,updatedAt:nowISO(),comments:[],D1:'',D2:data.D2,D3:'',D4:'',D5:'',D6:'',D7:'',D8:''};
     if(data.c?.trim())d.comments.push({id:'c'+Date.now(),author:S.me,t:nowISO(),text:data.c.trim(),history:[]});
     S.dossiers.unshift(d);audit('Création de dossier',n,`${d.cont} · ${d.bl} · ${d.lam}`);closeModal();setTimeout(()=>openDossier(n),50)},submitBtn());
   });
- const f=$('#mform');
- if(f){
-  const upd=()=>{
-   const a=f.querySelector('input[name="D3"]')?.value;
-   const e=f.querySelector('input[name="D2"]')?.value;
-   const p=f.querySelector('#previewFranchise');
-   if(p){
-    if(a) p.innerHTML=`<b>${fmt(addDays(a,21))}</b> (21j après ATA du ${fmt(a)})`;
-    else if(e) p.innerHTML=`<b>${fmt(addDays(e,21))}</b> (prévisionnel : 21j après ETA du ${fmt(e)})`;
-    else p.textContent='Automatique (+21 jours après ATA Navire)';
-   }
-  };
-  upd();
-  f.addEventListener('change',ev=>{if(ev.target.name==='D2'||ev.target.name==='D3')upd()});
-  f.addEventListener('input',ev=>{if(ev.target.name==='D2'||ev.target.name==='D3')upd()});
- }
 }
 function editInit(id){
  if(!guard('transit'))return;
@@ -3093,45 +3073,24 @@ function editInit(id){
   fld('N° Bon de Livraison','bl','text',{req:1,value:d.bl})+
   fld('Armateur','lam','select',{req:1,options:armateursList(),value:d.lam})+
   fld('ETA Navire','D2','date',{req:1,value:d.D2>=TODAY_ISO?d.D2:TODAY_ISO,min:TODAY_ISO})+
-  fld('Date ATA (Arrivée navire)','D3','date',{value:d.D3||'',max:TODAY_ISO,ph:'Laisser vide si en mer'})+
   `<div class="full" style="background:var(--surface-2);border:1px dashed var(--blue);border-radius:8px;padding:10px 14px;font-size:13px;display:flex;align-items:center;justify-content:space-between;margin:4px 0 8px">
     <span>ℹ️ <b>Fin de franchise calculée :</b></span>
-    <span id="previewFranchise" style="font-weight:700;color:var(--blue)">${(d.D3?addDays(d.D3,21):addDays(d.D2,21))?fmt(d.D3?addDays(d.D3,21):addDays(d.D2,21))+' (21j après '+(d.D3?'ATA':'ETA')+')':'Automatique (+21j)'}</span>
+    <span id="previewFranchise" style="font-weight:700;color:var(--muted)">En attente d’arrivée navire (ATA + 21j)</span>
    </div>`+
-  `<p class="note">La date de franchise n'est pas modifiable manuellement : elle est calculée automatiquement par ajout de 21 jours à la date d'arrivée du navire (ATA).</p>`,
+  `<p class="note">La date ATA (Arrivée navire) et la fin de franchise ne sont pas saisies ici : l’arrivée effective du navire (ATA) sera confirmée séparément dès l’accostage pour calculer les 21 jours de franchise.</p>`,
   'Enregistrer',data=>{
    const e=req(data,['num','cont','bl','lam','D2']);
    const newNum=data.num?.trim();
    if(newNum&&newNum.toLowerCase()!==d.num.toLowerCase()&&S.dossiers.some(x=>x.num.toLowerCase()===newNum.toLowerCase()))e.num='Ce numéro de dossier existe déjà.';
    if(data.cont&&!/^[A-Za-z]{4}\d{7}$/.test(data.cont.trim()))e.cont='Format attendu : 4 lettres et 7 chiffres.';
    if(data.D2&&data.D2<TODAY_ISO)e.D2='Aucune date antérieure ne doit être saisie.';
-   if(data.D3&&data.D3>TODAY_ISO)e.D3='La date ATA ne peut pas être dans le futur.';
    if(Object.keys(e).length)return e;
-   const ata=data.D3?.trim()||'';
-   const finFranchise=ata?addDays(ata,21):'';
    save(`Informations initiales de ${newNum} mises à jour.`,()=>{
     const oldNum=d.num;
-    d.id=newNum;d.num=newNum;d.cont=data.cont.trim().toUpperCase();d.bl=data.bl.trim();d.lam=data.lam;d.D2=data.D2;d.D3=ata;d.D1=finFranchise;
+    d.id=newNum;d.num=newNum;d.cont=data.cont.trim().toUpperCase();d.bl=data.bl.trim();d.lam=data.lam;d.D2=data.D2;d.D3='';d.D1='';
     d.updatedAt=nowISO();d.updatedBy=S.me;
-    // Dossiers transit décorrélés des demandes de transport et livraisons
-    audit('Modification infos initiales',newNum,`ETA: ${fmt(d.D2)} · ATA: ${fmt(d.D3)||'—'} · Franchise: ${fmt(d.D1)}`);closeModal();setTimeout(()=>openDossier(d.id),50)},submitBtn());
+    audit('Modification infos initiales',newNum,`ETA: ${fmt(d.D2)} · ATA: En attente · Franchise: En attente`);closeModal();setTimeout(()=>openDossier(d.id),50)},submitBtn());
   });
- const f=$('#mform');
- if(f){
-  const upd=()=>{
-   const a=f.querySelector('input[name="D3"]')?.value;
-   const e=f.querySelector('input[name="D2"]')?.value;
-   const p=f.querySelector('#previewFranchise');
-   if(p){
-    if(a) p.innerHTML=`<b>${fmt(addDays(a,21))}</b> (21j après ATA du ${fmt(a)})`;
-    else if(e) p.innerHTML=`<b>${fmt(addDays(e,21))}</b> (prévisionnel : 21j après ETA du ${fmt(e)})`;
-    else p.textContent='Automatique (+21 jours après ATA Navire)';
-   }
-  };
-  upd();
-  f.addEventListener('change',ev=>{if(ev.target.name==='D2'||ev.target.name==='D3')upd()});
-  f.addEventListener('input',ev=>{if(ev.target.name==='D2'||ev.target.name==='D3')upd()});
- }
 }
 function confirmArrival(id){
  if(!guard('transit'))return;
