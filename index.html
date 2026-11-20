@@ -4386,7 +4386,7 @@ function renderTransportSynthese(cS = curSite()){
       <tr>
        <th>Réf. Transport</th>
        <th>Demande / ITR</th>
-       <th>Trajet & Destination</th>
+       <th>Destination</th>
        <th>Bassin Stock</th>
        <th>Transporteur & Camion</th>
        <th>Chauffeur</th>
@@ -4407,7 +4407,7 @@ function renderTransportSynthese(cS = curSite()){
         <tr class="click" data-act="openTransportDetails" data-id="${esc(t.id)}" style="cursor:pointer" title="Cliquez pour afficher tous les détails depuis la préparation jusqu'à la livraison">
          <td><span class="ref" style="font-size:13px;font-weight:700">${esc(t.id)}</span></td>
          <td><span class="num" style="font-weight:700">${esc(refItr)}</span>${pln ? `<br><small class="muted">${esc(pln.id)}</small>` : ''}</td>
-         <td><b>${esc(t.to)}</b><br><small class="muted">Départ : ${esc(t.from)}</small></td>
+         <td><b style="color:var(--text);font-size:13.5px">${esc(t.to)}</b></td>
          <td>${poolBadge(pl)}</td>
          <td><b>${esc(t.trans)}</b><br><span class="num" style="font-weight:700;color:var(--blue)">${esc(t.veh)}</span></td>
          <td><b>${esc(t.driver||'—')}</b></td>
@@ -4645,7 +4645,7 @@ function vTransport(){
    <button class="btn primary${lockCls('transport')}" data-act="newTransport">${plus()}Nouveau transport direct</button>
   </div>
   <div class="tablewrap"><table>
-   <thead><tr><th>Réf. Demande</th><th>Numéro ITR</th><th>Purchase Order (PO)</th><th>Date planification</th><th>Trajet à couvrir</th><th class="right">Qté à transporter</th><th>Validation Stock</th><th>Affectation Camion</th><th>Action</th></tr></thead>
+   <thead><tr><th>Réf. Demande</th><th>Numéro ITR</th><th>Purchase Order (PO)</th><th>Date planification</th><th>Destination</th><th class="right">Qté à transporter</th><th>Validation Stock</th><th>Affectation Camion</th><th>Action</th></tr></thead>
    <tbody>
     ${pendPlns.map(p => {
       const stockOk = Boolean(p.stockValAt);
@@ -4655,7 +4655,7 @@ function vTransport(){
        <td><b class="num" style="color:var(--blue)">${esc(p.itr||'—')}</b></td>
        <td><b class="num">${esc(p.po||'—')}</b></td>
        <td><b>${fmt(p.dateP||p.depP)}</b></td>
-       <td><b>${esc(p.from||origin)}</b> → <b style="color:var(--text)">${esc(p.to)}</b></td>
+       <td><b style="color:var(--text);font-size:13.5px">${esc(p.to)}</b></td>
        <td class="right num"><b style="font-size:15px">${n0(p.qty)}</b></td>
        <td>${stockOk ? badge('ok', fmt(p.stockValAt), '✓') : badge('warn', 'En attente', '⏳')}</td>
        <td>${camOk ? badge('ok', 'Effectué', '✓') : badge('warn', 'En attente', '⏳')}</td>
@@ -4949,8 +4949,8 @@ function vLivraisons(){
  return hero('delivery','Planning','Suivi du planning de livraison client : réservation théorique sur le Stock SKCI (sites SKCI) ou Global (autres clients), expédition et rapprochement des quantités reçues.',
   `<div><b>${n0(siteDeliveries(cS).filter(l=>['Brouillon','Réservée'].includes(l.status)).length)}</b>en attente</div><div><b>${siteDeliveries(cS).filter(l=>l.status==='Expédiée').length}</b>en acheminement</div><div><b>${siteDeliveries(cS).filter(l=>['Livrée','Clôturée'].includes(l.status)).length}</b>livrées / clôturées</div>`)+
  `<div class="toolbar"><div class="chips grow">${sts.map(s=>`<button class="chip" data-lf="${s}" aria-pressed="${lvFilter===s}">${s}</button>`).join('')}</div><button class="btn primary${lockCls('livraisons')}" data-act="newLivraison">${plus()}Nouveau planning</button></div>
- <div class="tablewrap"><table><thead><tr><th>Réf. Planning</th><th>Numéro ITR</th><th>Purchase Order (PO)</th><th>Date planification</th><th>Trajet à couvrir</th><th class="right">Qté à transporter</th><th class="right">Expédiée</th><th class="right">Reçue</th><th>Transport</th><th>Statut</th><th>Action</th></tr></thead><tbody>
- ${list.map(l=>{const pl=l.pool||destPool(l.to);return `<tr><td><span class="ref">${l.id}</span></td><td><b class="num" style="color:var(--blue)">${esc(l.itr||'—')}</b></td><td><b class="num">${esc(l.po||'—')}</b></td><td><b>${fmt(l.dateP)}</b>${lvLate(l)?'<br>'+badge('warn','En retard','◷'):''}</td><td><b>${esc(l.from)}</b> → <b style="color:var(--text)">${esc(l.to)}</b></td>
+ <div class="tablewrap"><table><thead><tr><th>Réf. Planning</th><th>Numéro ITR</th><th>Purchase Order (PO)</th><th>Date planification</th><th>Destination</th><th class="right">Qté à transporter</th><th class="right">Expédiée</th><th class="right">Reçue</th><th>Transport</th><th>Statut</th><th>Action</th></tr></thead><tbody>
+ ${list.map(l=>{const pl=l.pool||destPool(l.to);return `<tr><td><span class="ref">${l.id}</span></td><td><b class="num" style="color:var(--blue)">${esc(l.itr||'—')}</b></td><td><b class="num">${esc(l.po||'—')}</b></td><td><b>${fmt(l.dateP)}</b>${lvLate(l)?'<br>'+badge('warn','En retard','◷'):''}</td><td><b style="color:var(--text);font-size:13.5px">${esc(l.to)}</b></td>
   <td class="right num"><b style="font-size:15px">${n0(l.qty)}</b></td><td class="right num">${l.qtyShip??'—'}</td><td class="right num">${l.qtyRec??'—'}${l.qtyRec!=null&&l.qtyRec!==l.qtyShip?`<br><span class="badge b-warn">≠ ${l.qtyShip-l.qtyRec}</span>`:''}</td>
   <td>${l.transport?`<span class="ref">${l.transport}</span>`:'<span class="muted">À affecter</span>'}</td><td>${badge(kind(l.status),l.status)}</td><td style="white-space:nowrap">${act(l)}${['Brouillon','Réservée'].includes(l.status)?` <button class="btn small danger${lockCls('livraisons')}" data-act="lCancel" data-id="${l.id}">Annuler</button>`:''}</td></tr>`}).join('')||'<tr><td colspan="11" class="empty">Aucun planning enregistré.</td></tr>'}</tbody></table></div>`;
 }
