@@ -4706,6 +4706,17 @@ function cancelPlanif(id){
  const target = p || l;
  if(!target){ toast('Demande introuvable.', 'bad'); return; }
 
+ const trId = target.transport || p?.transport || l?.transport;
+ const tr = trId ? (S.transports||[]).find(x => x.id === trId) : null;
+ const isClosed = target.status === 'Clôturé' || target.status === 'Clôturée' ||
+                  l?.status === 'Clôturée' || p?.status === 'Clôturé' ||
+                  tr?.status === 'Clôturé';
+
+ if(isClosed){
+  toast('Opération impossible : l’annulation est strictement bloquée car le dossier est déjà clôturé.', 'bad');
+  return;
+ }
+
  const pool = target.pool || destPool(target.to);
 
  openModal(`Annuler la programmation · ${target.id}`,
@@ -5096,15 +5107,21 @@ function openTransportDetails(id){
   }
  ];
 
+ const isClosed = target.status === 'Clôturé' || target.status === 'Clôturée' ||
+                  lv?.status === 'Clôturée' || pln?.status === 'Clôturé';
+ const isCancelled = target.status === 'Annulée' || lv?.status === 'Annulée' || pln?.status === 'Annulée';
  const isPendingTr = !target.trans || !target.veh || !pln?.camionValAt || !pln?.transport;
- const acts = target.status === 'Annulée'
+
+ const acts = isCancelled
   ? '<span class="badge b-bad" style="padding:6px 12px;font-size:12px">⚠️ Demande annulée & exportée dans l’historique</span>'
-  : (isPendingTr
-     ? (!pln?.stockValAt
-        ? `<button class="btn small" disabled style="opacity:0.6;cursor:not-allowed" title="Le dépôt doit d’abord valider la réservation du stock">⏳ Attente validation Dépôt</button> <button class="btn danger small" onclick="closeModal();cancelPlanif('${target.id}')">Annuler la demande</button>`
-        : `<button class="btn primary small" onclick="closeModal();programmerTransportPlanif('${target.id}')">Programmer le transport & Valider</button> <button class="btn danger small" onclick="closeModal();cancelPlanif('${target.id}')">Annuler la demande</button>`
-       )
-     : `<button class="btn danger small" onclick="closeModal();cancelPlanif('${target.id}')">Annuler la programmation</button>`);
+  : (isClosed
+     ? '<span class="badge b-ok" style="padding:6px 14px;font-size:12.5px;font-weight:700">✓ Dossier clôturé · Non annulable</span>'
+     : (isPendingTr
+        ? (!pln?.stockValAt
+           ? `<button class="btn small" disabled style="opacity:0.6;cursor:not-allowed" title="Le dépôt doit d’abord valider la réservation du stock">⏳ Attente validation Dépôt</button> <button class="btn danger small" onclick="closeModal();cancelPlanif('${target.id}')">Annuler la demande</button>`
+           : `<button class="btn primary small" onclick="closeModal();programmerTransportPlanif('${target.id}')">Programmer le transport & Valider</button> <button class="btn danger small" onclick="closeModal();cancelPlanif('${target.id}')">Annuler la demande</button>`
+          )
+        : `<button class="btn danger small" onclick="closeModal();cancelPlanif('${target.id}')">Annuler la programmation</button>`));
 
  openModal(`Détail Intégral du Transport · ${target.id}`,
   `<div class="full" style="display:flex;flex-direction:column;gap:14px;font-size:13.5px">
@@ -5204,7 +5221,7 @@ function vTransport(){
  const cS=curSite();
  const sts=['Tous','En cours','Planifié','Brouillon','Incident'];
  const list=siteTransports(cS).filter(t=>t.status!=='Clôturé'&&(!t.arrR||t.status==='En cours')&&(trFilter==='Tous'||(trFilter==='Incident'?t.incidents.length:t.status===trFilter))).slice().reverse();
- const pendPlns=sitePlanifications(cS).filter(p=>p.status!=='Annulée'&&(!p.stockValAt||!p.camionValAt||!p.transport));
+ const pendPlns=sitePlanifications(cS).filter(p=>p.status!=='Annulée'&&p.status!=='Clôturé'&&(!p.stockValAt||!p.camionValAt||!p.transport));
  const histPlns=sitePlanifications(cS).filter(p=>p.status==='Annulée');
  const dests=siteDestinations(cS);
  const subBar=`<div class="seg" role="group" aria-label="Espaces Transport" style="margin-bottom:14px">
@@ -5246,9 +5263,11 @@ function vTransport(){
        <td>${stockOk ? badge('ok', fmt(p.stockValAt), '✓') : badge('warn', 'En attente', '⏳')}</td>
        <td>${camOk ? badge('ok', 'Effectué', '✓') : badge('warn', 'En attente', '⏳')}</td>
        <td style="white-space:nowrap">
+        ${p.status === 'Clôturé' ? '<span class="badge b-ok" style="font-weight:700">✓ Clôturé</span>' : `
         ${stockOk ? `<button class="btn small primary" data-act="programmerTransportPlanif" data-id="${esc(p.id)}">Programmer & Valider</button>` : `<button class="btn small" disabled style="opacity:0.6;cursor:not-allowed" title="Le dépôt doit d’abord valider la réservation du stock">⏳ Attente validation Dépôt</button>`}
         <button class="btn small" data-act="openTransportDetails" data-id="${esc(p.id)}">Détails</button>
         <button class="btn small danger" data-act="cancelPlanif" data-id="${esc(p.id)}" title="Annuler la programmation et l’exporter dans l’historique">Annuler</button>
+        `}
        </td>
       </tr>`;
     }).join('') || '<tr><td colspan="9" class="empty">Aucune commande de transport en attente de validation.</td></tr>'}
@@ -5496,15 +5515,20 @@ function vLivraisons(){
  ${list.map(l=>{const pl=l.pool||destPool(l.to);return `<tr><td><span class="ref">${l.id}</span></td><td><b class="num" style="color:var(--blue)">${esc(l.itr||'—')}</b></td><td><b class="num">${esc(l.po||'—')}</b></td><td><b>${fmt(l.dateP)}</b>${lvLate(l)?'<br>'+badge('warn','En retard','◷'):''}</td><td><b style="color:var(--text);font-size:13.5px">${esc(l.to)}</b></td>
   <td class="right num"><b style="font-size:15px">${n0(l.qty)}</b></td><td class="right num">${l.qtyShip??'—'}</td><td class="right num">${l.qtyRec??'—'}${l.qtyRec!=null&&l.qtyRec!==l.qtyShip?`<br><span class="badge b-warn">≠ ${l.qtyShip-l.qtyRec}</span>`:''}</td>
   <td>${l.transport?`<span class="ref">${l.transport}</span>`:'<span class="muted">À affecter</span>'}</td><td>${badge(kind(l.status),l.status)}</td><td style="white-space:nowrap">
-   ${l.transport ? `<button class="btn small danger${lockCls('livraisons')}" data-act="cancelPlanif" data-id="${l.id}" title="Annuler la programmation (motif obligatoire)">Annuler</button>` : (
-    (()=>{
-     const p = (S.planifications||[]).find(x => x.liv === l.id || x.id === l.id);
-     if(!p?.stockValAt){
-      return `<button class="btn small" disabled style="opacity:0.6;cursor:not-allowed" title="Le dépôt doit d’abord valider la réservation du stock">⏳ Attente validation Dépôt</button> <button class="btn small danger${lockCls('livraisons')}" data-act="cancelPlanif" data-id="${l.id}" title="Annuler la demande (motif obligatoire)">Annuler</button>`;
-     }
-     return `<button class="btn small primary${lockCls('transport')}" data-act="programmerTransportPlanif" data-id="${l.id}">Programmer Transport</button> <button class="btn small danger${lockCls('livraisons')}" data-act="cancelPlanif" data-id="${l.id}" title="Annuler la demande (motif obligatoire)">Annuler</button>`;
-    })()
-   )}
+   ${(()=>{
+    const isClosed = l.status === 'Clôturée' || (l.transport && (S.transports||[]).some(t => t.id === l.transport && t.status === 'Clôturé'));
+    const isCancelled = l.status === 'Annulée';
+    if(isClosed) return '<span class="badge b-ok" style="font-weight:700">✓ Clôturé</span>';
+    if(isCancelled) return '<span class="badge b-bad">Annulée</span>';
+    if(l.transport) {
+     return `<button class="btn small danger${lockCls('livraisons')}" data-act="cancelPlanif" data-id="${l.id}" title="Annuler la programmation (motif obligatoire)">Annuler</button>`;
+    }
+    const p = (S.planifications||[]).find(x => x.liv === l.id || x.id === l.id);
+    if(!p?.stockValAt){
+     return `<button class="btn small" disabled style="opacity:0.6;cursor:not-allowed" title="Le dépôt doit d’abord valider la réservation du stock">⏳ Attente validation Dépôt</button> <button class="btn small danger${lockCls('livraisons')}" data-act="cancelPlanif" data-id="${l.id}" title="Annuler la demande (motif obligatoire)">Annuler</button>`;
+    }
+    return `<button class="btn small primary${lockCls('transport')}" data-act="programmerTransportPlanif" data-id="${l.id}">Programmer Transport</button> <button class="btn small danger${lockCls('livraisons')}" data-act="cancelPlanif" data-id="${l.id}" title="Annuler la demande (motif obligatoire)">Annuler</button>`;
+   })()}
   </td></tr>`}).join('')||'<tr><td colspan="11" class="empty">Aucun planning enregistré.</td></tr>'}</tbody></table></div>
  ${(lvFilter==='Tous'||lvFilter==='Annulée') && cancelledDeliveries.length ? `
  <div style="margin-top:24px;border:1px solid #FECDD3;border-left:5px solid var(--bad);border-radius:12px;background:#FFF;padding:16px 18px;box-shadow:0 2px 8px rgba(239,68,68,0.06)">
