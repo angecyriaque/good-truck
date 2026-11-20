@@ -816,11 +816,11 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const TODAY=new Date();TODAY.setHours(12,0,0,0);
 const iso=n=>{const d=new Date(TODAY);d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
 const TODAY_ISO=iso(0);
-const days=(a,b)=>Math.round((new Date(a+'T12:00:00')-new Date(b+'T12:00:00'))/864e5);
-const addDays=(s,n)=>{if(!s)return '';const d=new Date(s+'T12:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
-const fmt=s=>{if(!s)return '';const [y,m,d]=s.slice(0,10).split('-');return `${d}/${m}/${y}`};
-const fmtT=s=>{const d=new Date(s);return d.toLocaleDateString('fr-FR')+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})};
-const hm=s=>new Date(s).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+const days=(a,b)=>{if(!a||!b)return 0;try{const da=new Date(String(a).slice(0,10)+'T12:00:00'),db=new Date(String(b).slice(0,10)+'T12:00:00');return(isNaN(da.getTime())||isNaN(db.getTime()))?0:Math.round((da-db)/864e5)}catch(e){return 0}};
+const addDays=(s,n)=>{if(!s)return '';try{const d=new Date(String(s).slice(0,10)+'T12:00:00');if(isNaN(d.getTime()))return '';d.setDate(d.getDate()+(Number(n)||0));return d.toISOString().slice(0,10)}catch(e){return ''}};
+const fmt=s=>{if(!s)return '';try{if(typeof s!=='string'){try{s=new Date(s).toISOString().slice(0,10)}catch(e){return String(s)}}if(s.includes('/'))return s;const p=s.slice(0,10).split('-');return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:s}catch(e){return String(s||'')}};
+const fmtT=s=>{if(!s)return '—';try{const d=new Date(s);if(isNaN(d.getTime()))return String(s);return d.toLocaleDateString('fr-FR')+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}catch(e){return String(s||'—')}};
+const hm=s=>{if(!s)return '';try{const d=new Date(s);return isNaN(d.getTime())?'':d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}catch(e){return ''}};
 const nowISO=()=>new Date().toISOString();
 const ago=(n,h=9,m=0)=>{const d=new Date(TODAY);d.setDate(d.getDate()+n);d.setHours(h,m,0,0);return d.toISOString()};
 const n0=v=>Number(v||0).toLocaleString('fr-FR');
@@ -869,6 +869,7 @@ const isCurSite=item=>siteOf(item)===curSite();
 const siteDossiers=(s=curSite())=>(S.dossiers||[]).filter(d=>siteOf(d)===s);
 const siteTransports=(s=curSite())=>(S.transports||[]).filter(t=>siteOf(t)===s);
 const sitePlanifs=(s=curSite())=>(S.planifications||[]).filter(p=>siteOf(p)===s);
+const sitePlanifications=sitePlanifs;
 const siteDeliveries=(s=curSite())=>(S.deliveries||[]).filter(l=>siteOf(l)===s);
 const siteReceptions=(s=curSite())=>(S.receptions||[]).filter(r=>siteOf(r)===s);
 const siteLavages=(s=curSite())=>(S.lavages||[]).filter(l=>siteOf(l)===s);
@@ -1656,9 +1657,11 @@ function render(){
 function siteBanner(subtitle='', showTransfert = true){
  const isTransit = (tab === 'transit') || !showTransfert;
  const c = curSite();
- const o = curSiteObj();
- $$('#siteSwitch .site-btn').forEach(btn=>{btn.classList.toggle('active',btn.dataset.site===c)});
- const trTransit=(S.transfers||[]).filter(t=>t.status==='En transit').length;
+ const o = curSiteObj() || { name: 'Abidjan', hub: 'Hub Abidjan', icon: '📍' };
+ try {
+  $$('#siteSwitch .site-btn').forEach(btn=>{btn.classList.toggle('active',btn.dataset.site===c)});
+ } catch(e){}
+ const trTransit = !isTransit ? (S.transfers||[]).filter(t=>t.status==='En transit'&&(t.toSite===c||t.fromSite===c)).length : 0;
  return `<div class="site-banner-card">
   <div style="display:flex;align-items:center;gap:12px">
    <div style="font-size:30px">${o.icon}</div>
@@ -3296,13 +3299,17 @@ function printFicheProd(){
 }
 
 function vEntrepot(){
+ try {
+
  const cS=curSite();
- const s=stock(cS),f=flows(cS),totalStock=(s.propre||0)+(s.sale||0)+(s.reparation||0)+(s.quarantaine||0)+(s.autre||0);
+ const s=stock(cS),f=flows(cS),totalStock=((s.propre_skci||0)+(s.propre_global||0)+(s.sale||0)+(s.reparation||0)+(s.quarantaine||0)+(s.autre||0));
  const recs=siteReceptions(cS),pendRecs=recs.filter(r=>r.status==='En attente');
  const reps=siteReparations(cS);
  const openReps=reps.filter(r=>r.status!=='Terminée');
+ const trfCount = (S.transfers||[]).filter(t=>t.fromSite===cS||t.toSite===cS).length;
  const segs=[
   ['stock','Stock & Réceptions'+(pendRecs.length?` (${pendRecs.length})`:'')],
+  ['transferts','Transferts Inter-Sites'+(trfCount?` (${trfCount})`:'')],
   ['receptions','Historique Dépotages ('+recs.length+')'],
   ['lavage','Lavage ('+siteLavages(cS).length+')'],
   ['reparations','Soudure & DOOR SWAP ('+reps.length+')'],
@@ -3472,6 +3479,7 @@ function vEntrepot(){
  </div>`;
 
  let body='';
+ if(!['stock','transferts','receptions','lavage','reparations','mouvements','dispo'].includes(ent)) ent='stock';
  if(ent==='stock')body=cycleBar+
    pendingPlnStockTable()+
    pendingRecTable()+
@@ -3696,10 +3704,19 @@ function vEntrepot(){
    <div class="kv" style="margin-top:6px">${CATS.filter(c=>!c.liv).map(c=>`<div><span>${c.label}</span><b class="num" style="font-size:20px">${n0(s[c.k])}</b></div>`).join('')}</div>
   </section>`;
  }
- return siteBanner('Gestion des stocks physiques, reconditionnement et transferts inter-sites Abidjan ⇄ San Pedro')+
+   return siteBanner('Gestion des stocks physiques, reconditionnement et transferts inter-sites Abidjan ⇄ San Pedro')+
   hero('warehouse',`Entrepôt · ${curSiteObj().icon} ${curSiteObj().name}`,`Validation des réceptions de dépotage, lavage, soudure & DOOR SWAP, et gestion des transferts inter-sites.`,
   `<div><b>${n0(s.sale)}</b>sales (${curSiteObj().short})</div><div><b>${n0(dispo('SKCI'))}</b>SKCI dispo</div><div><b>${n0(dispo('Global'))}</b>Global dispo</div>`)+
-  `<div class="seg" role="group" aria-label="Espaces de l’entrepôt">${segs.map(([k,l])=>`<button data-ent="${k}" aria-pressed="${ent===k}">${l}</button>`).join('')}</div>${body}`;
+  `<div class="seg" role="group" aria-label="Espaces de l’entrepôt">${segs.map(([k,l])=>`<button data-ent="${k}" aria-pressed="${ent===k}">${l}</button>`).join('')}</div>${body||pendingPlnStockTable()}`;
+ } catch(err) {
+  console.error("Erreur d'affichage vEntrepot:", err);
+  return siteBanner('Gestion des stocks physiques et entrepôt')+
+   `<div class="panel" style="margin:20px;padding:24px;border-left:5px solid var(--bad);background:var(--surface)">
+    <h3 style="color:var(--bad);margin:0 0 8px">⚠️ Récupération automatique de l'onglet Entrepôt</h3>
+    <p class="muted" style="margin:0 0 14px">Une donnée a provoqué un incident d'affichage (${esc(err.message)}). L'onglet a été sécurisé et réinitialisé.</p>
+    <button class="btn primary" onclick="ent='stock';render();">Actualiser le Stock & Réceptions</button>
+   </div>`;
+ }
 }
 
 function autreProvenanceHtml(p){
