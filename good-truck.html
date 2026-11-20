@@ -3373,7 +3373,7 @@ function vEntrepot(){
     <div style="display:flex;align-items:center;gap:12px">
      <span style="background:#D97706;color:#FFF;padding:4px 10px;border-radius:7px;font-size:11px;font-weight:800;letter-spacing:0.6px;box-shadow:0 1px 3px rgba(217,119,6,0.3)">RUBRIQUE 1</span>
      <div>
-      <h3 style="margin:0;font-size:15.5px;color:#92400E;font-weight:700">1. Demandes de transport en attente de validation Stock (Planification)</h3>
+      <h3 style="margin:0;font-size:15.5px;color:#92400E;font-weight:700">1. Demandes de transport</h3>
       <small style="color:#B45309;font-size:12.5px">Validez la disponibilité du stock (Stock SKCI ou Stock Global) pour autoriser l’arrivée des camions au chargement.</small>
      </div>
     </div>
@@ -4790,7 +4790,8 @@ function newTransport(){
   fld('Bassin de la nouvelle destination','newDstPool','select',{options:[['SKCI','Stock SKCI (client SKCI)'],['Global','Stock Global (autre client)']],value:'Global'})+
   fld('Adresse de la nouvelle destination','newDstAddr','text',{full:1,ph:'Adresse géographique complète si nouvelle destination'})+
   fld('Livraison existante associée','liv','select',{options:freeLv.map(l=>[l.id,`${l.id} · ${l.qty} palettes (${l.pool||destPool(l.to)}) · ${l.to}`]),blank:'Créer automatiquement le planning de livraison associé'})+
-  fld('Réf. ITR / Bon de commande (optionnel)','itr','text',{ph:'Ex. ITR-2026-0035 ou PO-88140'})+
+  fld('Numéro ITR','itr','text',{ph:'Ex. ITR-2026-0035'})+
+  fld('Purchase Order (PO / Bon de commande)','po','text',{ph:'Ex. PO-88140'})+
   fld('Transporteur','trans','select',{req:1,options:transporteursList(),blank:'Choisir un transporteur'})+
   fld('Origine','from','select',{req:1,options:siteOrigins(),value:siteOrigins()[0]})+
   fld('Immatriculation camion','veh','text',{req:1,ph:'AB-1234-CI'})+fld('Conducteur','driver','text',{ph:'Nom du chauffeur'})+
@@ -4832,7 +4833,7 @@ function newTransport(){
      livId=nextId('LV');
      S.deliveries.push({id:livId,site:curSite(),itr:data.itr?.trim()||'',dateP:data.arrP,from:data.from,to:destName,pool,cat:propreCat(pool),qty:q,qtyShip:null,qtyRec:null,damaged:0,transport:id,resp:S.me,status:'Réservée',comments:`Réservation théorique automatique via le transport ${id} (Stock ${pool}).`});
     }
-    S.transports.push({id,site:curSite(),liv:livId,itr:data.itr?.trim()||lv?.itr||'',trans:data.trans,veh:data.veh.trim().toUpperCase(),driver:data.driver?.trim()||'—',from:data.from,to:destName,pool,depP:data.depP,arrP:data.arrP,depR:'',arrR:'',qty:q,shipped:false,status:'Planifié',incidents:[]});
+    S.transports.push({id,site:curSite(),liv:livId,itr:data.itr?.trim()||lv?.itr||'',po:data.po?.trim()||lv?.po||'',trans:data.trans,veh:data.veh.trim().toUpperCase(),driver:data.driver?.trim()||'—',from:data.from,to:destName,pool,depP:data.depP,arrP:data.arrP,depR:'',arrR:'',qty:q,shipped:false,status:'Planifié',incidents:[]});
     audit('Transport validé & stock réservé',id,`${q} palettes propres (Stock ${pool}) réservées vers ${destName}`);
     closeModal();
    },submitBtn());
@@ -4932,25 +4933,66 @@ function vLivraisons(){
  const kind=s=>({'Brouillon':'mute','Réservée':'warn','Expédiée':'info','Livrée':'ok','Clôturée':'mute','Annulée':'bad'})[s];
  return hero('delivery','Planning','Suivi du planning de livraison client : réservation théorique sur le Stock SKCI (sites SKCI) ou Global (autres clients), expédition et rapprochement des quantités reçues.',
   `<div><b>${n0(reserved('SKCI'))}</b>réservées SKCI</div><div><b>${n0(reserved('Global'))}</b>réservées Global</div><div><b>${siteDeliveries(cS).filter(l=>l.status==='Expédiée').length}</b>en cours d’acheminement</div>`)+
- `<div class="toolbar"><div class="chips grow">${sts.map(s=>`<button class="chip" data-lf="${s}" aria-pressed="${lvFilter===s}">${s}</button>`).join('')}</div><button class="btn primary${lockCls('livraisons')}" data-act="newLivraison">${plus()}Nouvelle livraison</button></div>
- <div class="tablewrap"><table><thead><tr><th>Livraison</th><th>Réf. ITR / PO</th><th>Date prévue</th><th>Destination & Bassin</th><th class="right">Prévue</th><th class="right">Expédiée</th><th class="right">Reçue</th><th>Transport</th><th>Statut</th><th>Action</th></tr></thead><tbody>
- ${list.map(l=>{const pl=l.pool||destPool(l.to);return `<tr><td><span class="ref">${l.id}</span></td><td><b>${esc(l.itr||l.po||'—')}</b></td><td>${fmt(l.dateP)}${lvLate(l)?'<br>'+badge('warn','En retard','◷'):''}</td><td>${esc(l.from)} → <b>${esc(l.to)}</b><br>${poolBadge(pl)} <span class="badge b-info" style="margin-left:4px">${fcfa(destTarif(l.to))}</span></td>
-  <td class="right num"><b>${l.qty}</b></td><td class="right num">${l.qtyShip??'—'}</td><td class="right num">${l.qtyRec??'—'}${l.qtyRec!=null&&l.qtyRec!==l.qtyShip?`<br><span class="badge b-warn">≠ ${l.qtyShip-l.qtyRec}</span>`:''}</td>
-  <td>${l.transport?`<span class="ref">${l.transport}</span>`:'<span class="muted">À affecter</span>'}</td><td>${badge(kind(l.status),l.status)}</td><td style="white-space:nowrap">${act(l)}${['Brouillon','Réservée'].includes(l.status)?` <button class="btn small danger${lockCls('livraisons')}" data-act="lCancel" data-id="${l.id}">Annuler</button>`:''}</td></tr>`}).join('')||'<tr><td colspan="10" class="empty">Aucune livraison.</td></tr>'}</tbody></table></div>`;
+ `<div class="toolbar"><div class="chips grow">${sts.map(s=>`<button class="chip" data-lf="${s}" aria-pressed="${lvFilter===s}">${s}</button>`).join('')}</div><button class="btn primary${lockCls('livraisons')}" data-act="newLivraison">${plus()}Nouveau planning</button></div>
+ <div class="tablewrap"><table><thead><tr><th>Réf. Planning</th><th>Numéro ITR</th><th>Purchase Order (PO)</th><th>Date planification</th><th>Trajet à couvrir</th><th class="right">Qté à transporter</th><th class="right">Expédiée</th><th class="right">Reçue</th><th>Transport</th><th>Statut</th><th>Action</th></tr></thead><tbody>
+ ${list.map(l=>{const pl=l.pool||destPool(l.to);return `<tr><td><span class="ref">${l.id}</span></td><td><b class="num" style="color:var(--blue)">${esc(l.itr||'—')}</b></td><td><b class="num">${esc(l.po||'—')}</b></td><td><b>${fmt(l.dateP)}</b>${lvLate(l)?'<br>'+badge('warn','En retard','◷'):''}</td><td><b>${esc(l.from)}</b> → <b>${esc(l.to)}</b><br>${poolBadge(pl)} <span class="badge b-info" style="margin-left:4px">${fcfa(destTarif(l.to))}</span></td>
+  <td class="right num"><b style="font-size:15px">${n0(l.qty)}</b></td><td class="right num">${l.qtyShip??'—'}</td><td class="right num">${l.qtyRec??'—'}${l.qtyRec!=null&&l.qtyRec!==l.qtyShip?`<br><span class="badge b-warn">≠ ${l.qtyShip-l.qtyRec}</span>`:''}</td>
+  <td>${l.transport?`<span class="ref">${l.transport}</span>`:'<span class="muted">À affecter</span>'}</td><td>${badge(kind(l.status),l.status)}</td><td style="white-space:nowrap">${act(l)}${['Brouillon','Réservée'].includes(l.status)?` <button class="btn small danger${lockCls('livraisons')}" data-act="lCancel" data-id="${l.id}">Annuler</button>`:''}</td></tr>`}).join('')||'<tr><td colspan="11" class="empty">Aucun planning enregistré.</td></tr>'}</tbody></table></div>`;
 }
 function newLivraison(){
  if(!guard('livraisons'))return;
  const dstOpts=destinationsList().map(d=>[d.name,`${d.name} — Tarif : ${fcfa(d.tarif)} [Stock ${d.pool}]`]);
- openModal('Nouvelle livraison client',fld('Réf. ITR / Bon de commande client','itr','text',{req:1,ph:'Ex. ITR-2026-0030',value:'ITR-2026-'+String(nextId('LV')).replace('LV-','00')})+fld('Date de livraison prévue','dateP','date',{req:1,value:iso(3),min:TODAY_ISO})+
-  fld('Site de départ','from','select',{req:1,options:siteOrigins()})+fld('Destination client','to','select',{req:1,options:dstOpts,value:dstOpts[0]?.[0]||''})+fld('Quantité prévue (palettes propres)','qty','number',{req:1,min:1})+
-  `<div class="f"><label>Réserver immédiatement sur le stock propre</label><select name="now"><option value="1">Oui, réserver théoriquement les palettes</option><option value="0">Non, garder en brouillon</option></select></div>`+
-  `<p class="note">Aucune date antérieure à ce jour (${fmt(TODAY_ISO)}) ne peut être saisie. Disponibilité actuelle : <b>${n0(dispo('SKCI'))}</b> Palettes propres SKCI (mises à part après lavage) · <b>${n0(dispo('Global'))}</b> Palettes propres Global.</p>`,'Créer la livraison',data=>{
-  const e=req(data,['itr','dateP','qty','to']);const q=+data.qty,pool=destPool(data.to);
-  if(data.dateP&&data.dateP<TODAY_ISO)e.dateP='Aucune date antérieure ne doit être saisie.';
-  if(data.from===data.to)e.to='La destination doit différer du départ.';
-  if(data.now==='1'&&q>dispo(pool))e.qty=`Réservation refusée : seulement ${n0(dispo(pool))} palettes propres disponibles dans le Stock ${pool}.`;
-  if(Object.keys(e).length)return e;
-  save(data.now==='1'?`Livraison créée et ${n0(q)} palettes réservées théoriquement sur le Stock ${pool}.`:'Livraison créée en brouillon.',()=>{const id=nextId('LV');S.deliveries.push({id,site:curSite(),itr:data.itr.trim(),dateP:data.dateP,from:data.from,to:data.to,pool,cat:propreCat(pool),qty:q,qtyShip:null,qtyRec:null,damaged:0,transport:'',resp:S.me,status:data.now==='1'?'Réservée':'Brouillon',comments:''});audit('Livraison créée',id,`${q} palettes (${pool}) vers ${data.to}`);closeModal()},submitBtn())});
+ openModal('Nouveau Planning de transport',
+  fld('Numéro ITR','itr','text',{req:1,ph:'Ex. ITR-2026-0030',value:'ITR-2026-'+String(nextId('LV')).replace('LV-','00')})+
+  fld('Purchase Order (PO / Bon de commande)','po','text',{req:1,ph:'Ex. PO-88150'})+
+  fld('Trajet : Point de départ (Prise en charge)','from','select',{req:1,options:siteOrigins()})+
+  fld('Trajet : Point de livraison (Destination client)','to','select',{req:1,options:dstOpts,value:dstOpts[0]?.[0]||''})+
+  fld('Quantité à transporter (palettes propres)','qty','number',{req:1,min:1,ph:'Ex. 200',value:200})+
+  fld('Date de planification','dateP','date',{req:1,value:iso(2),min:TODAY_ISO})+
+  `<div class="f"><label>Statut de réservation stock</label><select name="now"><option value="1">Oui, valider et réserver immédiatement sur le stock propre</option><option value="0">Non, garder en attente (brouillon)</option></select></div>`+
+  `<p class="note">Disponibilité actuelle du stock propre : <b>${n0(dispo('SKCI'))}</b> palettes propres SKCI (exclusivement sites SKCI) · <b>${n0(dispo('Global'))}</b> palettes propres Global (autres clients). Aucune date antérieure à ce jour (${fmt(TODAY_ISO)}) ne peut être saisie.</p>`,
+  'Enregistrer le planning',data=>{
+   const e=req(data,['itr','po','dateP','qty','from','to']);
+   const q=+data.qty,pool=destPool(data.to);
+   if(data.dateP&&data.dateP<TODAY_ISO)e.dateP='Aucune date antérieure ne doit être saisie.';
+   if(data.from===data.to)e.to='La destination doit différer du point de départ.';
+   if(data.now==='1'&&q>dispo(pool))e.qty=`Réservation refusée : seulement ${n0(dispo(pool))} palettes propres disponibles dans le Stock ${pool}.`;
+   if(Object.keys(e).length)return e;
+   save(data.now==='1'?`Planning créé et ${n0(q)} palettes réservées théoriquement sur le Stock ${pool}.`:'Planning enregistré en attente.',()=>{
+    const id=nextId('LV');
+    S.deliveries.push({id,site:curSite(),itr:data.itr.trim(),po:data.po.trim(),dateP:data.dateP,from:data.from,to:data.to,pool,cat:propreCat(pool),qty:q,qtyShip:null,qtyRec:null,damaged:0,transport:'',resp:S.me,status:data.now==='1'?'Réservée':'Brouillon',comments:''});
+    if(!S.seq.PLN)S.seq.PLN=4;
+    const plnId='PLN-'+String(++S.seq.PLN).padStart(4,'0');
+    S.planifications.push({
+     id:plnId,
+     site:curSite(),
+     liv:id,
+     transport:'',
+     itr:data.itr.trim(),
+     po:data.po.trim(),
+     from:data.from,
+     to:data.to,
+     pool,
+     qty:q,
+     depP:data.dateP,
+     arrP:data.dateP,
+     status:data.now==='1'?'Stock confirmé':'En attente Entrepôt',
+     createdBy:S.me,
+     createdAt:nowISO(),
+     stockValBy:data.now==='1'?S.me:'',
+     stockValAt:data.now==='1'?nowISO():'',
+     camionValBy:'',
+     camionValAt:'',
+     trans:'',
+     veh:'',
+     driver:'',
+     driverPhone:'',
+     obs:'Généré automatiquement depuis le Planning de transport.'
+    });
+    audit('Planning créé',id,`${data.itr.trim()} · ${data.po.trim()} · ${q} palettes (${pool}) vers ${data.to}`);
+    closeModal();
+   },submitBtn());
+  });
 }
 function lReserve(id){if(!guard('livraisons'))return;const l=S.deliveries.find(x=>x.id===id);if(!l){toast('Livraison introuvable.','bad');return;}const pool=l.pool||destPool(l.to);
  save(`${l.qty} palettes propres réservées sur le Stock ${pool} pour ${l.id}.`,()=>{if(l.status!=='Brouillon')return 'Cette livraison est déjà réservée.';if(l.qty>dispo(pool))return `Réservation refusée : ${n0(dispo(pool))} palettes propres disponibles dans le Stock ${pool} pour ${l.qty} demandées.`;l.status='Réservée';l.pool=pool;l.cat=propreCat(pool);audit('Réservation stock',l.id,`${l.qty} palettes (${pool})`)})}
