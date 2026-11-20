@@ -4432,6 +4432,233 @@ function confirmerCamionPlanif(id){
 const newDemandeTransport = () => newTransport();
 
 
+
+function cancelPlanif(id){
+ if(!guard('livraisons') && !guard('transport')) return;
+ const p = (S.planifications||[]).find(x => x.id === id || x.liv === id);
+ const l = (S.deliveries||[]).find(x => x.id === id || (p && x.id === p.liv));
+ const target = p || l;
+ if(!target){ toast('Demande introuvable.', 'bad'); return; }
+
+ const pool = target.pool || destPool(target.to);
+
+ openModal(`Annuler la programmation · ${target.id}`,
+  `<div class="panel" style="border-left:4px solid var(--bad);padding:14px 16px;background:#FEF2F2;margin-bottom:14px">
+    <b style="color:var(--bad);font-size:14.5px">⚠️ Annulation de la programmation & Export vers l’historique :</b><br>
+    <div style="font-size:13px;color:#7F1D1D;margin-top:4px">
+     La demande pour <b>${esc(target.to)}</b> (${n0(target.qty)} palettes propres ${pool}) sera annulée.<br>
+     Toute réservation théorique de stock sera immédiatement <b>libérée</b> et la demande sera <b>archivée dans l’historique des demandes annulées</b> avec son motif.
+    </div>
+   </div>`+
+  fld('Motif d’annulation de la demande / programmation','motif','textarea',{req:1,full:1,ph:'Précisez la raison de l’annulation (ex. report demandé par le client, modification de commande, rupture…)'}),
+  'Confirmer l’annulation & Exporter vers l’historique', data => {
+   const e = req(data, ['motif']);
+   if(Object.keys(e).length) return e;
+   save(`Programmation ${target.id} annulée et exportée dans l’historique.`, () => {
+    const motif = data.motif.trim();
+    const now = nowISO();
+    if(p){
+     p.status = 'Annulée';
+     p.cancelReason = motif;
+     p.cancelledAt = now;
+     p.cancelledBy = S.me;
+     if(p.transport){
+      const tr = S.transports.find(x => x.id === p.transport);
+      if(tr && tr.status === 'Planifié') tr.status = 'Annulé';
+     }
+    }
+    if(l){
+     l.status = 'Annulée';
+     l.comments = (l.comments ? l.comments + ' · ' : '') + 'Annulée: ' + motif;
+     l.cancelReason = motif;
+     l.cancelledAt = now;
+     l.cancelledBy = S.me;
+     if(l.transport){
+      const tr = S.transports.find(x => x.id === l.transport);
+      if(tr && tr.status === 'Planifié') tr.status = 'Annulé';
+     }
+    }
+    audit('Programmation annulée & exportée', target.id, `${n0(target.qty)} palettes vers ${target.to} · Motif: ${motif}`);
+    closeModal();
+    toast(`Demande ${target.id} annulée : stock libéré et dossier exporté dans l’historique.`, 'ok');
+   }, submitBtn());
+  }
+ );
+}
+
+function programmerTransportPlanif(id){
+ if(!guard('transport') && !guard('livraisons')) return;
+ let p = (S.planifications||[]).find(x => x.id === id || x.liv === id);
+ let l = (S.deliveries||[]).find(x => x.id === id || (p && x.id === p.liv));
+ if(!p && l){
+  if(!S.seq.PLN) S.seq.PLN = 10;
+  const plnId = 'PLN-' + String(++S.seq.PLN).padStart(4, '0');
+  p = {
+   id: plnId,
+   site: l.site || curSite(),
+   liv: l.id,
+   transport: l.transport || '',
+   itr: l.itr || '',
+   po: l.po || '',
+   from: l.from,
+   to: l.to,
+   pool: l.pool,
+   qty: l.qty,
+   depP: l.dateP,
+   arrP: l.dateP,
+   status: 'En attente Entrepôt',
+   createdBy: S.me,
+   createdAt: nowISO(),
+   stockValBy: '',
+   stockValAt: '',
+   camionValBy: '',
+   camionValAt: '',
+   trans: '',
+   veh: '',
+   driver: '',
+   driverPhone: '',
+   obs: ''
+  };
+  S.planifications.push(p);
+ }
+ if(!p){ toast('Demande introuvable.', 'bad'); return; }
+
+ const pool = p.pool || destPool(p.to);
+ const disp = dispo(pool);
+ const origin = p.from || (curSite() === 'sanpedro' ? 'Dépôt San-Pedro' : 'Entrepôt Vridi');
+
+ openModal(`Programmer le transport & Valider · ${p.id}`,
+  `<div class="full" style="padding:14px 16px;border:1px solid #BAE6FD;border-left:5px solid #0284C7;border-radius:12px;background:linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%);margin-bottom:12px;box-shadow:0 2px 6px rgba(2,132,199,0.06)">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+     <div>
+      <div style="display:flex;align-items:center;gap:8px">
+       <span style="font-size:18px">🚚</span>
+       <b style="color:#0369A1;font-size:15px">Demande ${esc(p.id)} · ITR ${esc(p.itr||'—')} · PO ${esc(p.po||'—')}</b>
+      </div>
+      <div style="font-size:13px;color:var(--text);margin-top:3px">
+       Destination : <b>${esc(p.to)}</b> · Quantité à transporter : <b style="color:var(--blue)">${n0(p.qty)} palettes propres (${pool})</b>
+      </div>
+     </div>
+     <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <span class="badge ${pool==='SKCI'?'b-skci':'b-global'}" style="font-size:12px">Stock ${pool} dispo : <b>${n0(disp)}</b></span>
+     </div>
+    </div>
+   </div>`+
+  fld('Transporteur','trans','select',{req:1,options:transporteursList(),blank:'Choisir un transporteur',value:p.trans||transporteursList()[0]||''})+
+  fld('Immatriculation camion','veh','text',{req:1,ph:'Ex. AA-1234-CI',value:p.veh||''})+
+  fld('Conducteur (Chauffeur)','driver','text',{req:1,ph:'Nom du chauffeur',value:p.driver||''})+
+  fld('Téléphone chauffeur (facultatif)','driverPhone','text',{ph:'+225 …',value:p.driverPhone||''})+
+  fld('Date de départ prévue','depP','date',{req:1,value:p.depP||iso(1),min:TODAY_ISO})+
+  fld('Date d’arrivée prévue','arrP','date',{req:1,value:p.arrP||p.depP||iso(1),min:TODAY_ISO})+
+  `<p class="note" style="margin-top:8px"><b>Règle opérationnelle :</b> Dès validation, cette demande est <b>exportée directement dans le programme officiel des transports</b> (« Transports en cours ») avec <b>réservation ferme de ${n0(p.qty)} palettes</b> sur le Stock ${pool} et mise à quai pour chargement.</p>`,
+  'Valider & Exporter dans le programme des transports', data => {
+   const e = req(data, ['trans','veh','driver','depP','arrP']);
+   if(data.depP < TODAY_ISO) e.depP = 'La date de départ ne peut être antérieure à aujourd’hui.';
+   if(data.arrP < data.depP) e.arrP = 'L’arrivée doit être postérieure ou égale au départ.';
+   if(p.qty > dispo(pool)) e.trans = `Stock Propre ${pool} insuffisant (${n0(dispo(pool))} disponibles pour ${n0(p.qty)} demandées).`;
+   if(Object.keys(e).length) return e;
+
+   save(`Transport validé pour ${p.to} (${n0(p.qty)} palettes) et exporté dans le programme des transports.`, () => {
+    // 1. Create or update official transport in S.transports
+    let trId = p.transport;
+    let tr = trId ? S.transports.find(x => x.id === trId) : null;
+    if(!tr){
+     trId = nextId('TR', 4);
+     tr = {
+      id: trId,
+      site: p.site || curSite(),
+      liv: p.liv || '',
+      itr: p.itr || '',
+      po: p.po || '',
+      trans: data.trans,
+      veh: data.veh.trim().toUpperCase(),
+      driver: data.driver.trim(),
+      driverPhone: (data.driverPhone || '').trim(),
+      from: origin,
+      to: p.to,
+      pool,
+      depP: data.depP,
+      arrP: data.arrP,
+      depR: '',
+      arrR: '',
+      qty: p.qty,
+      shipped: false,
+      status: 'Planifié',
+      loadStartAt: '',
+      loadEndAt: '',
+      incidents: []
+     };
+     S.transports.push(tr);
+    } else {
+     Object.assign(tr, {
+      trans: data.trans,
+      veh: data.veh.trim().toUpperCase(),
+      driver: data.driver.trim(),
+      driverPhone: (data.driverPhone || '').trim(),
+      depP: data.depP,
+      arrP: data.arrP,
+      status: 'Planifié',
+      pool
+     });
+    }
+
+    // 2. Link delivery in S.deliveries with status 'Réservée'
+    let lv = (S.deliveries||[]).find(x => x.id === p.liv);
+    if(lv){
+     lv.transport = trId;
+     lv.status = 'Réservée';
+     lv.pool = pool;
+     lv.cat = propreCat(pool);
+     if(p.itr) lv.itr = p.itr;
+     if(p.po) lv.po = p.po;
+     lv.dateP = data.depP;
+    } else {
+     const lvId = nextId('LV', 4);
+     lv = {
+      id: lvId,
+      site: p.site || curSite(),
+      itr: p.itr || '',
+      po: p.po || '',
+      dateP: data.depP,
+      from: origin,
+      to: p.to,
+      pool,
+      cat: propreCat(pool),
+      qty: p.qty,
+      qtyShip: null,
+      qtyRec: null,
+      damaged: 0,
+      transport: trId,
+      resp: S.me,
+      status: 'Réservée',
+      comments: 'Exporté automatiquement lors de la validation du transport.'
+     };
+     S.deliveries.push(lv);
+     p.liv = lvId;
+    }
+
+    // 3. Update planification state
+    p.transport = trId;
+    p.trans = data.trans;
+    p.veh = data.veh.trim().toUpperCase();
+    p.driver = data.driver.trim();
+    p.driverPhone = (data.driverPhone || '').trim();
+    p.depP = data.depP;
+    p.arrP = data.arrP;
+    p.status = 'Validé & Exporté Transport';
+    p.stockValAt = p.stockValAt || nowISO();
+    p.stockValBy = p.stockValBy || S.me;
+    p.camionValAt = nowISO();
+    p.camionValBy = S.me;
+
+    audit('Validation Transport & Export', trId, `${p.id} exporté vers le programme des transports (${trId}) · ${data.veh} · ${p.qty} palettes ${pool}`);
+    closeModal();
+    toast(`Demande ${p.id} validée et exportée avec succès dans le programme des transports (${trId}) avec réservation ferme de ${n0(p.qty)} palettes.`, 'ok');
+   }, submitBtn());
+  }
+ );
+}
+
 /* ===================== Synthèse des Transports Réalisés ===================== */
 function renderTransportSynthese(cS = curSite()){
  const allTrs = siteTransports(cS);
@@ -4598,12 +4825,17 @@ function openTransportDetails(id){
   }
  ];
 
- const acts = {
-  'Brouillon': `<button class="btn primary small" onclick="closeModal();tPlan('${target.id}')">Valider & Réserver le stock</button>`,
-  'Planifié': `<button class="btn primary small" onclick="closeModal();tStart('${target.id}')">Démarrer l’expédition</button>`,
-  'En cours': `<button class="btn primary small" onclick="closeModal();tDeliver('${target.id}')">Confirmer la livraison</button>`,
-  'Livré': `<button class="btn primary small" onclick="closeModal();tClose('${target.id}')">Clôturer</button>`
- }[target.status] || '';
+ const isPendingTr = !target.trans || !target.veh || !pln?.camionValAt || !pln?.transport;
+ const acts = target.status === 'Annulée'
+  ? '<span class="badge b-bad" style="padding:6px 12px;font-size:12px">⚠️ Demande annulée & exportée dans l’historique</span>'
+  : (isPendingTr
+     ? `<button class="btn primary small" onclick="closeModal();programmerTransportPlanif('${target.id}')">Programmer le transport & Valider</button> <button class="btn danger small" onclick="closeModal();cancelPlanif('${target.id}')">Annuler la demande</button>`
+     : ({
+        'Brouillon': `<button class="btn primary small" onclick="closeModal();programmerTransportPlanif('${target.id}')">Programmer & Valider</button> <button class="btn danger small" onclick="closeModal();cancelPlanif('${target.id}')">Annuler</button>`,
+        'Planifié': `<button class="btn primary small" onclick="closeModal();tStart('${target.id}')">Démarrer l’expédition</button> <button class="btn danger small" onclick="closeModal();cancelPlanif('${target.id}')">Annuler</button>`,
+        'En cours': `<button class="btn primary small" onclick="closeModal();tDeliver('${target.id}')">Confirmer la livraison</button>`,
+        'Livré': `<button class="btn primary small" onclick="closeModal();tClose('${target.id}')">Clôturer</button>`
+       }[target.status] || ''));
 
  openModal(`Détail Intégral du Transport · ${target.id}`,
   `<div class="full" style="display:flex;flex-direction:column;gap:14px;font-size:13.5px">
@@ -4703,7 +4935,8 @@ function vTransport(){
  const cS=curSite();
  const sts=['Tous','En cours','Planifié','Brouillon','Incident'];
  const list=siteTransports(cS).filter(t=>t.status!=='Clôturé'&&(!t.arrR||t.status==='En cours')&&(trFilter==='Tous'||(trFilter==='Incident'?t.incidents.length:t.status===trFilter))).slice().reverse();
- const pendPlns=sitePlanifications(cS).filter(p=>!p.stockValAt||!p.camionValAt);
+ const pendPlns=sitePlanifications(cS).filter(p=>p.status!=='Annulée'&&(!p.stockValAt||!p.camionValAt||!p.transport));
+ const histPlns=sitePlanifications(cS).filter(p=>p.status==='Annulée');
  const dests=siteDestinations(cS);
  const subBar=`<div class="seg" role="group" aria-label="Espaces Transport" style="margin-bottom:14px">
   <button data-trsub="missions" aria-pressed="${trSub==='missions'}">Transports en cours (${list.length})</button>
@@ -4744,12 +4977,42 @@ function vTransport(){
        <td>${stockOk ? badge('ok', fmt(p.stockValAt), '✓') : badge('warn', 'En attente', '⏳')}</td>
        <td>${camOk ? badge('ok', 'Effectué', '✓') : badge('warn', 'En attente', '⏳')}</td>
        <td style="white-space:nowrap">
-        <button class="btn small primary" data-act="openTransportDetails" data-id="${esc(p.id)}">Consulter & Valider</button>
+        <button class="btn small primary" data-act="programmerTransportPlanif" data-id="${esc(p.id)}">Programmer & Valider</button>
+        <button class="btn small" data-act="openTransportDetails" data-id="${esc(p.id)}">Détails</button>
+        <button class="btn small danger" data-act="cancelPlanif" data-id="${esc(p.id)}" title="Annuler la programmation et l’exporter dans l’historique">Annuler</button>
        </td>
       </tr>`;
     }).join('') || '<tr><td colspan="9" class="empty">Aucune commande de transport en attente de validation.</td></tr>'}
    </tbody>
-  </table></div>`;
+  </table></div>${histPlns.length ? `
+  <div style="margin-top:24px;border:1px solid #FECDD3;border-left:5px solid var(--bad);border-radius:12px;background:#FFF;padding:16px 18px;box-shadow:0 2px 8px rgba(239,68,68,0.06)">
+   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <div style="display:flex;align-items:center;gap:10px">
+     <span style="font-size:18px">📜</span>
+     <b style="font-size:15px;color:var(--text)">Historique des demandes annulées (${histPlns.length})</b>
+     <span class="badge b-bad" style="font-size:11.5px">Exportées dans l’historique</span>
+    </div>
+    <small class="muted">Demandes de transport annulées avec libération du stock et traçabilité</small>
+   </div>
+   <div class="tablewrap" style="margin:0"><table>
+    <thead><tr>
+     <th>Réf. Demande</th><th>Numéro ITR</th><th>Purchase Order (PO)</th><th>Date d’annulation</th><th>Destination</th><th class="right">Quantité</th><th>Motif d’annulation</th><th>Annulé par</th><th>Statut</th>
+    </tr></thead>
+    <tbody>
+     ${histPlns.map(p => `<tr>
+      <td><span class="ref">${esc(p.id)}</span></td>
+      <td><b class="num" style="color:var(--blue)">${esc(p.itr||'—')}</b></td>
+      <td><b class="num">${esc(p.po||'—')}</b></td>
+      <td><b>${fmt(p.cancelledAt||p.createdAt)}</b></td>
+      <td><b style="color:var(--text);font-size:13.5px">${esc(p.to)}</b></td>
+      <td class="right num"><b style="font-size:15px;color:var(--muted)">${n0(p.qty)}</b></td>
+      <td class="wrap" style="color:var(--bad);max-width:280px"><b>${esc(p.cancelReason||p.obs||'Annulation de commande')}</b></td>
+      <td><small class="muted">${esc(p.cancelledBy ? user(p.cancelledBy).name : 'Utilisateur')}</small></td>
+      <td><span class="badge b-bad">Annulée · Exportée</span></td>
+     </tr>`).join('')}
+    </tbody>
+   </table></div>
+  </div>` : ''}`;
  }else if(trSub==='destinations'){
   const origin = curSite() === 'abidjan' ? 'Entrepôt Vridi (Abidjan)' : 'Dépôt Portuaire (San Pedro)';
   content=`<div class="toolbar">
@@ -5024,7 +5287,10 @@ function tIncident(id){if(!guard('transport'))return;const t=S.transports.find(x
 function vLivraisons(){
  const cS=curSite();
  const sts=['Tous',...LSTEPS,'Annulée'];
- const list=siteDeliveries(cS).filter(l=>lvFilter==='Tous'||l.status===lvFilter).slice().reverse();
+ const allSiteDeliveries=siteDeliveries(cS);
+ const activeDeliveries=allSiteDeliveries.filter(l=>l.status!=='Annulée');
+ const cancelledDeliveries=allSiteDeliveries.filter(l=>l.status==='Annulée');
+ const list=(lvFilter==='Tous'?activeDeliveries:(lvFilter==='Annulée'?cancelledDeliveries:allSiteDeliveries.filter(l=>l.status===lvFilter))).slice().reverse();
  const act=l=>({'Brouillon':`<button class="btn small primary${lockCls('livraisons')}" data-act="lReserve" data-id="${l.id}">Réserver stock</button>`,
   'Réservée':`<button class="btn small primary${lockCls('livraisons')}" data-act="lShip" data-id="${l.id}">Expédier</button>`,
   'Expédiée':`<button class="btn small${lockCls('livraisons')}" style="background:#86EFAC;border-color:#22C55E;color:#064E3B;font-weight:700" data-act="lReceive" data-id="${l.id}">Confirmer la livraison</button>`,
@@ -5036,7 +5302,39 @@ function vLivraisons(){
  <div class="tablewrap"><table><thead><tr><th>Réf. Planning</th><th>Numéro ITR</th><th>Purchase Order (PO)</th><th>Date planification</th><th>Destination</th><th class="right">Quantité</th><th class="right">Expédiée</th><th class="right">Reçue</th><th>Transport</th><th>Statut</th><th>Action</th></tr></thead><tbody>
  ${list.map(l=>{const pl=l.pool||destPool(l.to);return `<tr><td><span class="ref">${l.id}</span></td><td><b class="num" style="color:var(--blue)">${esc(l.itr||'—')}</b></td><td><b class="num">${esc(l.po||'—')}</b></td><td><b>${fmt(l.dateP)}</b>${lvLate(l)?'<br>'+badge('warn','En retard','◷'):''}</td><td><b style="color:var(--text);font-size:13.5px">${esc(l.to)}</b></td>
   <td class="right num"><b style="font-size:15px">${n0(l.qty)}</b></td><td class="right num">${l.qtyShip??'—'}</td><td class="right num">${l.qtyRec??'—'}${l.qtyRec!=null&&l.qtyRec!==l.qtyShip?`<br><span class="badge b-warn">≠ ${l.qtyShip-l.qtyRec}</span>`:''}</td>
-  <td>${l.transport?`<span class="ref">${l.transport}</span>`:'<span class="muted">À affecter</span>'}</td><td>${badge(kind(l.status),l.status)}</td><td style="white-space:nowrap">${act(l)}${['Brouillon','Réservée'].includes(l.status)?` <button class="btn small danger${lockCls('livraisons')}" data-act="lCancel" data-id="${l.id}">Annuler</button>`:''}</td></tr>`}).join('')||'<tr><td colspan="11" class="empty">Aucun planning enregistré.</td></tr>'}</tbody></table></div>`;
+  <td>${l.transport?`<span class="ref">${l.transport}</span>`:'<span class="muted">À affecter</span>'}</td><td>${badge(kind(l.status),l.status)}</td><td style="white-space:nowrap">
+   ${!l.transport && ['Brouillon','Réservée'].includes(l.status) ? `<button class="btn small primary${lockCls('transport')}" data-act="programmerTransportPlanif" data-id="${l.id}">Programmer Transport</button> ` : act(l)}
+   ${['Brouillon','Réservée'].includes(l.status) ? `<button class="btn small danger${lockCls('livraisons')}" data-act="cancelPlanif" data-id="${l.id}" title="Annuler la programmation et l’exporter dans l’historique">Annuler</button>` : ''}
+  </td></tr>`}).join('')||'<tr><td colspan="11" class="empty">Aucun planning enregistré.</td></tr>'}</tbody></table></div>
+ ${(lvFilter==='Tous'||lvFilter==='Annulée') && cancelledDeliveries.length ? `
+ <div style="margin-top:24px;border:1px solid #FECDD3;border-left:5px solid var(--bad);border-radius:12px;background:#FFF;padding:16px 18px;box-shadow:0 2px 8px rgba(239,68,68,0.06)">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+   <div style="display:flex;align-items:center;gap:10px">
+    <span style="font-size:18px">📜</span>
+    <b style="font-size:15px;color:var(--text)">Historique des demandes & programmations annulées (${cancelledDeliveries.length})</b>
+    <span class="badge b-bad" style="font-size:11.5px">Exportées dans l’historique</span>
+   </div>
+   <small class="muted">Demandes de transport annulées avec libération automatique du stock réservé</small>
+  </div>
+  <div class="tablewrap" style="margin:0"><table>
+   <thead><tr>
+    <th>Réf. Planning</th><th>Numéro ITR</th><th>Purchase Order (PO)</th><th>Date d’annulation</th><th>Destination</th><th class="right">Quantité</th><th>Motif d’annulation</th><th>Annulé par</th><th>Statut</th>
+   </tr></thead>
+   <tbody>
+    ${cancelledDeliveries.map(l => `<tr>
+     <td><span class="ref">${esc(l.id)}</span></td>
+     <td><b class="num" style="color:var(--blue)">${esc(l.itr||'—')}</b></td>
+     <td><b class="num">${esc(l.po||'—')}</b></td>
+     <td><b>${fmt(l.cancelledAt||l.dateP)}</b></td>
+     <td><b style="color:var(--text);font-size:13.5px">${esc(l.to)}</b></td>
+     <td class="right num"><b style="font-size:15px;color:var(--muted)">${n0(l.qty)}</b></td>
+     <td class="wrap" style="color:var(--bad);max-width:280px"><b>${esc(l.cancelReason||l.comments||'Annulée')}</b></td>
+     <td><small class="muted">${esc(l.cancelledBy ? user(l.cancelledBy).name : (l.resp ? user(l.resp).name : 'Utilisateur'))}</small></td>
+     <td><span class="badge b-bad">Annulée · Exportée</span></td>
+    </tr>`).join('')}
+   </tbody>
+  </table></div>
+ </div>` : ''}`;
 }
 function newLivraison(){
  if(!guard('livraisons'))return;
@@ -6300,7 +6598,7 @@ document.addEventListener('click',e=>{
   newRelance:()=>newRelance(id),
   printRecouvrement:()=>printRecouvrement(),
   tPlan:()=>tPlan(id),tStartLoad:()=>tStartLoad(id),tStart:()=>tStart(id),tDeliver:()=>tDeliver(id),tClose:()=>tClose(id),tIncident:()=>tIncident(id),
-  lReserve:()=>lReserve(id),lShip:()=>lShip(id),lReceive:()=>lReceive(id),lClose:()=>lClose(id),lCancel:()=>lCancel(id),
+  lReserve:()=>lReserve(id),lShip:()=>lShip(id),lReceive:()=>lReceive(id),lClose:()=>lClose(id),lCancel:()=>cancelPlanif(id),cancelPlanif:()=>cancelPlanif(id),pCancel:()=>cancelPlanif(id),programmerTransportPlanif:()=>programmerTransportPlanif(id),
   editInit:()=>editInit(id),confirmArrival:()=>confirmArrival(id),validerDepotage:()=>validerDepotage(id),cancelEditDates:()=>openDossier(id,false),
   validerStepJour:()=>{if(!guard('transit'))return;const d=S.dossiers.find(x=>x.id===id);if(!d||!d.D3)return;
    const sk=a.dataset.step,st=SEQ_STEPS.find(x=>x.k===sk);if(!st||d[sk])return;
