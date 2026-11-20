@@ -5576,10 +5576,9 @@ function newLivraison(){
   fld('Quantité à transporter (palettes propres)','qty','number',{req:1,min:1,ph:'Ex. 200',value:200})+
   fld('Date de planification','dateP','date',{req:1,value:iso(2),min:TODAY_ISO})+
   `<div class="full" style="padding:12px 14px;border:1px solid #BAE6FD;border-left:5px solid #0284C7;border-radius:10px;background:#F0F9FF;margin-bottom:12px">
-    <b style="color:#0369A1;font-size:13.5px">📦 Instruction automatique d'une demande de réservation :</b><br>
+    <b style="color:#0369A1;font-size:13.5px">📦 Demande de planification & Réservation :</b><br>
     <div style="font-size:12.5px;color:var(--text);margin-top:3px">
-     Toute demande enregistrée instruit immédiatement une <b>demande de réservation de stock</b> sur le stock propre (Stock SKCI ou Global). 
-     Si la demande est annulée ultérieurement, la quantité réservée est <b>automatiquement reversée dans le stock normal disponible</b>.
+     Dans le Planning, la contrainte de quantité ne bloque pas la demande. La quantité souhaitée est enregistrée librement et transmise au Dépôt qui valide la réservation et disponibilité du stock.
     </div>
    </div>`+
   `<p class="note">Règle de contrôle : Le <b>Numéro ITR</b> et le <b>Purchase Order (PO)</b> doivent comporter exactement <b>10 chiffres</b> et être <b>uniques</b> (aucun doublon permis). Le trajet part obligatoirement de l’entrepôt (${origin}).</p>`,
@@ -5611,7 +5610,7 @@ function newLivraison(){
    }
 
    if(data.dateP&&data.dateP<TODAY_ISO)e.dateP='Aucune date antérieure ne doit être saisie.';
-   if(q>dispo(pool))e.qty=`Réservation impossible : seulement ${n0(dispo(pool))} palettes propres disponibles dans le Stock ${pool} (${n0(q)} demandées).`;
+   if(!Number.isInteger(q) || q <= 0) e.qty = 'La quantité à transporter doit être un nombre entier supérieur à 0.';
    if(Object.keys(e).length)return e;
 
    save(`Demande enregistrée : transmise au Dépôt pour validation de réservation du stock (${n0(q)} palettes ${pool}).`,()=>{
