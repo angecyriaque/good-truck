@@ -3678,42 +3678,64 @@ function vEntrepot(){
  }
 }
 
+function getAutreModelStyle(m){
+ const palette = [
+  { col:'#7C3AED', bg:'#F5F3FF', border:'#DDD6FE', soft:'#EDE9FE', grad:'linear-gradient(135deg, #7C3AED, #9333EA)', text:'#5B21B6', icon:'🟣' },
+  { col:'#D97706', bg:'#FFFBEB', border:'#FDE68A', soft:'#FEF3C7', grad:'linear-gradient(135deg, #D97706, #F59E0B)', text:'#B45309', icon:'🟠' },
+  { col:'#0284C7', bg:'#F0F9FF', border:'#BAE6FD', soft:'#E0F2FE', grad:'linear-gradient(135deg, #0284C7, #0EA5E9)', text:'#0369A1', icon:'🔵' },
+  { col:'#059669', bg:'#ECFDF5', border:'#A7F3D0', soft:'#D1FAE5', grad:'linear-gradient(135deg, #059669, #10B981)', text:'#047857', icon:'🟢' },
+  { col:'#E11D48', bg:'#FFF1F2', border:'#FECDD3', soft:'#FFE4E6', grad:'linear-gradient(135deg, #E11D48, #F43F5E)', text:'#BE123C', icon:'🔴' },
+  { col:'#4F46E5', bg:'#EEF2FF', border:'#C7D2FE', soft:'#E0E7FF', grad:'linear-gradient(135deg, #4F46E5, #6366F1)', text:'#3730A3', icon:'🔷' },
+  { col:'#0891B2', bg:'#ECFEFF', border:'#A5F3FC', soft:'#CFFAFE', grad:'linear-gradient(135deg, #0891B2, #06B6D4)', text:'#0e7490', icon:'💠' }
+ ];
+ const mods = autresModelsList();
+ const idx = Math.max(0, mods.indexOf(m));
+ return palette[idx % palette.length];
+}
+
 function autreProvenanceHtml(p){
- if(!p)return `<div style="padding:12px 14px;border:1px dashed var(--autre-line);border-radius:10px;background:var(--autre-soft);font-size:13px;color:var(--muted)">Cliquez sur une ligne d’opération dans le tableau ci-dessous pour afficher toute l’information sur sa provenance.</div>`;
+ if(!p)return `<div style="padding:14px 16px;border:1px dashed #93C5FD;border-radius:12px;background:#EFF6FF;font-size:13px;color:#1E40AF;display:flex;align-items:center;gap:10px">
+  <span style="font-size:20px">👉</span>
+  <span>Cliquez sur une ligne d’opération dans le tableau ci-dessous pour afficher toute l’information sur sa provenance détaillée.</span>
+ </div>`;
  const d=S.dossiers.find(x=>x.num===p.dossier||(p.cont&&x.cont===p.cont))||null;
  const rec=(S.receptions||[]).find(r=>(p.dossier&&r.dossier===p.dossier)||(p.cont&&r.cont===p.cont))||null;
  const mv=(S.movements||[]).find(m=>m.ref===p.id||(rec&&m.ref===rec.id&&m.cat==='autre'))||null;
  const opEnt=user(p.by);
  const opTr=rec?user(rec.by):(d?user(d.createdBy):null);
- return `<div style="padding:14px 16px;border:1px solid var(--autre-line);border-left:4px solid var(--autre);border-radius:10px;background:var(--autre-soft);font-size:13px">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:12px">
-   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-    <span class="badge b-autre">Provenance de l’opération</span>
-    <b style="font-size:15px;color:var(--text)">${esc(p.id)} · Palette ${esc(p.model)} (${n0(p.qty)})</b>
+ const st=getAutreModelStyle(p.model);
+
+ return `<div style="padding:16px 18px;border:1px solid #BAE6FD;border-left:5px solid #2563EB;border-radius:12px;background:linear-gradient(135deg, #F0F9FF 0%, #EFF6FF 100%);font-size:13px;box-shadow:0 3px 12px rgba(37,99,235,0.06)">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid #DBEAFE;padding-bottom:12px;margin-bottom:14px">
+   <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <span class="badge" style="background:#2563EB;color:#FFF;font-weight:800;font-size:12px;padding:4px 10px;box-shadow:0 2px 4px rgba(37,99,235,0.25)">🔍 Provenance de l’opération</span>
+    <b style="font-size:16px;color:#1E3A8A">
+     ${esc(p.id)} · <span style="background:${st.bg};color:${st.col};padding:3px 8px;border-radius:6px;border:1px solid ${st.border}">${st.icon} Palette ${esc(p.model)}</span> · <span style="color:#059669;font-weight:800">${n0(p.qty)} palettes</span>
+    </b>
    </div>
    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-    ${d?`<button type="button" class="btn small" style="border-color:var(--autre-line);color:var(--autre)" data-dossier="${esc(d.id)}">Ouvrir le dossier d’origine ${esc(d.num)} →</button>`:''}
+    ${d?`<button type="button" class="btn small" style="background:#2563EB;border-color:#1D4ED8;color:#FFF;font-weight:700;box-shadow:0 2px 6px rgba(37,99,235,0.2)" data-dossier="${esc(d.id)}">📂 Ouvrir le dossier d’origine ${esc(d.num)} →</button>`:''}
    </div>
   </div>
-  <div class="kv" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px 16px">
-   <div><span>Référence opération</span><b>${esc(p.id)}</b></div>
-   <div><span>Modèle & Quantité</span><b>Palette ${esc(p.model)} · <span class="num">${n0(p.qty)}</span></b></div>
-   <div><span>Catégorie</span><b>Autre (hors MB5)</b></div>
-   <div><span>Date d’enregistrement</span><b>${fmt(p.date)}</b></div>
-   <div><span>Provenance / Origine</span><b>${rec?`Dépotage Conteneur (${esc(rec.id)} · ${esc(d?.num||rec.dossier)})`:d?`Dossier Transit ${esc(d.num)} (${esc(d.cont)})`:'Création / Entrée directe en Entrepôt'}</b></div>
-   ${d||rec?`<div><span>N° Conteneur (TC)</span><b class="num">${esc(p.cont||d?.cont||rec?.cont||'—')}</b></div>
-   <div><span>N° Bon de Livraison (BL)</span><b>${esc(d?.bl||'—')}</b></div>
+  <div class="kv" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px 18px">
+   <div><span>Référence opération</span><b class="ref" style="background:${st.bg};color:${st.col};font-size:13px">${esc(p.id)}</b></div>
+   <div><span>Modèle & Quantité</span><b style="color:${st.text}">${st.icon} Palette ${esc(p.model)} · <span class="num" style="color:#059669;font-size:15px">${n0(p.qty)}</span></b></div>
+   <div><span>Catégorie</span><b style="color:#D97706">Autre (hors modèle habituel MB5)</b></div>
+   <div><span>Date d’enregistrement</span><b>📅 ${fmt(p.date)}</b></div>
+   <div><span>Provenance / Origine</span><b>${rec?`<span class="badge" style="background:#EDE9FE;color:#6D28D9;border:1px solid #DDD6FE">📦 Dépotage Conteneur (${esc(rec.id)} · ${esc(d?.num||rec.dossier)})</span>`:d?`<span class="badge" style="background:#E0F2FE;color:#0369A1;border:1px solid #BAE6FD">🚢 Dossier Transit ${esc(d.num)} (${esc(d.cont)})</span>`:'<span class="badge" style="background:#D1FAE5;color:#047857;border:1px solid #A7F3D0">🏭 Création / Entrée directe Entrepôt</span>'}</b></div>
+   ${d||rec?`<div><span>N° Conteneur (TC)</span><b class="num" style="color:#1D4ED8">🚢 ${esc(p.cont||d?.cont||rec?.cont||'—')}</b></div>
+   <div><span>N° Bon de Livraison (BL)</span><b style="color:#4338CA">${esc(d?.bl||'—')}</b></div>
    <div><span>Armateur (Compagnie maritime)</span><b>${esc(d?.lam||'—')}</b></div>
-   <div><span>Transporteur routier</span><b>${esc(d?.trans||'—')}</b></div>
+   <div><span>Transporteur routier</span><b>🚚 ${esc(d?.trans||'—')}</b></div>
    <div><span>ETA Navire</span><b>${fmt(d?.D2)||'—'}</b></div>
    <div><span>Arrivée navire</span><b>${fmt(d?.D3)||'—'}</b></div>
    <div><span>Mise en livraison</span><b>${fmt(d?.D4)||'—'}</b></div>
    <div><span>Date de réception</span><b>${fmt(d?.D5)||'—'}</b></div>
    <div><span>Date de dépotage</span><b>${fmt(d?.D6||rec?.date)||'—'}</b></div>`:''}
-   ${opTr?`<div><span>Déclarant Transit</span><b>${esc(opTr.name)} (${esc(opTr.role)})</b></div>`:''}
-   <div><span>Enregistré par (Entrepôt)</span><b>${esc(opEnt.name)} (${esc(opEnt.role)})</b></div>
-   <div><span>Mouvement de traçabilité lié</span><b>${mv?`${esc(mv.id)} · ${esc(mv.type)} (${fmtT(mv.t)})`:'—'}</b></div>
-   <div><span>Détails & Observations de provenance</span><b>${esc(p.obs||rec?.obs||'Aucune observation particulière.')}</b></div>
+   ${opTr?`<div><span>Déclarant Transit</span><b>👤 ${esc(opTr.name)} <small class="muted">(${esc(opTr.role)})</small></b></div>`:''}
+   <div><span>Enregistré par (Entrepôt)</span><b>👤 ${esc(opEnt.name)} <small class="muted">(${esc(opEnt.role)})</small></b></div>
+   <div><span>Mouvement traçabilité lié</span><b>${mv?`<span class="badge" style="background:#F1F5F9;color:#334155">${esc(mv.id)} · ${esc(mv.type)} (${fmtT(mv.t)})</span>`:'—'}</b></div>
+   <div style="grid-column:1/-1"><span>Détails & Observations de provenance</span><b style="color:#334155">${esc(p.obs||rec?.obs||'Aucune observation particulière.')}</b></div>
   </div>
  </div>`;
 }
@@ -3731,54 +3753,116 @@ function openAutresPalettes(selectedId=null){
  const revList=list.slice().reverse();
  const selItem=revList.find(x=>x.id===selectedId)||revList[0]||null;
  const modOpts=[...autresModelsList().map(m=>[m,`Palette ${m}`]),['__NEW__','➕ Créer un nouveau modèle de palette…']];
+
  openModal(`Détail des palettes « Autre » (hors modèle habituel MB5) · Total : ${n0(tot)}`,
-  `<div class="full" style="padding:14px 16px;border:1px solid var(--autre-line);border-top:4px solid var(--autre);border-radius:10px;background:var(--autre-soft);margin-bottom:2px">
-   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-    <b style="font-size:14.5px;color:var(--autre)">➕ Créer de nouvelles palettes dans « Autre » (modèle existant ou nouveau code de palette)</b>
-    <span class="badge b-autre">Catégorie : Autre</span>
+  `<!-- BANNIÈRE COLORÉE HERO -->
+  <div class="full" style="background:linear-gradient(135deg, #4338CA 0%, #6366F1 50%, #8B5CF6 100%);padding:16px 20px;border-radius:12px;color:#FFF;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:0 6px 18px rgba(79,70,229,0.22);margin-bottom:12px">
+   <div style="display:flex;align-items:center;gap:12px">
+    <span style="background:rgba(255,255,255,0.2);padding:10px;border-radius:10px;font-size:24px;line-height:1">📦</span>
+    <div>
+     <div style="font-size:17.5px;font-weight:800;letter-spacing:-0.2px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      Détail & Gestion des Palettes « Autre »
+      <span style="background:#FEF3C7;color:#92400E;font-size:11px;font-weight:800;padding:3px 8px;border-radius:6px;letter-spacing:0.3px">HORS MODÈLE MB5</span>
+     </div>
+     <div style="font-size:13px;color:#E0E7FF;margin-top:2px">
+      Stock dédié aux modèles spéciaux (MB4, MB7, MB9…) avec traçabilité complète de l’origine et créations manuelles.
+     </div>
+    </div>
    </div>
-   <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 12px">
+   <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <div style="background:rgba(255,255,255,0.18);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.25);border-radius:8px;padding:6px 12px;text-align:center">
+     <div style="font-size:10.5px;color:#E0E7FF;font-weight:700;text-transform:uppercase;letter-spacing:0.5px">Total Palettes</div>
+     <div style="font-size:22px;font-weight:800;line-height:1.1">${n0(tot)}</div>
+    </div>
+    <div style="background:rgba(255,255,255,0.18);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.25);border-radius:8px;padding:6px 12px;text-align:center">
+     <div style="font-size:10.5px;color:#E0E7FF;font-weight:700;text-transform:uppercase;letter-spacing:0.5px">Modèles</div>
+     <div style="font-size:22px;font-weight:800;line-height:1.1">${Object.keys(byMod).length}</div>
+    </div>
+    <div style="background:rgba(255,255,255,0.18);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.25);border-radius:8px;padding:6px 12px;text-align:center">
+     <div style="font-size:10.5px;color:#E0E7FF;font-weight:700;text-transform:uppercase;letter-spacing:0.5px">Opérations</div>
+     <div style="font-size:22px;font-weight:800;line-height:1.1">${list.length}</div>
+    </div>
+   </div>
+  </div>
+
+  <!-- CADRE COLORÉ DE CRÉATION DE NOUVELLES PALETTES -->
+  <div class="full" style="padding:16px 18px;border:1px solid #BAE6FD;border-left:5px solid #0284C7;border-radius:12px;background:linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%);margin-bottom:12px;box-shadow:0 3px 10px rgba(2,132,199,0.06)">
+   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+    <div style="display:flex;align-items:center;gap:8px">
+     <span style="background:#0284C7;color:#FFF;width:24px;height:24px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:800">＋</span>
+     <b style="font-size:15px;color:#0369A1">Créer de nouvelles palettes dans « Autre »</b>
+     <span style="font-size:12.5px;color:#0284C7">(modèle existant ou nouveau code)</span>
+    </div>
+    <span class="badge" style="background:#BAE6FD;color:#0369A1;font-weight:700;font-size:11.5px;border:1px solid #7DD3FC">Catégorie : Autre</span>
+   </div>
+   <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 14px">
     ${fld('Modèle de palette existant','model','select',{req:1,options:modOpts,value:autresModelsList()[0]||'MB4'})}
     ${fld('Nouveau modèle de palette (si création)','newModel','text',{ph:'Ex. MB6, MB8, MB10, CP1…'})}
     ${fld('Quantité de palettes à créer','qty','number',{req:1,min:1,value:10})}
     ${fld('Commentaire & Détails de provenance','obs','textarea',{full:1,ph:'Précisez la provenance ou toute observation sur ce lot de palettes hors MB5…'})}
    </div>
-   <div style="display:flex;justify-content:flex-end;margin-top:10px">
-    <button type="submit" class="btn primary" style="background:var(--autre);border-color:var(--autre)">➕ Créer & Ajouter au stock « Autre »</button>
+   <div style="display:flex;justify-content:flex-end;margin-top:12px">
+    <button type="submit" class="btn primary" style="background:linear-gradient(135deg, #0284C7, #0369A1);border:none;box-shadow:0 3px 10px rgba(2,132,199,0.28);font-weight:700;padding:8px 16px">
+     ➕ Enregistrer & Ajouter au stock « Autre »
+    </button>
    </div>
   </div>
-  <div class="full" style="padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-size:13px">
-   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-    <b style="color:var(--text);font-size:13.5px">Répartition par modèle hors MB5</b>
-    <span class="badge b-autre">Total : <b class="num">${n0(tot)}</b> (${list.length} opérations)</span>
+
+  <!-- RÉPARTITION COLORÉE PAR MODÈLE HORS MB5 -->
+  <div class="full" style="padding:14px 16px;border:1px solid #E2E8F0;border-radius:12px;background:#FFF;font-size:13px;margin-bottom:12px;box-shadow:0 2px 6px rgba(0,0,0,0.03)">
+   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+    <div style="display:flex;align-items:center;gap:8px">
+     <span style="font-size:16px">📊</span>
+     <b style="color:var(--text);font-size:14px">Répartition par modèle de palette hors MB5</b>
+    </div>
+    <span class="badge" style="background:#F1F5F9;border:1px solid #CBD5E1;color:#334155;font-weight:700">Total : <b class="num" style="color:#0F172A">${n0(tot)}</b> (${list.length} opérations)</span>
    </div>
-   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
-    ${Object.entries(byMod).map(([m,info])=>`<div style="background:var(--autre-soft);border:1px solid var(--autre-line);border-radius:8px;padding:10px 12px">
-     <div style="display:flex;justify-content:space-between;align-items:baseline">
-      <b style="font-size:14px;color:var(--autre)">Palette ${esc(m)}</b>
-      <b class="num" style="font-size:22px;color:var(--text)">${n0(info.qty)}</b>
-     </div>
-     <small class="muted" style="display:block;margin-top:3px">${info.lots} opération${info.lots>1?'s':''}</small>
-    </div>`).join('')||'<span class="muted">Aucune palette hors MB5 enregistrée.</span>'}
+   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+    ${Object.entries(byMod).map(([m,info]) => {
+     const st = getAutreModelStyle(m);
+     return `<div style="background:${st.bg};border:1.5px solid ${st.border};border-radius:10px;padding:12px 14px;box-shadow:0 2px 8px rgba(0,0,0,0.03);position:relative;overflow:hidden">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:${st.grad}"></div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+       <span style="font-size:13.5px;font-weight:800;color:${st.text};display:flex;align-items:center;gap:5px">
+        ${st.icon} Palette ${esc(m)}
+       </span>
+       <b class="num" style="font-size:22px;color:${st.col};font-weight:800">${n0(info.qty)}</b>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+       <small style="color:${st.text};font-weight:600">${info.lots} opération${info.lots>1?'s':''}</small>
+       <span style="background:${st.soft};color:${st.text};font-size:11px;font-weight:700;padding:2px 7px;border-radius:10px;border:1px solid ${st.border}">
+        ${tot > 0 ? Math.round((info.qty / tot) * 100) : 0}% du stock
+       </span>
+      </div>
+     </div>`;
+    }).join('') || '<span class="muted">Aucune palette hors MB5 enregistrée.</span>'}
    </div>
   </div>
-  <div class="full" id="autProvBox">${autreProvenanceHtml(selItem)}</div>
-  <div class="full">
-   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-    <b style="font-size:13.5px;color:var(--text)">Historique des opérations « Autre »</b>
-    <small class="muted">Cliquez sur une ligne pour afficher toute l’information sur sa provenance</small>
+
+  <!-- CADRE PROVENANCE DÉTAILLÉE -->
+  <div class="full" id="autProvBox" style="margin-bottom:12px">${autreProvenanceHtml(selItem)}</div>
+
+  <!-- TABLEAU HISTORIQUE COLORÉ -->
+  <div class="full" style="padding:14px 16px;border:1px solid #E2E8F0;border-radius:12px;background:#FFF;box-shadow:0 2px 6px rgba(0,0,0,0.03)">
+   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+    <div style="display:flex;align-items:center;gap:8px">
+     <span style="font-size:16px">📜</span>
+     <b style="font-size:14px;color:var(--text)">Historique des opérations « Autre »</b>
+    </div>
+    <small style="color:#0284C7;font-weight:600">💡 Cliquez sur une ligne pour afficher toute l’information sur sa provenance</small>
    </div>
    <div class="tablewrap" style="max-height:280px;overflow:auto"><table><thead><tr><th>Réf. Opération</th><th>Modèle</th><th class="right">Quantité</th><th>Date d’entrée</th><th>Opérateur</th><th>Provenance & Observations</th></tr></thead><tbody>
     ${revList.map(p=>{
      const isSel=selItem&&selItem.id===p.id;
-     return `<tr class="click" data-aut-row="${esc(p.id)}" style="${isSel?'background:var(--autre-bg);border-left:4px solid var(--autre)':''}" title="Cliquez pour afficher toute l’information sur la provenance de ${esc(p.id)}">
-     <td><span class="ref" style="background:var(--autre-bg);color:var(--autre)">${esc(p.id)}</span></td>
-     <td><span class="badge b-autre"><b>${esc(p.model)}</b></span></td>
-     <td class="right num"><b style="font-size:15px">${n0(p.qty)}</b></td>
+     const st=getAutreModelStyle(p.model);
+     return `<tr class="click" data-aut-row="${esc(p.id)}" style="${isSel?'background:#EEF2FF;border-left:5px solid #4F46E5;box-shadow:inset 0 0 0 1px #C7D2FE':''}" title="Cliquez pour afficher toute l’information sur la provenance de ${esc(p.id)}">
+     <td><span class="ref" style="background:${st.bg};color:${st.col};font-weight:700;border:1px solid ${st.border}">${esc(p.id)}</span></td>
+     <td><span class="badge" style="background:${st.bg};color:${st.col};border:1px solid ${st.border};font-weight:800">${st.icon} ${esc(p.model)}</span></td>
+     <td class="right num"><b style="font-size:15px;color:${st.col}">${n0(p.qty)}</b></td>
      <td><b>${fmt(p.date)}</b></td>
-     <td>${esc(user(p.by).name)}</td>
-     <td class="wrap" style="min-width:260px">${esc(p.obs||'—')}</td>
-    </tr>`}).join('')||`<tr><td colspan="6" class="empty">Aucune palette hors MB5 enregistrée.</td></tr>`}
+     <td><span class="badge" style="background:#F1F5F9;color:#334155;border:1px solid #CBD5E1">👤 ${esc(user(p.by).name)}</span></td>
+     <td class="wrap" style="min-width:260px;color:#334155">${esc(p.obs||'—')}</td>
+    </tr>`}).join('')||'<tr><td colspan="6" class="empty">Aucune palette hors MB5 enregistrée.</td></tr>'}
    </tbody></table></div>
   </div>`,
   'Créer & Ajouter au stock « Autre »',data=>{
@@ -3804,6 +3888,7 @@ function openAutresPalettes(selectedId=null){
     setTimeout(()=>openAutresPalettes(id),60);
    },submitBtn());
   },{wide:true});
+
  const mf=$('#mform');
  const modSel=mf?.querySelector('[name="model"]'),newModIn=mf?.querySelector('[name="newModel"]');
  modSel?.addEventListener('change',()=>{if(modSel.value==='__NEW__')newModIn?.focus()});
@@ -3817,8 +3902,9 @@ function openAutresPalettes(selectedId=null){
     box.innerHTML=autreProvenanceHtml(item);
     mf.querySelectorAll('[data-aut-row]').forEach(r=>{
      const on=r.dataset.autRow===pid;
-     r.style.background=on?'var(--sel-bg)':'';
-     r.style.borderLeft=on?'4px solid var(--blue)':'';
+     r.style.background=on?'#EEF2FF':'';
+     r.style.borderLeft=on?'5px solid #4F46E5':'';
+     r.style.boxShadow=on?'inset 0 0 0 1px #C7D2FE':'';
     });
     box.scrollIntoView({behavior:'smooth',block:'nearest'});
    }
