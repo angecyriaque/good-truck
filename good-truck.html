@@ -1443,9 +1443,9 @@ function reserved(pool='Tous',site=curSite()){
  const trRes=(S.transports||[]).filter(t=>['Planifié','Réservé'].includes(t.status)&&!t.shipped&&(site==='all'||siteOf(t)===site)&&(pool==='Tous'||(t.pool||destPool(t.to))===pool));
  const trLvIds=new Set(trRes.map(t=>t.liv).filter(Boolean));
  const trIds=new Set(trRes.map(t=>t.id).filter(Boolean));
- const lvRes=(S.deliveries||[]).filter(l=>l.status==='Réservée'&&!trLvIds.has(l.id)&&(site==='all'||siteOf(l)===site)&&(pool==='Tous'||(l.pool||destPool(l.to))===pool));
+ const lvRes=(S.deliveries||[]).filter(l=>['Réservée','Demande de réservation'].includes(l.status)&&!trLvIds.has(l.id)&&(site==='all'||siteOf(l)===site)&&(pool==='Tous'||(l.pool||destPool(l.to))===pool));
  const lvIds=new Set(lvRes.map(l=>l.id).filter(Boolean));
- const plnRes=(S.planifications||[]).filter(p=>p.status==='Stock confirmé'&&(!p.liv||(!trLvIds.has(p.liv)&&!lvIds.has(p.liv)))&&(!p.transport||!trIds.has(p.transport))&&(site==='all'||siteOf(p)===site)&&(pool==='Tous'||(p.pool||destPool(p.to))===pool));
+ const plnRes=(S.planifications||[]).filter(p=>['Stock confirmé','Demande de réservation'].includes(p.status)&&p.status!=='Annulée'&&(!p.liv||(!trLvIds.has(p.liv)&&!lvIds.has(p.liv)))&&(!p.transport||!trIds.has(p.transport))&&(site==='all'||siteOf(p)===site)&&(pool==='Tous'||(p.pool||destPool(p.to))===pool));
  return trRes.reduce((a,t)=>a+t.qty,0)+lvRes.reduce((a,l)=>a+l.qty,0)+plnRes.reduce((a,p)=>a+p.qty,0);
 }
 const dispo=(pool='Tous',site=curSite())=>stockPropre(pool,site)-reserved(pool,site);
@@ -4484,7 +4484,7 @@ function cancelPlanif(id){
     <b style="color:var(--bad);font-size:14.5px">⚠️ Annulation de la programmation & Export vers l’historique :</b><br>
     <div style="font-size:13px;color:#7F1D1D;margin-top:4px">
      La demande pour <b>${esc(target.to)}</b> (${n0(target.qty)} palettes propres ${pool}) sera annulée.<br>
-     Toute réservation théorique de stock sera immédiatement <b>libérée</b> et la demande sera <b>archivée dans l’historique des demandes annulées</b> avec son motif.
+     La réservation de <b>${n0(target.qty)} palettes propres (${pool})</b> est immédiatement annulée et <b>reversée dans le stock normal disponible</b>.<br>Le dossier sera archivé dans l’historique.
     </div>
    </div>`+
   fld('Motif d’annulation de la demande / programmation','motif','textarea',{req:1,full:1,ph:'Précisez la raison de l’annulation (ex. report demandé par le client, modification de commande, rupture…)'}),
@@ -4517,7 +4517,7 @@ function cancelPlanif(id){
     }
     audit('Programmation annulée & exportée', target.id, `${n0(target.qty)} palettes vers ${target.to} · Motif: ${motif}`);
     closeModal();
-    toast(`Demande ${target.id} annulée : stock libéré et dossier exporté dans l’historique.`, 'ok');
+    toast(`Demande ${target.id} annulée : ${n0(target.qty)} palettes reversées dans le stock normal disponible (${pool}) et demande archivée dans l’historique.`, 'ok');
    }, submitBtn());
   }
  );
@@ -5033,7 +5033,7 @@ function vTransport(){
    </div>
    <div class="tablewrap" style="margin:0"><table>
     <thead><tr>
-     <th>Réf. Demande</th><th>Numéro ITR</th><th>Purchase Order (PO)</th><th>Date d’annulation</th><th>Destination</th><th class="right">Quantité</th><th>Motif d’annulation</th><th>Annulé par</th><th>Statut</th>
+     <th>Réf. Demande</th><th>Numéro ITR</th><th>Purchase Order (PO)</th><th>Date d’annulation</th><th>Destination</th><th class="right">Quantité</th><th>Stock reversé au normal</th><th>Motif d’annulation</th><th>Annulé par</th><th>Statut</th>
     </tr></thead>
     <tbody>
      ${histPlns.map(p => `<tr>
@@ -5043,6 +5043,7 @@ function vTransport(){
       <td><b>${fmt(p.cancelledAt||p.createdAt)}</b></td>
       <td><b style="color:var(--text);font-size:13.5px">${esc(p.to)}</b></td>
       <td class="right num"><b style="font-size:15px;color:var(--muted)">${n0(p.qty)}</b></td>
+      <td><span class="badge b-ok" style="font-size:11.5px;font-weight:700">✓ +${n0(p.qty)} reversé au Stock ${p.pool||destPool(p.to)}</span></td>
       <td class="wrap" style="color:var(--bad);max-width:280px"><b>${esc(p.cancelReason||p.obs||'Annulation de commande')}</b></td>
       <td><small class="muted">${esc(p.cancelledBy ? user(p.cancelledBy).name : 'Utilisateur')}</small></td>
       <td><span class="badge b-bad">Annulée · Exportée</span></td>
@@ -5355,7 +5356,7 @@ function vLivraisons(){
   </div>
   <div class="tablewrap" style="margin:0"><table>
    <thead><tr>
-    <th>Réf. Planning</th><th>Numéro ITR</th><th>Purchase Order (PO)</th><th>Date d’annulation</th><th>Destination</th><th class="right">Quantité</th><th>Motif d’annulation</th><th>Annulé par</th><th>Statut</th>
+    <th>Réf. Planning</th><th>Numéro ITR</th><th>Purchase Order (PO)</th><th>Date d’annulation</th><th>Destination</th><th class="right">Quantité</th><th>Stock reversé au normal</th><th>Motif d’annulation</th><th>Annulé par</th><th>Statut</th>
    </tr></thead>
    <tbody>
     ${cancelledDeliveries.map(l => `<tr>
@@ -5365,6 +5366,7 @@ function vLivraisons(){
      <td><b>${fmt(l.cancelledAt||l.dateP)}</b></td>
      <td><b style="color:var(--text);font-size:13.5px">${esc(l.to)}</b></td>
      <td class="right num"><b style="font-size:15px;color:var(--muted)">${n0(l.qty)}</b></td>
+     <td><span class="badge b-ok" style="font-size:11.5px;font-weight:700">✓ +${n0(l.qty)} reversé au Stock ${l.pool||destPool(l.to)}</span></td>
      <td class="wrap" style="color:var(--bad);max-width:280px"><b>${esc(l.cancelReason||l.comments||'Annulée')}</b></td>
      <td><small class="muted">${esc(l.cancelledBy ? user(l.cancelledBy).name : (l.resp ? user(l.resp).name : 'Utilisateur'))}</small></td>
      <td><span class="badge b-bad">Annulée · Exportée</span></td>
@@ -5387,7 +5389,13 @@ function newLivraison(){
   fld('Trajet pré-enregistré (Départ ➔ Arrivée)','trajet','select',{req:1,options:trajetOpts,value:trajetOpts[0]?.[0]||''})+
   fld('Quantité à transporter (palettes propres)','qty','number',{req:1,min:1,ph:'Ex. 200',value:200})+
   fld('Date de planification','dateP','date',{req:1,value:iso(2),min:TODAY_ISO})+
-  `<div class="f"><label>Statut de réservation stock</label><select name="now"><option value="1">Oui, valider et réserver immédiatement sur le stock propre</option><option value="0">Non, garder en attente (brouillon)</option></select></div>`+
+  `<div class="full" style="padding:12px 14px;border:1px solid #BAE6FD;border-left:5px solid #0284C7;border-radius:10px;background:#F0F9FF;margin-bottom:12px">
+    <b style="color:#0369A1;font-size:13.5px">📦 Instruction automatique d'une demande de réservation :</b><br>
+    <div style="font-size:12.5px;color:var(--text);margin-top:3px">
+     Toute demande enregistrée instruit immédiatement une <b>demande de réservation de stock</b> sur le stock propre (Stock SKCI ou Global). 
+     Si la demande est annulée ultérieurement, la quantité réservée est <b>automatiquement reversée dans le stock normal disponible</b>.
+    </div>
+   </div>`+
   `<p class="note">Règle de contrôle : Le <b>Numéro ITR</b> et le <b>Purchase Order (PO)</b> doivent comporter exactement <b>10 chiffres</b> et être <b>uniques</b> (aucun doublon permis). Le trajet part obligatoirement de l’entrepôt (${origin}).</p>`,
   'Enregistrer le planning',data=>{
    const e=req(data,['itr','po','dateP','qty','trajet']);
@@ -5417,12 +5425,12 @@ function newLivraison(){
    }
 
    if(data.dateP&&data.dateP<TODAY_ISO)e.dateP='Aucune date antérieure ne doit être saisie.';
-   if(data.now==='1'&&q>dispo(pool))e.qty=`Réservation refusée : seulement ${n0(dispo(pool))} palettes propres disponibles dans le Stock ${pool}.`;
+   if(q>dispo(pool))e.qty=`Réservation impossible : seulement ${n0(dispo(pool))} palettes propres disponibles dans le Stock ${pool} (${n0(q)} demandées).`;
    if(Object.keys(e).length)return e;
 
-   save(data.now==='1'?`Planning créé et ${n0(q)} palettes réservées théoriquement sur le Stock ${pool}.`:'Planning enregistré en attente.',()=>{
+   save(`Demande enregistrée : ${n0(q)} palettes réservées théoriquement sur le Stock ${pool}.`,()=>{
     const id=nextId('LV');
-    S.deliveries.push({id,site:curSite(),itr,po,dateP:data.dateP,from,to,pool,cat:propreCat(pool),qty:q,qtyShip:null,qtyRec:null,damaged:0,transport:'',resp:S.me,status:data.now==='1'?'Réservée':'Brouillon',comments:''});
+    S.deliveries.push({id,site:curSite(),itr,po,dateP:data.dateP,from,to,pool,cat:propreCat(pool),qty:q,qtyShip:null,qtyRec:null,damaged:0,transport:'',resp:S.me,status:'Réservée',comments:'Demande de réservation instruite automatiquement.'});
     if(!S.seq.PLN)S.seq.PLN=4;
     const plnId='PLN-'+String(++S.seq.PLN).padStart(4,'0');
     S.planifications.push({
@@ -5438,20 +5446,20 @@ function newLivraison(){
      qty:q,
      depP:data.dateP,
      arrP:data.dateP,
-     status:data.now==='1'?'Stock confirmé':'En attente Entrepôt',
+     status:'Demande de réservation',
      createdBy:S.me,
      createdAt:nowISO(),
-     stockValBy:data.now==='1'?S.me:'',
-     stockValAt:data.now==='1'?nowISO():'',
+     stockValBy:S.me,
+     stockValAt:nowISO(),
      camionValBy:'',
      camionValAt:'',
      trans:'',
      veh:'',
      driver:'',
      driverPhone:'',
-     obs:'Généré automatiquement depuis le Planning de transport.'
+     obs:'Demande de réservation instruite depuis le Planning.'
     });
-    audit('Planning créé',id,`ITR ${itr} · PO ${po} · ${q} palettes vers ${to}`);
+    audit('Demande de réservation instruite',id,`ITR ${itr} · PO ${po} · ${q} palettes réservées sur Stock ${pool} vers ${to}`);
     closeModal();
    },submitBtn());
   });
