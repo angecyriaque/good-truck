@@ -2948,11 +2948,11 @@ function pauseDepotage(id){
  const cont = r?.cont || d?.cont || '—';
  const dos = r?.dossier || d?.num || '—';
 
- openModal(`Marquer une pause du dépotage · ${cont}`,
+ openModal(`Justifier la pause du dépotage · ${cont}`,
   `<div class="full" style="padding:12px 14px;border:1px solid #FDE68A;border-left:5px solid #D97706;border-radius:10px;background:#FFFBEB;margin-bottom:12px">
-    <b style="color:#92400E;font-size:14px">⏸️ Suspension temporaire du dépotage (${cont}) :</b><br>
+    <b style="color:#92400E;font-size:14px">⏸️ Justification de la pause du dépotage (${cont}) :</b><br>
     <div style="font-size:12.5px;color:var(--text);margin-top:3px">
-     Le chronomètre du dépotage sera immédiatement figé. Vous pourrez reprendre l’opération à tout moment.
+     Renseignez le motif de la pause ci-dessous. Le chronomètre est suspendu dès validation. <b>Pour reprendre le dépotage par la suite, un simple clic sur « ▶️ Reprendre » relancera immédiatement le minuteur sans formulaire.</b>
     </div>
    </div>`+
   fld('Motif de la pause','motif','select',{req:1,options:[
