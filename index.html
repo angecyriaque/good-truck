@@ -2989,6 +2989,48 @@ function pauseDepotage(id){
  );
 }
 
+
+function envoyerMailRecup(dossierId){
+ if(!guard('entrepot')) return;
+ const d = S.dossiers.find(x => x.id === dossierId || x.num === dossierId);
+ if(!d) { toast('Dossier introuvable.', 'bad'); return; }
+ if(!isDepotageTermine(d)){
+  toast('Le dépotage doit d’abord être terminé et validé en Entrepôt avant d’envoyer le mail de récupération.', 'bad');
+  return;
+ }
+ if(d.D7){
+  toast(`Le mail de récupération a déjà été envoyé le ${fmt(d.D7)}.`, 'info');
+  return;
+ }
+ openModal(`Envoyer le mail de récupération · ${d.num}`,
+  `<div class="full" style="padding:14px;background:#F5F3FF;border:1.5px solid #DDD6FE;border-radius:10px;margin-bottom:12px">
+    <b style="color:#5B21B6;font-size:14.5px">📧 Notification de mise à disposition du conteneur vide</b>
+    <div style="font-size:13px;color:var(--text);margin-top:6px;line-height:1.5">
+     <b>Dossier :</b> ${esc(d.num)}<br>
+     <b>N° Conteneur (TC) :</b> <span class="num">${esc(d.cont)}</span><br>
+     <b>Armateur :</b> ${esc(d.lam)} · <b>Transporteur :</b> ${esc(d.trans||'—')}<br>
+     <b>Date de dépotage :</b> ${fmt(d.D6)||fmt(TODAY_ISO)}<br>
+     <b>Date d’envoi de l’avis :</b> <b>${fmt(TODAY_ISO)}</b>
+    </div>
+   </div>`+
+   fld('Destinataires (Armateur & Transporteur)','destinataires','text',{req:1,value:`${d.lam} <ops@${d.lam.toLowerCase().replace(/[^a-z]/g,'')}.com>, ${d.trans||'Transporteur'} <dispo@transport.ci>`,full:1})+
+   fld('Objet du mail','objet','text',{req:1,value:`[TC VIDE DISPONIBLE] ${d.cont} - Dossier ${d.num} - Dépotage terminé`,full:1})+
+   fld('Message de notification','corps','textarea',{req:1,full:1,rows:4,value:`Madame, Monsieur,\n\nNous vous informons que le dépotage du conteneur ${d.cont} (Dossier ${d.num}) est désormais terminé dans nos entrepôts ce jour ${fmt(TODAY_ISO)}.\n\nLe conteneur vide est nettoyé, contrôlé et disponible sur notre quai pour enlèvement et restitution au port.\n\nCordialement,\nL’équipe Entrepôt & Logistique GoodTruck`}),
+  'Valider & Envoyer le mail', data => {
+   const now = nowISO();
+   save(`Mail de récupération validé et envoyé pour le conteneur ${d.cont} (${d.num}).`, () => {
+    d.D7 = TODAY_ISO;
+    if(d.depotage) d.depotage.mailRecupAt = now;
+    d.updatedAt = now;
+    d.updatedBy = S.me;
+    audit('Mail de récupération validé en Entrepôt', d.num, `Conteneur vide ${d.cont} mis à disposition · Validé par ${user(S.me).name}`);
+    closeModal();
+    toast(`📧 Mail de récupération envoyé avec succès pour le conteneur ${d.cont}.`, 'ok');
+   }, submitBtn());
+  }
+ );
+}
+
 function resumeDepotage(id){
  if(!guard('transit') && !guard('entrepot')) return;
  closeModal();
@@ -3278,12 +3320,13 @@ function openDossier(id,edit=false){
      if(s.type==='select'){
       ctrl=`<select name="trans" ${prevOk&&!val?'':'disabled'} aria-label="${s.label}" style="border:1px solid var(--line);border-radius:6px;padding:6px 8px;background:var(--surface-2);width:100%"><option value="">— Choisir un transporteur —</option>${transporteursList().map(t=>`<option value="${esc(t)}" ${t===val?'selected':''}>${esc(t)}</option>`).join('')}</select>`;
      }else{
+      const isEntStep = s.k==='D6'||s.k==='D7';
       ctrl=`<div style="display:flex;align-items:center;gap:8px;margin-top:2px">
-       <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;cursor:pointer">
-        <input type="checkbox" data-chk="${s.k}" ${val?'checked disabled':prevOk?'':'disabled'} style="width:16px;height:16px">
-        <span>${val?`Validé le ${fmt(val)}`:'Valider cette étape'}</span>
+       <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;cursor:${isEntStep?'not-allowed':'pointer'}">
+        <input type="checkbox" data-chk="${s.k}" ${val?'checked disabled':(prevOk&&!isEntStep)?'':'disabled'} style="width:16px;height:16px">
+        <span>${val?`Validé le ${fmt(val)}`:(isEntStep?`À envoyer par l’Entrepôt`:'Valider cette étape')}</span>
        </label>
-       <input type="hidden" name="${s.k}" value="${esc(val)}" ${val||!prevOk?'disabled':''}>
+       <input type="hidden" name="${s.k}" value="${esc(val)}" ${val||!prevOk||isEntStep?'disabled':''}>
       </div>`;
      }
      const attenteHint=(s.k==='D7' && d.D6 && !depDone)?'dépotage terminé en Entrepôt':s.prevLabel;
@@ -3303,7 +3346,7 @@ function openDossier(id,edit=false){
      const disp=s.type==='select'?(val?`<b>${esc(val)}</b>`:''):(val?`<b>${fmt(val)}</b>`:'');
      let actBtn='';
      if(prevOk&&!val&&!clos){
-      if(s.k==='D6'){ actBtn=''; }
+      if(s.k==='D6'||s.k==='D7'){ actBtn=''; }
       else if(s.k==='D4'||s.type==='select')actBtn=`<button type="button" class="btn small primary${lockCls('transit')}" data-act="validerMiseEnLivraison" data-id="${d.id}">Mise en livraison & Transporteur</button>`;
       else if(s.k==='D8')actBtn=`<button type="button" class="btn small primary${lockCls('transit')}" data-act="validerStepJour" data-id="${d.id}" data-step="${s.k}" style="background:#059669;border-color:#047857">Valider récupération & Clôturer</button>`;
       else actBtn=`<button type="button" class="btn small primary${lockCls('transit')}" data-act="validerStepJour" data-id="${d.id}" data-step="${s.k}">Valider ce jour</button>`;
@@ -3311,6 +3354,10 @@ function openDossier(id,edit=false){
      if(s.k==='D6'&&!val){
       if(!d.depotage&&d.D5) ensureDepotageTransmis(d);
       ctrl = disp || `<span class="badge b-warn" style="font-weight:600">⏳ Transmis au Dépôt</span>`;
+     }else if(s.k==='D7'&&!val){
+      ctrl = depDone
+       ? `<span class="badge b-warn" style="font-weight:600">⏳ En attente d’envoi par l’Entrepôt</span>`
+       : `<span class="badge b-bad" style="font-weight:600">🔒 En attente de dépotage en Entrepôt</span>`;
      }else{
       const attenteMsg=(s.k==='D7' && d.D6 && !depDone)?'Dépotage terminé en Entrepôt':s.prevLabel;
       ctrl=disp||(prevOk?`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px"><span class="badge b-bad">Non renseigné · prêt à valider</span>${actBtn}</div>`:`<span class="badge b-bad">🔒 Non renseigné (attente : ${attenteMsg})</span>`);
@@ -3750,7 +3797,17 @@ function vEntrepot(){
     <td class="right num"><b>${n0(qEm)}</b></td>
     <td class="right num"><b style="color:var(--ink);font-size:15px;${qDiff?'border:2px solid var(--bad);background:var(--bad-bg);padding:2px 8px;border-radius:6px;display:inline-block':''}" title="${qDiff?`Écart de quantité : ${n0(qRec)} reçues pour ${n0(qEm)} émises`:''}">${n0(qRec)}</b></td>
     <td>${depCatBadge(catKey,r.model||'MB5')}${r.obs?`<br><small class="muted">${esc(r.obs)}</small>`:''}</td>
-    <td style="white-space:nowrap">${badge('ok','Validé','✓')}</td>
+    ${(()=>{
+    const dos = S.dossiers.find(d => d.num === r.dossier);
+    const mailSent = Boolean(dos?.D7);
+    return `<td style="white-space:nowrap">
+     ${mailSent ? `
+      <span class="badge b-ok" style="font-weight:700" title="Mail de récupération envoyé le ${fmt(dos.D7)}">📧 Mail envoyé (${fmt(dos.D7)})</span>
+     ` : (dos && dos.status !== 'Clôturé' ? `
+      <button class="btn small" data-act="envoyerMailRecup" data-id="${dos.id}" style="background:#7C3AED;border-color:#6D28D9;color:#FFF;font-weight:700" title="Envoyer le mail de récupération du conteneur vide">📧 Envoyer mail récupération</button>
+     ` : badge('ok','Validé','✓'))}
+    </td>`;
+   })()}
    </tr>`;
   }).join('')||`<tr><td colspan="9" class="empty">Aucun dépotage validé dans l’historique.</td></tr>`}
   </tbody></table></div></section>`;
@@ -4440,7 +4497,14 @@ function validerReceptionDepotage(id){
    ['autre','Autre (Palettes hors MB5 : '+autresModelsList().join(', ')+'…)']
   ],value:defModel!=='MB5'?'autre':'sale'})+
   fld('Quantité reçue et validée en stock','qtyRecue','number',{req:1,min:1,full:1,value:r.total})+
-  fld('Commentaire / Observations','obs','textarea',{full:1,ph:'Précisez les observations éventuelles lors du rangement en stock…'}),
+  fld('Commentaire / Observations','obs','textarea',{full:1,ph:'Précisez les observations éventuelles lors du rangement en stock…'})+
+  `<div class="full" style="margin-top:12px;padding:12px 14px;background:#F5F3FF;border:1.5px solid #DDD6FE;border-radius:10px">
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:700;color:#5B21B6;font-size:13.5px">
+     <input type="checkbox" name="sendMailRecup" checked style="width:18px;height:18px">
+     <span>📧 Valider et envoyer le mail de récupération du conteneur vide dès aujourd’hui (${fmt(TODAY_ISO)})</span>
+    </label>
+    <small style="display:block;margin-top:5px;color:#6D28D9;font-size:12px">Transmet immédiatement l’avis de mise à disposition du conteneur vide à l’Armateur et au Transporteur.</small>
+   </div>`,
   'Valider & Ranger en stock',data=>{
    const q=+(data.qtyRecue??0);const e={};
    if(!Number.isInteger(q)||q<=0)e.qtyRecue='La quantité reçue doit être un entier supérieur à 0.';
@@ -4474,6 +4538,11 @@ function validerReceptionDepotage(id){
     const dos=S.dossiers.find(d=>d.num===r.dossier);
     if(dos){
      dos.D6 = finishDate;
+     if(data.sendMailRecup){
+      dos.D7 = finishDate;
+      if(dos.depotage) dos.depotage.mailRecupAt = nowVal;
+      audit('Mail de récupération envoyé par l’Entrepôt', dos.num, `Conteneur vide ${dos.cont} prêt pour récupération · Validé par ${user(S.me).name}`);
+     }
      dos.updatedAt = nowVal;
      dos.updatedBy = S.me;
      if(dos.depotage){
@@ -7386,6 +7455,7 @@ document.addEventListener('click',e=>{
   startDepotage:()=>startDepotage(id),
   pauseDepotage:()=>pauseDepotage(id),
   resumeDepotage:()=>resumeDepotage(id),
+  envoyerMailRecup:()=>envoyerMailRecup(id),
   validerReceptionDepotage:()=>validerReceptionDepotage(id),
   goValidateRec:()=>{closeDrawer();ent='stock';goTab('entrepot');setTimeout(()=>validerReceptionDepotage(id),80)},
   editOperateur:()=>editOperateur(id),toggleOperateur:()=>toggleOperateur(id),editDriver:()=>editDriver(id),toggleDriver:()=>toggleDriver(id),executerLavagePlanning:()=>executerLavagePlanning(id),
@@ -7402,9 +7472,9 @@ document.addEventListener('click',e=>{
   validerStepJour:()=>{if(!guard('transit'))return;const d=S.dossiers.find(x=>x.id===id);if(!d||!d.D3)return;
    const sk=a.dataset.step,st=SEQ_STEPS.find(x=>x.k===sk);if(!st||d[sk])return;
    if(sk==='D4'||sk==='trans'){validerMiseEnLivraison(id);return;}
-   if(sk==='D6'){toast('Le dépotage est uniquement confirmé et lancé au niveau de l’Entrepôt.','bad');return}
+   if(sk==='D6'){toast('Le dépotage est uniquement confirmé et exécuté au niveau de l’Entrepôt.','bad');return}
+   if(sk==='D7'){toast('La validation du mail de récupération est à envoyer uniquement par les Entrepôts.','bad');return}
    if(!d[st.prev]){toast(`Validez d’abord « ${st.prevLabel} ».`,'bad');return}
-   if(sk==='D7'&&!isDepotageTermine(d)){toast('Le mail de récupération ne peut pas être envoyé tant que le dépotage n’a pas été terminé en Entrepôt.','bad');return}
    const isRecovery=sk==='D8';
    const successMsg=isRecovery
     ?`Conteneur récupéré le ${fmt(TODAY_ISO)} : le dossier ${d.num} est désormais clôturé.`
@@ -7431,7 +7501,7 @@ document.addEventListener('click',e=>{
     const raw=s.type==='date'?(chk?.checked?TODAY_ISO:(vals[s.k]||'')):(vals[s.k]||'');
     if(!prevOk&&raw){toast(`Ordre séquentiel non respecté : validez d’abord « ${s.prevLabel} » avant « ${s.label} ».`,'bad');return}
     if(s.k==='D6'&&raw&&!d.D6){toast('Le dépotage est uniquement confirmé et exécuté au niveau de l’Entrepôt.','bad');return}
-    if(s.k==='D7'&&raw&&!isDepotageTermine(d)){toast('Le mail de récupération ne peut pas être validé tant que le dépotage n’a pas été terminé en Entrepôt.','bad');return}
+    if(s.k==='D7'&&raw&&!d.D7){toast('La validation du mail de récupération est à envoyer uniquement par les Entrepôts.','bad');return}
     if(s.k==='D4'&&raw&&!vals.trans&&!d.trans){toast('Lors de la mise en livraison, veuillez sélectionner le transporteur.','bad');return}
     if(s.type==='date'&&raw&&raw<TODAY_ISO){toast(`Aucune date antérieure ne peut être saisie pour « ${s.label} ». C’est la date du jour (${fmt(TODAY_ISO)}) qui est prise en compte.`,'bad');return}
     next[s.k]=prevOk?(s.type==='date'&&raw?TODAY_ISO:raw):'';
