@@ -3661,7 +3661,7 @@ function vEntrepot(){
      <td>${depotDateHtml}</td>
      <td class="right num"><b style="font-size:16px">${n0(r.total)}</b>${r.model&&r.model!=='MB5'?` <span class="badge b-autre">${esc(r.model)}</span>`:''}</td>
      <td>${depotTimerHtml(r)}</td>
-     <td style="white-space:nowrap" onclick="event.stopPropagation()">
+     <td style="white-space:nowrap">
       ${!r.depotStartAt ? `
        <button class="btn small primary${lockCls('entrepot')}" data-act="startDepotage" data-id="${r.id}">▶️ Démarrer</button>
       ` : (st === 'En pause' ? `
@@ -3706,7 +3706,7 @@ function vEntrepot(){
     <td class="right num"><b style="font-size:15px">${n0(qEm)}</b></td>
     <td><span class="badge ${r.model&&r.model!=='MB5'?'b-autre':'b-info'}">${esc(r.model||'MB5')}</span></td>
     <td>${depotTimerHtml(r)}</td>
-    <td style="white-space:nowrap" onclick="event.stopPropagation()">
+    <td style="white-space:nowrap">
      ${!r.depotStartAt ? `
       <button class="btn small primary${lockCls('entrepot')}" data-act="startDepotage" data-id="${r.id}">▶️ Démarrer</button>
      ` : (st === 'En pause' ? `
@@ -7375,7 +7375,7 @@ document.addEventListener('click',e=>{
   printFicheProd,
    openTransportDetails:()=>openTransportDetails(id),
   toggleRecValSort:()=>{recValSort=recValSort==='desc'?'asc':'desc';render()},
-   openOpProvenance:()=>openOpProvenance(a.dataset.kind,id),
+   openOpProvenance:()=>{if(e.target.closest("td:last-child")||e.target.closest("button"))return;openOpProvenance(a.dataset.kind,id)},
   finishReparation:()=>finishReparation(id),
   commentMove:()=>commentMove(id),
   newTransport,newDemandeTransport,newDestination,newLivraison,newOperateur,newConv,newUser,newDriver,
