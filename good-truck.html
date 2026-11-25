@@ -3310,7 +3310,7 @@ function openDossier(id,edit=false){
      }
      if(s.k==='D6'&&!val){
       if(!d.depotage&&d.D5) ensureDepotageTransmis(d);
-      ctrl = disp || `<span class="badge b-warn" style="font-weight:600">⏳ Transmis au Dépôt · Dépotage confirmé & lancé en Entrepôt</span>`;
+      ctrl = disp || `<span class="badge b-warn" style="font-weight:600">⏳ Transmis au Dépôt</span>`;
      }else{
       const attenteMsg=(s.k==='D7' && d.D6 && !depDone)?'Dépotage terminé en Entrepôt':s.prevLabel;
       ctrl=disp||(prevOk?`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px"><span class="badge b-bad">Non renseigné · prêt à valider</span>${actBtn}</div>`:`<span class="badge b-bad">🔒 Non renseigné (attente : ${attenteMsg})</span>`);
