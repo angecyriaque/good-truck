@@ -1128,7 +1128,7 @@ S.drivers = S.drivers || [];
 if(!S.drivers.length) S.drivers = JSON.parse(JSON.stringify(DEFAULT_DRIVERS));
 if(!S.seq) S.seq = {};
 if(!S.seq.DRV) S.seq.DRV = S.drivers.length;
-S.dossiers.forEach(d => { if (!d.comments) d.comments = []; });
+S.dossiers.forEach(d => { if (!d.comments) d.comments = []; if(d.D5 && !d.depotage && d.status !== 'Clôturé') ensureDepotageTransmis(d); });
 S.transports.forEach(t => { if (!t.incidents) t.incidents = []; });
 
 // Activer toutes les fonctionnalités, comptes, opérateurs et destinations
@@ -3024,6 +3024,50 @@ function resumeDepotage(id){
  });
 }
 
+function ensureDepotageTransmis(d, totalQty=140, model='MB5'){
+ if(!d || !d.D5 || d.depotage) return;
+ S.seq.REC = (S.seq.REC || 7) + 1;
+ const recId = 'REC-' + String(S.seq.REC).padStart(3, '0');
+ const total = +totalQty || 140;
+ d.depotage = {
+  date: TODAY_ISO,
+  total,
+  model,
+  recId,
+  by: S.me,
+  at: nowISO(),
+  depotStartAt: '',
+  depotEndAt: '',
+  depotStatus: 'Non démarré',
+  depotPauseMs: 0,
+  depotPausedAt: '',
+  depotPauses: []
+ };
+ if(!S.receptions) S.receptions = [];
+ S.receptions.push({
+  id: recId,
+  dossier: d.num,
+  cont: d.cont,
+  date: TODAY_ISO,
+  total,
+  model,
+  typeRec: 'sale',
+  cat: 'sale',
+  qtyEmise: total,
+  qtyRecue: 0,
+  status: 'En attente',
+  by: S.me,
+  at: nowISO(),
+  depotStartAt: '',
+  depotEndAt: '',
+  depotStatus: 'Non démarré',
+  depotPauseMs: 0,
+  depotPausedAt: '',
+  depotPauses: []
+ });
+ audit('Transmission dépotage au Dépôt', d.num, `${recId} (${total} palettes ${model}) transmis au Dépôt dès l’étape dépotage.`);
+}
+
 function isDepotageTermine(d){
  if(!d) return false;
  if(!d.D6) return false;
@@ -3062,10 +3106,7 @@ function depotageSummary(d){
     ${depotTimerHtml(target)}
    </div>
   </div>
-  <div style="margin-top:8px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px">
-   <span>📍</span>
-   <span>Opération exécutée en Entrepôt (Stock & Réceptions) · Statut dépotage : <b style="color:${termine?'var(--ok)':'var(--blue)'}">${esc(st)}</b></span>
-  </div>
+
   ${(target.depotPauses && target.depotPauses.length) ? `
    <div style="margin-top:8px;font-size:11.5px;color:var(--muted);border-top:1px dashed #DDD6FE;padding-top:6px">
     <b>Pauses enregistrées (${target.depotPauses.length}) :</b> ${target.depotPauses.map(p => `${esc(p.reason||'Pause')} (${fmtLoadDur(p.durMs)})`).join(' · ')}
@@ -3205,7 +3246,7 @@ function openDossier(id,edit=false){
   <div style="display:flex;gap:8px;flex-wrap:wrap">
    ${clos?`<button class="btn${lockCls('transit')}" data-act="reopen" data-id="${d.id}">Rouvrir le dossier</button>`:`
     ${!arrived?`<button class="btn${lockCls('transit')}" data-act="editInit" data-id="${d.id}">Modifier infos initiales</button><button class="btn primary${lockCls('transit')}" data-act="confirmArrival" data-id="${d.id}">Confirmer l’arrivée navire (ATA)</button>`:`<button class="btn primary${lockCls('transit')}" data-act="${edit?'saveDates':'editDates'}" data-id="${d.id}">${edit?'Enregistrer le suivi':'Renseigner le suivi'}</button>`}
-    ${arrived&&d.D5&&!d.depotage?`<button class="btn primary${lockCls('transit')}" data-act="validerDepotage" data-id="${d.id}">Confirmer le dépotage</button>`:''}
+    
     `}
    <button class="btn" data-act="openConv" data-dossier="${d.id}">Discuter</button>
    <button class="btn" data-act="copyFiche" data-id="${d.id}">Copier la fiche</button>
@@ -3262,13 +3303,18 @@ function openDossier(id,edit=false){
      const disp=s.type==='select'?(val?`<b>${esc(val)}</b>`:''):(val?`<b>${fmt(val)}</b>`:'');
      let actBtn='';
      if(prevOk&&!val&&!clos){
-      if(s.k==='D6')actBtn=`<button type="button" class="btn small primary${lockCls('transit')}" data-act="validerDepotage" data-id="${d.id}">Confirmer dépotage</button>`;
+      if(s.k==='D6'){ actBtn=''; }
       else if(s.k==='D4'||s.type==='select')actBtn=`<button type="button" class="btn small primary${lockCls('transit')}" data-act="validerMiseEnLivraison" data-id="${d.id}">Mise en livraison & Transporteur</button>`;
       else if(s.k==='D8')actBtn=`<button type="button" class="btn small primary${lockCls('transit')}" data-act="validerStepJour" data-id="${d.id}" data-step="${s.k}" style="background:#059669;border-color:#047857">Valider récupération & Clôturer</button>`;
       else actBtn=`<button type="button" class="btn small primary${lockCls('transit')}" data-act="validerStepJour" data-id="${d.id}" data-step="${s.k}">Valider ce jour</button>`;
      }
-     const attenteMsg=(s.k==='D7' && d.D6 && !depDone)?'Dépotage terminé en Entrepôt':s.prevLabel;
-     ctrl=disp||(prevOk?`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px"><span class="badge b-bad">Non renseigné · prêt à valider</span>${actBtn}</div>`:`<span class="badge b-bad">🔒 Non renseigné (attente : ${attenteMsg})</span>`);
+     if(s.k==='D6'&&!val){
+      if(!d.depotage&&d.D5) ensureDepotageTransmis(d);
+      ctrl = disp || `<span class="badge b-warn" style="font-weight:600">⏳ Transmis au Dépôt · Dépotage confirmé & lancé en Entrepôt</span>`;
+     }else{
+      const attenteMsg=(s.k==='D7' && d.D6 && !depDone)?'Dépotage terminé en Entrepôt':s.prevLabel;
+      ctrl=disp||(prevOk?`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px"><span class="badge b-bad">Non renseigné · prêt à valider</span>${actBtn}</div>`:`<span class="badge b-bad">🔒 Non renseigné (attente : ${attenteMsg})</span>`);
+     }
      if(s.k==='D6'&&d.depotage)ctrl+=depotageSummary(d);
     }
     return `<div class="date${!val?' undated':''}" data-step="${s.k}" style="opacity:${!edit&&!prevOk&&!val?'.85':'1'}"><span class="code">${s.step}</span><div style="flex:1;min-width:0"><small>${s.label}</small>${ctrl}</div></div>`;
@@ -3586,13 +3632,13 @@ function vEntrepot(){
  ];
 
  /* Tableau des réceptions en attente dans Stock & Réceptions : uniquement quantité totale à recevoir et date de dépotage */
- const pendingRecTable=()=>`<section class="panel" style="margin-bottom:20px;padding:0;border-radius:14px;border:1px solid #DDD6FE;border-left:6px solid #7C3AED;overflow:hidden;background:var(--surface);box-shadow:0 2px 8px rgba(124,58,237,0.05)">
-  <div style="background:linear-gradient(135deg,#F5F3FF 0%,#EDE9FE 100%);padding:14px 18px;border-bottom:1px solid #DDD6FE;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+ const pendingRecTable=()=>`<section class="panel" style="margin-bottom:20px;padding:0;border-radius:14px;border:2.5px solid #6D28D9;border-left:9px solid #4C1D95;overflow:hidden;background:var(--surface);box-shadow:0 4px 14px rgba(109,40,217,0.15)">
+  <div style="background:linear-gradient(135deg,#EDE9FE 0%,#DDD6FE 100%);padding:14px 18px;border-bottom:2.5px solid #6D28D9;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
    <div style="display:flex;align-items:center;gap:12px">
-    <span style="background:#7C3AED;color:#FFF;padding:4px 10px;border-radius:7px;font-size:11px;font-weight:800;letter-spacing:0.6px;box-shadow:0 1px 3px rgba(124,58,237,0.3)">RUBRIQUE 3</span>
+    <span style="background:#4C1D95;color:#FFF;padding:4px 10px;border-radius:7px;font-size:11.5px;font-weight:800;letter-spacing:0.6px;box-shadow:0 2px 4px rgba(76,29,149,0.4)">RUBRIQUE 3</span>
     <div>
-     <h3 style="margin:0;font-size:15.5px;color:#5B21B6;font-weight:700">3. Réceptions de dépotage en attente de validation en Entrepôt</h3>
-     <small style="color:#6D28D9;font-size:12.5px">Transférées automatiquement dès la confirmation du dépotage dans le volet Transit.</small>
+     <h3 style="margin:0;font-size:15.5px;color:#2E1065;font-weight:800">3. Réceptions de dépotage en attente de validation en Entrepôt</h3>
+     <small style="color:#5B21B6;font-size:12.5px;font-weight:600">Transférées automatiquement dès l’étape de dépotage du conteneur.</small>
     </div>
    </div>
    ${pendRecs.length?badge('warn',`${pendRecs.length} réception${pendRecs.length>1?'s':''} en attente de validation`,'📥'):badge('ok','Aucune réception en attente','✓')}
@@ -3703,13 +3749,13 @@ function vEntrepot(){
  const pendPlns=sitePlanifs(cS).filter(p=>p.status!=='Annulée'&&!p.stockValAt);
  const waitLoadTrs=siteTransports(cS).filter(t=>t.status==='Planifié');
  const pendingPlnStockTable=()=>`<!-- CADRANT RUBRIQUE 1 : VALIDATION STOCK PLANIFICATION -->
-  <section class="panel" style="margin-bottom:20px;padding:0;border-radius:14px;border:1px solid #FDE68A;border-left:6px solid #D97706;overflow:hidden;background:var(--surface);box-shadow:0 2px 8px rgba(217,119,6,0.06)">
-   <div style="background:linear-gradient(135deg,#FFFBEB 0%,#FEF3C7 100%);padding:14px 18px;border-bottom:1px solid #FDE68A;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+  <section class="panel" style="margin-bottom:20px;padding:0;border-radius:14px;border:2.5px solid #B45309;border-left:9px solid #92400E;overflow:hidden;background:var(--surface);box-shadow:0 4px 14px rgba(180,83,9,0.15)">
+   <div style="background:linear-gradient(135deg,#FEF3C7 0%,#FDE68A 100%);padding:14px 18px;border-bottom:2.5px solid #B45309;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
     <div style="display:flex;align-items:center;gap:12px">
-     <span style="background:#D97706;color:#FFF;padding:4px 10px;border-radius:7px;font-size:11px;font-weight:800;letter-spacing:0.6px;box-shadow:0 1px 3px rgba(217,119,6,0.3)">RUBRIQUE 1</span>
+     <span style="background:#92400E;color:#FFF;padding:4px 10px;border-radius:7px;font-size:11.5px;font-weight:800;letter-spacing:0.6px;box-shadow:0 2px 4px rgba(146,64,14,0.4)">RUBRIQUE 1</span>
      <div>
-      <h3 style="margin:0;font-size:15.5px;color:#92400E;font-weight:700">1. Demandes de transport (Planifications à valider par le Dépôt)</h3>
-      <small style="color:#B45309;font-size:12.5px">Validez la réservation du stock demandée pour autoriser le Transport à programmer le camion, chauffeur et transporteur.</small>
+      <h3 style="margin:0;font-size:15.5px;color:#78350F;font-weight:800">1. Demandes de transport (Planifications à valider par le Dépôt)</h3>
+      <small style="color:#92400E;font-size:12.5px;font-weight:600">Validez la réservation du stock demandée pour autoriser le Transport à programmer le camion, chauffeur et transporteur.</small>
      </div>
     </div>
     ${pendPlns.length?badge('warn',`${pendPlns.length} planification${pendPlns.length>1?'s':''} en cours (attente validation réservation stock)`,'⏳'):badge('ok','Aucune demande de transport en attente','✓')}
@@ -3734,13 +3780,13 @@ function vEntrepot(){
   </section>
 
   <!-- CADRANT RUBRIQUE 2 : CAMIONS CONFIRMÉS AU CHARGEMENT -->
-  <section class="panel" style="margin-bottom:20px;padding:0;border-radius:14px;border:1px solid #BFDBFE;border-left:6px solid #2563EB;overflow:hidden;background:var(--surface);box-shadow:0 2px 8px rgba(37,99,235,0.06)">
-   <div style="background:linear-gradient(135deg,#EFF6FF 0%,#DBEAFE 100%);padding:14px 18px;border-bottom:1px solid #BFDBFE;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+  <section class="panel" style="margin-bottom:20px;padding:0;border-radius:14px;border:2.5px solid #1D4ED8;border-left:9px solid #1E3A8A;overflow:hidden;background:var(--surface);box-shadow:0 4px 14px rgba(29,78,216,0.15)">
+   <div style="background:linear-gradient(135deg,#DBEAFE 0%,#BFDBFE 100%);padding:14px 18px;border-bottom:2.5px solid #1D4ED8;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
     <div style="display:flex;align-items:center;gap:12px">
-     <span style="background:#2563EB;color:#FFF;padding:4px 10px;border-radius:7px;font-size:11px;font-weight:800;letter-spacing:0.6px;box-shadow:0 1px 3px rgba(37,99,235,0.3)">RUBRIQUE 2</span>
+     <span style="background:#1E3A8A;color:#FFF;padding:4px 10px;border-radius:7px;font-size:11.5px;font-weight:800;letter-spacing:0.6px;box-shadow:0 2px 4px rgba(30,58,138,0.4)">RUBRIQUE 2</span>
      <div>
-      <h3 style="margin:0;font-size:15.5px;color:#1E40AF;font-weight:700">2. Camions confirmés au chargement — Décompte & Expédition (Entrepôt)</h3>
-      <small style="color:#1D4ED8;font-size:12.5px">Démarrez le chargement pour décompter sa durée, puis cliquez sur « Débuter l’expédition » pour enclencher le transport.</small>
+      <h3 style="margin:0;font-size:15.5px;color:#172554;font-weight:800">2. Camions confirmés au chargement — Décompte & Expédition (Entrepôt)</h3>
+      <small style="color:#1E40AF;font-size:12.5px;font-weight:600">Démarrez le chargement pour décompter sa durée, puis cliquez sur « Débuter l’expédition » pour enclencher le transport.</small>
      </div>
     </div>
     ${waitLoadTrs.length?badge('info',`${waitLoadTrs.length} camion${waitLoadTrs.length>1?'s':''} au quai`,'🚚'):badge('ok','Aucun chargement en attente','✓')}
@@ -3778,13 +3824,13 @@ function vEntrepot(){
    pendingPlnStockTable()+
    pendingRecTable()+
    `<!-- CADRANT RUBRIQUE 4 : SITUATION & DISPONIBILITÉ DES STOCKS -->
-   <section class="panel" style="margin-bottom:20px;padding:0;border-radius:14px;border:1px solid #CBD5E1;border-left:6px solid #0F766E;overflow:hidden;background:var(--surface);box-shadow:0 2px 8px rgba(15,118,110,0.06)">
-    <div style="background:linear-gradient(135deg,#F0FDFA 0%,#CCFBF1 100%);padding:14px 18px;border-bottom:1px solid #99F6E4;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+   <section class="panel" style="margin-bottom:20px;padding:0;border-radius:14px;border:2.5px solid #0F766E;border-left:9px solid #115E59;overflow:hidden;background:var(--surface);box-shadow:0 4px 14px rgba(15,118,110,0.15)">
+    <div style="background:linear-gradient(135deg,#CCFBF1 0%,#99F6E4 100%);padding:14px 18px;border-bottom:2.5px solid #0F766E;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
      <div style="display:flex;align-items:center;gap:12px">
-      <span style="background:#0F766E;color:#FFF;padding:4px 10px;border-radius:7px;font-size:11px;font-weight:800;letter-spacing:0.6px;box-shadow:0 1px 3px rgba(15,118,110,0.3)">RUBRIQUE 4</span>
+      <span style="background:#115E59;color:#FFF;padding:4px 10px;border-radius:7px;font-size:11.5px;font-weight:800;letter-spacing:0.6px;box-shadow:0 2px 4px rgba(17,94,89,0.4)">RUBRIQUE 4</span>
       <div>
-       <h3 style="margin:0;font-size:15.5px;color:#115E59;font-weight:700">4. Situation & Disponibilité des Stocks de Palettes (${curSiteObj().name})</h3>
-       <small style="color:#0F766E;font-size:12.5px">Suivi en temps réel des catégories de palettes, réservations transport et stocks disponibles au quai.</small>
+       <h3 style="margin:0;font-size:15.5px;color:#042F2E;font-weight:800">4. Situation & Disponibilité des Stocks de Palettes (${curSiteObj().name})</h3>
+       <small style="color:#115E59;font-size:12.5px;font-weight:600">Suivi en temps réel des catégories de palettes, réservations transport et stocks disponibles au quai.</small>
       </div>
      </div>
      <span class="badge b-ok" style="font-size:12px;font-weight:700">Total : ${n0(totalStock)} palettes</span>
@@ -7338,6 +7384,7 @@ document.addEventListener('click',e=>{
   validerStepJour:()=>{if(!guard('transit'))return;const d=S.dossiers.find(x=>x.id===id);if(!d||!d.D3)return;
    const sk=a.dataset.step,st=SEQ_STEPS.find(x=>x.k===sk);if(!st||d[sk])return;
    if(sk==='D4'||sk==='trans'){validerMiseEnLivraison(id);return;}
+   if(sk==='D6'){toast('Le dépotage est uniquement confirmé et lancé au niveau de l’Entrepôt.','bad');return}
    if(!d[st.prev]){toast(`Validez d’abord « ${st.prevLabel} ».`,'bad');return}
    if(sk==='D7'&&!isDepotageTermine(d)){toast('Le mail de récupération ne peut pas être envoyé tant que le dépotage n’a pas été terminé en Entrepôt.','bad');return}
    const isRecovery=sk==='D8';
@@ -7346,6 +7393,7 @@ document.addEventListener('click',e=>{
     :`« ${st.label} » validée à la date du jour (${fmt(TODAY_ISO)}).`;
    save(successMsg,()=>{
     d[sk]=TODAY_ISO;
+    if(sk==='D5'){ ensureDepotageTransmis(d); }
     if(isRecovery){
      d.status='Clôturé';
      audit('Clôture automatique du dossier (conteneur récupéré)',d.num,`Conteneur retourné au port le ${fmt(TODAY_ISO)} · Dossier clôturé automatiquement.`);
@@ -7364,6 +7412,7 @@ document.addEventListener('click',e=>{
     const chk=f.querySelector(`[data-chk="${s.k}"]`);
     const raw=s.type==='date'?(chk?.checked?TODAY_ISO:(vals[s.k]||'')):(vals[s.k]||'');
     if(!prevOk&&raw){toast(`Ordre séquentiel non respecté : validez d’abord « ${s.prevLabel} » avant « ${s.label} ».`,'bad');return}
+    if(s.k==='D6'&&raw&&!d.D6){toast('Le dépotage est uniquement confirmé et exécuté au niveau de l’Entrepôt.','bad');return}
     if(s.k==='D7'&&raw&&!isDepotageTermine(d)){toast('Le mail de récupération ne peut pas être validé tant que le dépotage n’a pas été terminé en Entrepôt.','bad');return}
     if(s.k==='D4'&&raw&&!vals.trans&&!d.trans){toast('Lors de la mise en livraison, veuillez sélectionner le transporteur.','bad');return}
     if(s.type==='date'&&raw&&raw<TODAY_ISO){toast(`Aucune date antérieure ne peut être saisie pour « ${s.label} ». C’est la date du jour (${fmt(TODAY_ISO)}) qui est prise en compte.`,'bad');return}
