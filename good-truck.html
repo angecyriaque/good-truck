@@ -4420,12 +4420,11 @@ function validerReceptionDepotage(id){
  openModal(`Valider la réception en stock · ${r.id} (${r.dossier})`,
   `<div class="full" style="padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);font-size:13px">
    <b>Conteneur <span class="num">${esc(r.cont)}</span> · Dépotage du ${fmt(r.date)} : <span class="num" style="color:var(--blue);font-size:16px">${n0(r.total)}</span> palettes à recevoir</b><br>
-   <small class="muted">Précisez s’il s’agit de <b>palettes sales</b> ou de <b>palettes lavées (Stock Classique ou Stock SKCI)</b>, le modèle de palette (MB5 habituel ou ${autresModelsList().join('/')} → Autre) et le stock où les ranger.</small>
+   <small class="muted">Précisez s’il s’agit de <b>palettes sales</b> ou de <b>palettes propres</b>, le modèle de palette (MB5 habituel ou ${autresModelsList().join('/')} → Autre) et le stock où les ranger.</small>
   </div>`+
   fld('Statut des palettes reçues','typeRec','select',{req:1,options:[
-   ['sale','Palettes sales reçues'],
-   ['lavee_global','Palettes lavées reçues · Stock Classique'],
-   ['lavee_skci','Palettes lavées reçues · Stock SKCI']
+   ['sale','Palettes sales'],
+   ['propre','Palettes propres']
   ],value:'sale'})+
   fld('Modèle de palette','model','select',{req:1,options:[['MB5','MB5 (Palette habituelle)'],...autresModelsList().map(m=>[m,`${m} (Hors MB5 → Stock Autre)`])],value:defModel})+
   fld('Ranger dans le stock','cat','select',{req:1,full:1,options:[
@@ -4445,7 +4444,7 @@ function validerReceptionDepotage(id){
    const model=data.model||'MB5';
    const targetCat=model!=='MB5'?'autre':data.cat;
    const lbl=catL(targetCat);
-   const etatLabel=data.typeRec==='lavee_skci'?'Palettes lavées · Stock SKCI':data.typeRec==='lavee_global'?'Palettes lavées · Stock Classique':'Palettes sales';
+   const etatLabel=data.typeRec==='propre'?'Palettes propres':'Palettes sales';
    save(`Réception ${r.id} validée : ${n0(q)} palettes (${model}) rangées dans « ${lbl} ».`,()=>{
     const tx='TXREC-'+Date.now();
     if(targetCat==='autre'){
@@ -4483,9 +4482,11 @@ function validerReceptionDepotage(id){
  const syncRecCat=()=>{
   if(!typeSel||!modSel||!catSel)return;
   if(modSel.value!=='MB5'){catSel.value='autre';return}
-  if(typeSel.value==='lavee_global')catSel.value='propre_global';
-  else if(typeSel.value==='lavee_skci')catSel.value='propre_skci';
-  else if(catSel.value==='autre'||catSel.value==='propre_global'||catSel.value==='propre_skci')catSel.value='sale';
+  if(typeSel.value==='propre'){
+   if(catSel.value!=='propre_global'&&catSel.value!=='propre_skci') catSel.value='propre_global';
+  }else{
+   catSel.value='sale';
+  }
  };
  typeSel?.addEventListener('change',syncRecCat);
  modSel?.addEventListener('change',syncRecCat);
