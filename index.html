@@ -3150,11 +3150,31 @@ function depotageSummary(d){
    </div>
   </div>
 
-  ${(target.depotPauses && target.depotPauses.length) ? `
-   <div style="margin-top:8px;font-size:11.5px;color:var(--muted);border-top:1px dashed #DDD6FE;padding-top:6px">
-    <b>Pauses enregistrées (${target.depotPauses.length}) :</b> ${target.depotPauses.map(p => `${esc(p.reason||'Pause')} (${fmtLoadDur(p.durMs)})`).join(' · ')}
-   </div>
-  ` : ''}
+  ${(()=>{
+   const pauses = target.depotPauses || [];
+   const totMs = (pauses.length ? pauses.reduce((acc, p) => acc + (p.durMs || 0), 0) : 0) || (target.depotPauseMs || 0);
+   if(!pauses.length && !totMs) return '';
+   const byReason = {};
+   pauses.forEach(p => {
+    const rk = p.reason || 'Pause';
+    if(!byReason[rk]) byReason[rk] = { count: 0, ms: 0 };
+    byReason[rk].count++;
+    byReason[rk].ms += (p.durMs || 0);
+   });
+   const entries = Object.entries(byReason);
+   let cumulText = '';
+   if(entries.length === 1){
+    cumulText = `${esc(entries[0][0])} : <b>${fmtLoadDur(totMs)}</b>`;
+   }else if(entries.length > 1){
+    cumulText = `<b class="num" style="color:#92400E;font-size:12px">${fmtLoadDur(totMs)}</b> <small style="color:var(--muted)">(${entries.map(([r, d]) => `${esc(r)}${d.count > 1 ? ` (${d.count}x)` : ''} : ${fmtLoadDur(d.ms)}`).join(' · ')})</small>`;
+   }else{
+    cumulText = `<b>${fmtLoadDur(totMs)}</b>`;
+   }
+   const detailTitle = pauses.map((p, i) => `Pause ${i+1} : ${p.reason||'Pause'} (${fmtLoadDur(p.durMs)})`).join(' · ');
+   return `<div style="margin-top:8px;font-size:11.5px;color:var(--muted);border-top:1px dashed #DDD6FE;padding-top:6px" title="${esc(detailTitle)}">
+    <b>Pauses cumulées${pauses.length ? ` (${pauses.length})` : ''} :</b> ${cumulText}
+   </div>`;
+  })()}
  </div>`;
 }
 
