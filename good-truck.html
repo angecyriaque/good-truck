@@ -850,6 +850,16 @@ const PERMS={
 };
 const ARMATEURS=['MSC','CMA CGM','Maersk','Hapag-Lloyd','PIL'];
 const LAMINEURS=ARMATEURS;
+const DEFAULT_DRIVERS = [
+  {id:'DRV-001',name:'Moussa Koné',trans:'Trans-Lagune',phone:'+225 07 08 41 22 15',veh:'AB-4521-CI',permis:'Permis BCDE',active:true,notes:'Chauffeur attitré trajet Vridi - Yopougon'},
+  {id:'DRV-002',name:'Seydou Traoré',trans:'Trans-Lagune',phone:'+225 07 08 41 22 18',veh:'AB-6790-CI',permis:'Permis BCDE',active:true,notes:'Plateau 40ft · Dépotage et traction portuaire'},
+  {id:'DRV-003',name:'Adjoua Kouassi',trans:'Ébrié Fret',phone:'+225 05 04 92 18 40',veh:'EF-2311-CI',permis:'Permis BCDE',active:true,notes:'Navette Grand Abidjan & Zone PK24'},
+  {id:'DRV-004',name:'Kacou Bernard',trans:'Ébrié Fret',phone:'+225 05 04 92 18 42',veh:'EF-8840-CI',permis:'Permis CDE',active:true,notes:'Tracteur routier 3 essieux'},
+  {id:'DRV-005',name:'Jean-Marc Aka',trans:'CI Express Logistique',phone:'+225 07 49 11 05 77',veh:'AA-9034-CI',permis:'Permis BCDE',active:true,notes:'Spécialiste ligne Abidjan - San-Pedro'},
+  {id:'DRV-006',name:'Désiré Bamba',trans:'CI Express Logistique',phone:'+225 07 49 11 05 80',veh:'AA-5120-CI',permis:'Permis BCDE',active:true,notes:'Liaison Bonoua et Sud Comoé'},
+  {id:'DRV-007',name:'Ibrahim Ouattara',trans:'Comoé Transport',phone:'+225 01 02 65 80 50',veh:'AC-1187-CI',permis:'Permis BCDE',active:true,notes:'Liaisons intérieures & usines de transformation'},
+  {id:'DRV-008',name:'Mamadou Bakayoko',trans:'Comoé Transport',phone:'+225 01 02 65 80 55',veh:'AC-7730-CI',permis:'Permis BCDE',active:true,notes:'Semi-remorque bâchée'}
+];
 const TRANSPORTEURS=['Trans-Lagune','Ébrié Fret','CI Express Logistique','Comoé Transport'];
 const SITES_APP=[
  {id:'abidjan',name:'Abidjan',short:'ABJ',hub:'Entrepôt Vridi · Port autonome d’Abidjan',entrepot:'Entrepôt Vridi',port:'Port autonome d’Abidjan',icon:'🏢',tag:'Vridi',desc:'Site principal · Hub logistique Vridi & Port d’Abidjan'},
@@ -1091,7 +1101,7 @@ function seed(){
  return {v:15,curSite:'abidjan',me:'u1',users,operators,destinations,receptions,paletteModels,autresPalettes,dossiers,movements:mv,lavages,reparations,deliveries,transports,planifications,convs,
   stockInit:{sale:300,propre_skci:340,propre_global:310,reparation:48,quarantaine:18,autre:45},
   audit:[{t:ago(-1,16,5),user:'u3',action:'Dépotage transmis à l’entrepôt',obj:'GT-2026-103',details:'REC-003 (140 palettes) transféré automatiquement en Stock & Réceptions'},{t:ago(0,9,10),user:'u4',action:'Lavage enregistré',obj:'LAV-004',details:'Lot LOT-2026-34 : 120 palettes lavées affectées au Stock Global'},{t:ago(0,14,0),user:'u4',action:'Opération DOOR SWAP',obj:'REP-002',details:'15 palettes en DOOR SWAP envoyées au lavage (Palettes sales)'}],
-  invoices,payments,relances,seq:{MV:k,LV:44,TR:23,PLN:3,LAV:4,REP:3,AUT:3,GT:109,ARM:5,TRS:4,REC:7,DST:6,FAC:4,REG:2,REL:1}};
+  invoices,payments,relances,drivers:JSON.parse(JSON.stringify(DEFAULT_DRIVERS)),seq:{MV:k,LV:44,TR:23,PLN:3,LAV:4,REP:3,AUT:3,GT:109,ARM:5,TRS:4,REC:7,DST:6,FAC:4,REG:2,REL:1,DRV:8}};
 }
 let S;
 try{S=JSON.parse(localStorage.getItem('goodtruck-v15'))}catch(e){S=null}
@@ -1114,6 +1124,10 @@ S.convs = S.convs || [];
 S.audit = S.audit || [];
 S.seq = S.seq || {};
 S.transfers = S.transfers || [];
+S.drivers = S.drivers || [];
+if(!S.drivers.length) S.drivers = JSON.parse(JSON.stringify(DEFAULT_DRIVERS));
+if(!S.seq) S.seq = {};
+if(!S.seq.DRV) S.seq.DRV = S.drivers.length;
 S.dossiers.forEach(d => { if (!d.comments) d.comments = []; });
 S.transports.forEach(t => { if (!t.incidents) t.incidents = []; });
 
@@ -1263,6 +1277,64 @@ const persist=()=>{try{localStorage.setItem('goodtruck-v15',JSON.stringify(S))}c
 const autresModelsList=()=>S?.paletteModels?.length?S.paletteModels:['MB4','MB7','MB9'];
 const armateursList=()=>S?.operators?S.operators.filter(o=>o.type==='Armateur'&&o.active).map(o=>o.name):ARMATEURS;
 const transporteursList=()=>S?.operators?S.operators.filter(o=>o.type==='Transporteur'&&o.active).map(o=>o.name):TRANSPORTEURS;
+const driversList=(transName='')=>{
+ const all=(S?.drivers||[]).filter(d=>d.active!==false);
+ if(!transName)return all;
+ return all.filter(d=>d.trans===transName);
+};
+const driverInfo=(nameOrId,transName='')=>{
+ if(!nameOrId)return null;
+ const list=S?.drivers||[];
+ return list.find(d=>(d.id===nameOrId||d.name===nameOrId)&&(!transName||d.trans===transName))||
+        list.find(d=>d.id===nameOrId||d.name===nameOrId)||null;
+};
+function bindDriverSelector(container, opts = {}){
+ const transEl = container.querySelector('[name="trans"]');
+ const driverSel = container.querySelector('[name="driver"]');
+ const manualWrap = container.querySelector('#driverManualWrap');
+ const manualIn = container.querySelector('[name="driverCustom"]');
+ const vehEl = container.querySelector('[name="veh"]');
+ const phoneEl = container.querySelector('[name="driverPhone"]');
+ if(!transEl || !driverSel) return;
+
+ function refreshDrivers(selectedVal){
+  const curTrans = transEl.value;
+  const list = driversList(curTrans);
+  let html = `<option value="">— Sélectionner un chauffeur (${curTrans ? esc(curTrans) : 'toutes entreprises'}) —</option>`;
+  list.forEach(d => {
+   const isSel = (selectedVal && (d.name === selectedVal || d.id === selectedVal)) ? 'selected' : '';
+   html += `<option value="${esc(d.name)}" ${isSel}>👤 ${esc(d.name)} (${esc(d.phone || 'Sans contact')} · ${esc(d.veh || 'Camion N/A')})</option>`;
+  });
+  const isCustom = selectedVal && selectedVal !== '__autre__' && !list.some(d => d.name === selectedVal);
+  html += `<option value="__autre__" ${isCustom ? 'selected' : ''}>➕ Autre chauffeur (Saisie libre / Nouveau)</option>`;
+  driverSel.innerHTML = html;
+  if(isCustom && manualIn) manualIn.value = selectedVal;
+  syncFields();
+ }
+
+ function syncFields(){
+  const val = driverSel.value;
+  if(val === '__autre__'){
+   if(manualWrap) manualWrap.style.display = 'block';
+  } else {
+   if(manualWrap) manualWrap.style.display = 'none';
+   if(val){
+    const d = driverInfo(val, transEl.value);
+    if(d){
+     if(phoneEl && (!phoneEl.value || opts.forceFill !== false)) phoneEl.value = d.phone || '';
+     if(vehEl && (!vehEl.value || opts.forceFill !== false)) vehEl.value = d.veh || '';
+    }
+   }
+  }
+ }
+
+ transEl.addEventListener('change', () => {
+  refreshDrivers(driverSel.value);
+ });
+ driverSel.addEventListener('change', syncFields);
+
+ refreshDrivers(opts.currentDriver || driverSel.value);
+}
 const DEFAULT_TARIFS={'DST-01':85000,'DST-02':45000,'DST-03':350000,'DST-04':110000,'DST-05':135000,'DST-06':60000};
 (S?.destinations||[]).forEach(d=>{if(d.tarif==null)d.tarif=DEFAULT_TARIFS[d.id]||75000});
 const destinationsList=(s=curSite())=>siteDestinations(s).filter(d=>d.active!==false);
@@ -1576,7 +1648,7 @@ const TABS=[
  {k:'utilisateurs',l:'Utilisateurs',ic:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c.8-4 3.6-6 7-6s6.2 2 7 6"/><g class="a-wave"><circle cx="17.5" cy="7" r="2.5"/><path d="M16 13.5c2.6-.4 5 1.3 5.8 4.5"/></g></svg>`}];
 
 /* ===================== Navigation ===================== */
-let tab='dashboard', ent='stock', recValSort='desc', prodDate=TODAY_ISO, poolFilter='Tous', trSub='missions', trFilter='Tous', fFilter='tous', fTrans='', fQ='', lvFilter='Tous', facFilter='Tous', facQ='', recFilter='Tous', recQ='', recSub='echeancier', opFilter='Tous', opQ='', usub='comptes', chatF='tous', chatQ='', curConv=null, charts=[];
+let tab='dashboard', ent='stock', recValSort='desc', prodDate=TODAY_ISO, poolFilter='Tous', trSub='missions', drvFilter='Tous', drvQ='', trFilter='Tous', fFilter='tous', fTrans='', fQ='', lvFilter='Tous', facFilter='Tous', facQ='', recFilter='Tous', recQ='', recSub='echeancier', opFilter='Tous', opQ='', usub='comptes', chatF='tous', chatQ='', curConv=null, charts=[];
 function goTab(t){tab=t;try{history.replaceState(null,'','#'+t)}catch(e){}closeDrawer();render();window.scrollTo({top:0})}
 function renderTabs(){
  const unread=S.convs.reduce((a,c)=>a+(c.unread||0),0);
@@ -1712,16 +1784,25 @@ function newTransfertInterSite(presetFrom=curSite()){
   fld('Modèle de palette','model','select',{req:1,options:['MB5',...autresModelsList()],value:'MB5'})+
   fld('N° de ITR','itr','text',{req:1,ph:'Ex. ITR-2026-TRF01',value:'ITR-2026-TRF'+String(trfSeq).padStart(2,'0')})+
   fld('N° de Bon de Commande (PO)','po','text',{req:1,ph:'Ex. PO-TRF-01',value:'PO-TRF-'+String(trfSeq).padStart(2,'0')})+
-  fld('Transporteur','trans','select',{req:1,options:transporteursList(),value:'CI Express Logistique'})+
+  fld('Transporteur (Entreprise)','trans','select',{req:1,options:transporteursList(),value:'CI Express Logistique'})+
+  fld('Conducteur (Chauffeur répertorié)','driver','select',{req:1,blank:'— Sélectionner un chauffeur —',options:[]})+
+  `<div id="driverManualWrap" style="display:none;margin-top:-6px;margin-bottom:10px" class="full">
+     <div style="background:#F8FAFC;border:1px dashed #94A3B8;border-radius:8px;padding:8px 12px">
+       <label style="font-size:12.5px;font-weight:600;color:var(--text)">Nom du nouveau chauffeur (sera ajouté au répertoire de l’entreprise)</label>
+       <input type="text" name="driverCustom" id="f-driverCustom" placeholder="Ex. Amadou Traoré" style="margin-top:4px">
+     </div>
+   </div>`+
   fld('Immatriculation Camion / Tracteur','veh','text',{req:1,ph:'Ex. AA-9034-CI',value:'AA-9034-CI'})+
-  fld('Nom du Chauffeur','driver','text',{req:1,ph:'Ex. Jean-Marc Aka',value:'Jean-Marc Aka'})+
-  fld('Téléphone du Chauffeur','driverPhone','tel',{req:1,ph:'Ex. +225 07 49 11 05 77',value:'+225 07 49 11 05 77'})+
+  fld('Téléphone du Chauffeur (Contact)','driverPhone','tel',{req:1,ph:'Ex. +225 07 49 11 05 77',value:'+225 07 49 11 05 77'})+
   fld('Date de départ / expédition','dateDep','date',{req:1,value:TODAY_ISO,min:TODAY_ISO})+
   fld('Date prévisionnelle d’arrivée','dateArrP','date',{req:1,value:iso(1),min:TODAY_ISO})+
   fld('Statut initial de l’expédition','statusInit','select',{req:1,full:1,options:[['transit','Expédier immédiatement (En transit)'],['direct','Réception immédiate (Déjà arrivé et réceptionné)']],value:'transit'})+
   fld('Motif & Observations du transfert','obs','textarea',{full:1,ph:'Motif du rééquilibrage de stock, références complémentaires, etc.'}),
   'Valider l’expédition du transfert',data=>{
-   const e=req(data,['fromSite','toSite','cat','qty','trans','veh','driver','driverPhone','itr','po','dateDep','dateArrP']);
+   let driverName = data.driver;
+   if(driverName === '__autre__') driverName = (data.driverCustom || '').trim();
+   const e=req({ ...data, driver: driverName },['fromSite','toSite','cat','qty','trans','veh','driver','driverPhone','itr','po','dateDep','dateArrP']);
+   if(!driverName) e.driver = 'Veuillez sélectionner ou saisir un chauffeur.';
    if(data.fromSite===data.toSite)e.toSite='Le site de destination doit être distinct du site de départ.';
    const q=+data.qty;
    if(!q||q<=0)e.qty='Quantité invalide.';
@@ -1731,11 +1812,24 @@ function newTransfertInterSite(presetFrom=curSite()){
    const trId='TRF-'+String(++S.seq.TRF).padStart(4,'0');
    const isDirect=data.statusInit==='direct';
    save(`Transfert inter-sites ${trId} validé (${n0(q)} palettes vers ${siteName(data.toSite)}).`,()=>{
+    if(driverName && !S.drivers.some(d => d.name.toLowerCase() === driverName.toLowerCase() && d.trans === data.trans)){
+     S.seq.DRV = (S.seq.DRV || S.drivers.length) + 1;
+     S.drivers.push({
+      id: 'DRV-' + String(S.seq.DRV).padStart(3, '0'),
+      name: driverName,
+      trans: data.trans,
+      phone: data.driverPhone.trim(),
+      veh: data.veh.trim().toUpperCase(),
+      permis: 'Permis BCDE',
+      active: true,
+      notes: 'Ajouté lors d’un transfert inter-sites'
+     });
+    }
     const trf={
      id:trId,itr:data.itr.trim(),po:data.po.trim(),
      fromSite:data.fromSite,toSite:data.toSite,
      cat:data.cat,model:data.model||'MB5',qty:q,
-     trans:data.trans,veh:data.veh.trim(),driver:data.driver.trim(),driverPhone:data.driverPhone.trim(),
+     trans:data.trans,veh:data.veh.trim(),driver:driverName,driverPhone:data.driverPhone.trim(),
      dateDep:data.dateDep,dateArrP:data.dateArrP,dateArrR:isDirect?data.dateArrP:'',
      status:isDirect?'Réceptionné':'En transit',
      createdBy:S.me,createdAt:nowISO(),
@@ -1756,6 +1850,7 @@ function newTransfertInterSite(presetFrom=curSite()){
    },submitBtn());
   }
  );
+ bindDriverSelector($('#mform'), { currentDriver: 'Jean-Marc Aka' });
 }
 
 /* Modale de validation de la réception d'un transfert */
@@ -3615,7 +3710,7 @@ function vEntrepot(){
       <td><b class="num" style="color:var(--blue)">${esc(p.itr||'—')}</b></td>
       <td><b class="num">${esc(p.po||'—')}</b></td>
       <td><b style="color:var(--text);font-size:13.5px">${esc(p.to)}</b></td>
-      <td>${poolBadge(pool)}<br><small class="muted">Dispo : <b class="num" style="color:${enough?'var(--ok)':'var(--bad)'}">${n0(disp)}</b></small></td>
+      <td>${poolBadge(pool)}<br><small class="muted">Dispo : <b class="num" style="color:${enough?'var(--ok)':'var(--warn)'}">${n0(disp)}</b></small>${!enough ? `<br><span class="badge b-warn" style="font-size:10.5px;font-weight:700">🧼 Déclenche lavage (+${n0(p.qty - Math.max(0, disp))})</span>` : ''}</td>
       <td class="right num"><b style="font-size:16px">${n0(p.qty)}</b></td>
       <td><b>${fmt(p.depP)}</b> → ${fmt(p.arrP)}</td>
       <td style="white-space:nowrap"><button class="btn small primary${lockCls('entrepot')}" data-act="validerStockPlanif" data-id="${p.id}">✓ Valider la réservation du stock</button></td>
@@ -3763,28 +3858,49 @@ function vEntrepot(){
   </tbody></table></div>`;
  }
  if(ent==='receptions')body=historyRecTable();
- if(ent==='lavage')body=`<div class="toolbar">
+ if(ent==='lavage'){
+  const pendingPlanifLav = siteLavages().filter(l => l.status === 'Demande Planning (À laver)');
+  body=`
+  ${pendingPlanifLav.length ? `
+  <div class="panel" style="margin-bottom:14px;padding:12px 16px;border-left:5px solid var(--accent);background:linear-gradient(135deg,#FFFDF7 0%,#FFF8EB 100%);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+   <div>
+    <div style="display:flex;align-items:center;gap:8px">
+     <span style="font-size:18px">🧼</span>
+     <b style="font-size:14.5px;color:#92400E">Demandes de lavage déclenchées par le Planning (${pendingPlanifLav.length}) :</b>
+    </div>
+    <span class="muted" style="font-size:13px">Le planning a programmé des expéditions nécessitant le lavage de palettes sales pour combler les besoins de stock. Cliquez pour exécuter le lavage et verser les palettes propres dans le stock ciblé.</span>
+   </div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <span class="badge b-warn" style="font-weight:700">${n0(pendingPlanifLav.reduce((sum,l)=>sum+(l.qty||0),0))} palettes sales à laver</span>
+   </div>
+  </div>` : ''}
+  <div class="toolbar">
    <span class="grow"></span>
    <button class="btn${lockCls('entrepot')}" data-act="lavageQuarantaine">Isoler en quarantaine</button>
    <button class="btn${lockCls('entrepot')}" data-act="retourQuarantaine">Réintégrer depuis quarantaine</button>
    <button class="btn primary${lockCls('entrepot')}" data-act="newLavage">${plus()}Nouveau lavage</button>
   </div>
-  <div class="tablewrap"><table><thead><tr><th>Opération</th><th>Date d’enregistrement</th><th>Lot de lavage</th><th>Enregistré par</th><th class="right">Quantité lavée</th><th>Stock affecté</th><th>Commentaire</th><th>Statut</th></tr></thead><tbody>
+  <div class="tablewrap"><table><thead><tr><th>Opération</th><th>Date d’enregistrement</th><th>Lot de lavage</th><th>Origine / Enregistré par</th><th class="right">Quantité</th><th>Stock affecté</th><th>Commentaire</th><th>Statut</th><th>Action</th></tr></thead><tbody>
    ${siteLavages().slice().reverse().map(l=>{
     const stCol=l.stockTarget==='SKCI'?'b-skci':'b-global';
     const qty=l.qty??l.conf??l.recu??0;
-    return `<tr class="click" data-act="openOpProvenance" data-kind="lav" data-id="${l.id}" title="Cliquez sur la ligne pour voir toute l’information sur la provenance">
+    const isPendingPlanif = l.status === 'Demande Planning (À laver)';
+    return `<tr class="click" data-act="openOpProvenance" data-kind="lav" data-id="${l.id}" title="Cliquez sur la ligne pour voir toute l’information sur la provenance" style="${isPendingPlanif ? 'background:#FFFBEB;border-left:4px solid var(--accent);' : ''}">
      <td><span class="ref">${l.id}</span></td>
      <td><b>${fmt(l.dateOp||l.date?.slice(0,10))}</b><br><small class="muted">${fmtT(l.date)}</small></td>
      <td><span class="ref">${esc(l.lot)}</span></td>
-     <td><b>${esc(user(l.resp).name)}</b></td>
+     <td><b>${esc(user(l.resp).name)}</b>${l.planifRef ? `<br><span class="badge b-warn" style="font-size:10px">Ordre Planning ${esc(l.planifRef)}</span>` : ''}</td>
      <td class="right num"><b style="font-size:15px">${n0(qty)}</b></td>
      <td><span class="badge ${stCol}">Stock ${esc(l.stockTarget||'SKCI')}</span></td>
      <td class="wrap" style="max-width:260px">${esc(l.obs)||'<span class="muted">—</span>'}</td>
-     <td>${badge('ok',l.status||'Validée','✓')}</td>
+     <td>${isPendingPlanif ? `<span class="badge b-warn" style="font-weight:700">⏳ À laver (Planning)</span>` : badge('ok',l.status||'Validée','✓')}</td>
+     <td style="white-space:nowrap">
+      ${isPendingPlanif ? `<button class="btn small primary${lockCls('entrepot')}" data-act="executerLavagePlanning" data-id="${l.id}">🧼 Exécuter le lavage</button>` : `<span class="muted" style="font-size:12px">Traité</span>`}
+     </td>
     </tr>`;
-   }).join('')||`<tr><td colspan="8" class="empty">Aucune opération de lavage enregistrée.</td></tr>`}
+   }).join('')||`<tr><td colspan="9" class="empty">Aucune opération de lavage enregistrée.</td></tr>`}
   </tbody></table></div>`;
+ }
  if(ent==='reparations')body=`<div class="toolbar">
    <span class="muted grow">Suivi des opérations de <b>Soudure</b> (${n0(s.reparation)} en stock) et de <b>DOOR SWAP</b>. Lorsqu’on finit un <b>DOOR SWAP</b> (ou une soudure), les palettes vont en <b>Lavage (Palettes sales)</b> et non en Soudure.</span>
    <button class="btn${lockCls('entrepot')}" data-act="retourReparation">Sortie après soudure → Lavage${openReps.length?` (${openReps.length})`:``}</button>
@@ -4649,23 +4765,49 @@ function validerStockPlanif(id){
  if(!p) return;
  const dest = destInfo(p.to), pool = p.pool || dest?.pool || destPool(p.to) || 'Global';
  const disp = dispo(pool);
- if(p.qty > disp){
-  toast(`Validation impossible : Stock Propre ${pool} insuffisant (${n0(disp)} disponibles pour ${n0(p.qty)} demandées).`, 'bad');
-  return;
- }
- save(`Réservation de stock validée pour la demande ${p.id} (${n0(p.qty)} palettes ${pool}).`, () => {
+ const deficit = Math.max(0, p.qty - Math.max(0, disp));
+ const hasDeficit = deficit > 0;
+
+ save(`Réservation de stock validée pour la demande ${p.id} (${n0(p.qty)} palettes ${pool})${hasDeficit ? ` · Déclenchement ordre de lavage de ${n0(deficit)} palettes sales à l’entrepôt` : ''}.`, () => {
   const now = nowISO();
   p.status = 'Stock validé par le Dépôt';
   p.stockValBy = S.me;
   p.stockValAt = now;
+  p.lavageDeclenche = hasDeficit ? deficit : 0;
+
+  if(hasDeficit){
+   S.seq.LAV = (S.seq.LAV || 10) + 1;
+   const lavId = 'LAV-' + String(S.seq.LAV).padStart(3, '0');
+   S.lavages = S.lavages || [];
+   S.lavages.push({
+    id: lavId,
+    site: p.site || curSite(),
+    date: now,
+    dateOp: TODAY_ISO,
+    lot: 'LAV-CMD-' + p.id,
+    qty: deficit,
+    stockTarget: pool,
+    resp: S.me,
+    obs: `Demande de lavage déclenchée automatiquement par le Planning (${p.id} · ${n0(p.qty)} palettes demandées vers ${p.to}) pour alimenter le Stock ${pool} (+${n0(deficit)} palettes sales à laver).`,
+    status: 'Demande Planning (À laver)',
+    planifRef: p.id
+   });
+   audit('Déclenchement lavage palettes (Planning)', lavId, `Ordre de lavage de ${n0(deficit)} palettes sales vers Stock ${pool} pour honorer la demande ${p.id}`);
+  }
+
   const l = (S.deliveries||[]).find(x => x.id === p.liv);
   if(l){
    l.status = 'Stock validé (En attente Transport)';
    l.stockValAt = now;
    l.stockValBy = S.me;
+   l.lavageDeclenche = hasDeficit ? deficit : 0;
   }
-  audit('Validation Réservation Stock (Dépôt)', p.id, `${n0(p.qty)} palettes Stock ${pool} vers ${p.to} · Validé par Dépôt`);
-  toast(`Demande ${p.id} : Réservation de ${n0(p.qty)} palettes (${pool}) validée par le Dépôt. Prête pour programmation transport.`, 'ok');
+  audit('Validation Réservation Stock (Dépôt)', p.id, `${n0(p.qty)} palettes Stock ${pool} vers ${p.to} · Validé par Dépôt${hasDeficit ? ` (Demande de lavage de ${n0(deficit)} palettes sales déclenchée)` : ''}`);
+  if(hasDeficit){
+   toast(`Demande ${p.id} validée ! Stock disponible insuffisant (${n0(disp)} pal.), une demande de lavage de ${n0(deficit)} palettes sales a été automatiquement transmise à l’entrepôt pour alimenter le Stock ${pool}.`, 'ok');
+  } else {
+   toast(`Demande ${p.id} : Réservation de ${n0(p.qty)} palettes (${pool}) validée par le Dépôt. Prête pour programmation transport.`, 'ok');
+  }
  });
 }
 
@@ -4673,26 +4815,49 @@ function confirmerCamionPlanif(id){
  const p = (S.planifications||[]).find(x=>x.id===id);
  if(!p) return;
  openModal(`Confirmer le camion · ${p.id}`,
-  fld('Transporteur','trans','select',{req:1,options:transporteursList(),blank:'Choisir un transporteur',value:p.trans||''})+
+  fld('Transporteur (Entreprise)','trans','select',{req:1,options:transporteursList(),blank:'Choisir un transporteur',value:p.trans||transporteursList()[0]||''})+
+  fld('Conducteur (Chauffeur répertorié)','driver','select',{req:1,blank:'— Sélectionner un chauffeur —',options:[]})+
+  `<div id="driverManualWrap" style="display:none;margin-top:-6px;margin-bottom:10px" class="full">
+     <div style="background:#F8FAFC;border:1px dashed #94A3B8;border-radius:8px;padding:8px 12px">
+       <label style="font-size:12.5px;font-weight:600;color:var(--text)">Nom du nouveau chauffeur (sera ajouté au répertoire de l’entreprise)</label>
+       <input type="text" name="driverCustom" id="f-driverCustom" placeholder="Ex. Amadou Traoré" style="margin-top:4px">
+     </div>
+   </div>`+
   fld('Immatriculation camion','veh','text',{req:1,ph:'Ex. AA-1234-CI',value:p.veh||''})+
-  fld('Conducteur','driver','text',{req:1,ph:'Nom du chauffeur',value:p.driver||''})+
-  fld('Téléphone chauffeur','driverPhone','text',{ph:'+225 …',value:p.driverPhone||''}),
+  fld('Téléphone chauffeur (Contact)','driverPhone','text',{ph:'+225 …',value:p.driverPhone||''}),
   'Confirmer le camion', data=>{
-   const e = req(data,['trans','veh','driver']);
+   let driverName = data.driver;
+   if(driverName === '__autre__') driverName = (data.driverCustom || '').trim();
+   const e = req({ ...data, driver: driverName },['trans','veh','driver']);
+   if(!driverName) e.driver = 'Veuillez sélectionner ou saisir un chauffeur.';
    if(Object.keys(e).length) return e;
    save(`Camion ${data.veh.trim().toUpperCase()} confirmé pour ${p.id}.`, ()=>{
     p.trans = data.trans;
     p.veh = data.veh.trim().toUpperCase();
-    p.driver = data.driver.trim();
+    p.driver = driverName;
     p.driverPhone = data.driverPhone?.trim()||'';
     p.status = 'Camion confirmé';
     p.camionValBy = S.me;
     p.camionValAt = nowISO();
+    if(driverName && !S.drivers.some(d => d.name.toLowerCase() === driverName.toLowerCase() && d.trans === data.trans)){
+     S.seq.DRV = (S.seq.DRV || S.drivers.length) + 1;
+     S.drivers.push({
+      id: 'DRV-' + String(S.seq.DRV).padStart(3, '0'),
+      name: driverName,
+      trans: data.trans,
+      phone: p.driverPhone,
+      veh: p.veh,
+      permis: 'Permis BCDE',
+      active: true,
+      notes: 'Ajouté lors de la confirmation camion'
+     });
+    }
     audit('Confirmation Camion Planification', p.id, `${p.trans} · ${p.veh} · ${p.driver}`);
     closeModal();
    }, submitBtn());
   }
  );
+ bindDriverSelector($('#mform'), { currentDriver: p.driver });
 }
 
 const newDemandeTransport = () => newTransport();
@@ -4822,25 +4987,70 @@ function programmerTransportPlanif(id){
       </div>
      </div>
      <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <span class="badge ${pool==='SKCI'?'b-skci':'b-global'}" style="font-size:12px">Stock ${pool} dispo : <b>${n0(disp)}</b></span>
+      <span class="badge ${pool==='SKCI'?'b-skci':'b-global'}" style="font-size:12px">Stock ${pool} dispo : <b>${n0(disp)}</b></span>${disp < p.qty ? `<span class="badge b-warn" style="font-size:11px;font-weight:700">🧼 Demande de lavage entrepôt activée (+${n0(p.qty - Math.max(0, disp))})</span>` : ''}
      </div>
     </div>
    </div>`+
-  fld('Transporteur','trans','select',{req:1,options:transporteursList(),blank:'Choisir un transporteur',value:p.trans||transporteursList()[0]||''})+
+  fld('Transporteur (Entreprise)','trans','select',{req:1,options:transporteursList(),blank:'Choisir un transporteur',value:p.trans||transporteursList()[0]||''})+
+  fld('Conducteur (Chauffeur répertorié)','driver','select',{req:1,blank:'— Sélectionner un chauffeur —',options:[]})+
+  `<div id="driverManualWrap" style="display:none;margin-top:-6px;margin-bottom:10px" class="full">
+     <div style="background:#F8FAFC;border:1px dashed #94A3B8;border-radius:8px;padding:8px 12px">
+       <label style="font-size:12.5px;font-weight:600;color:var(--text)">Nom du nouveau chauffeur (sera ajouté au répertoire de l’entreprise)</label>
+       <input type="text" name="driverCustom" id="f-driverCustom" placeholder="Ex. Amadou Traoré" style="margin-top:4px">
+     </div>
+   </div>`+
   fld('Immatriculation camion','veh','text',{req:1,ph:'Ex. AA-1234-CI',value:p.veh||''})+
-  fld('Conducteur (Chauffeur)','driver','text',{req:1,ph:'Nom du chauffeur',value:p.driver||''})+
-  fld('Téléphone chauffeur (facultatif)','driverPhone','text',{ph:'+225 …',value:p.driverPhone||''})+
+  fld('Téléphone chauffeur (Contact)','driverPhone','text',{ph:'+225 …',value:p.driverPhone||''})+
   fld('Date de départ prévue','depP','date',{req:1,value:p.depP||iso(1),min:TODAY_ISO})+
   fld('Date d’arrivée prévue','arrP','date',{req:1,value:p.arrP||p.depP||iso(1),min:TODAY_ISO})+
-  `<p class="note" style="margin-top:8px"><b>Règle opérationnelle :</b> Dès validation, cette demande est <b>exportée directement dans le programme officiel des transports</b> (« Transports en cours ») avec <b>réservation ferme de ${n0(p.qty)} palettes</b> sur le Stock ${pool} et mise à quai pour chargement.</p>`,
+  `<p class="note" style="margin-top:8px"><b>Règle opérationnelle :</b> Dans le planning, la contrainte de stock ne bloque pas. Si le stock propre disponible est inférieur à la quantité demandée, une <b>demande de lavage de palettes sales est automatiquement transmise à l’entrepôt</b> pour préparer les palettes. Le transport est exporté dans le programme officiel (« Transports en cours »).</p>`,
   'Valider & Exporter dans le programme des transports', data => {
-   const e = req(data, ['trans','veh','driver','depP','arrP']);
+   let driverName = data.driver;
+   if(driverName === '__autre__') driverName = (data.driverCustom || '').trim();
+   const e = req({ ...data, driver: driverName }, ['trans','veh','driver','depP','arrP']);
+   if(!driverName) e.driver = 'Veuillez sélectionner ou renseigner un chauffeur.';
    if(data.depP < TODAY_ISO) e.depP = 'La date de départ ne peut être antérieure à aujourd’hui.';
    if(data.arrP < data.depP) e.arrP = 'L’arrivée doit être postérieure ou égale au départ.';
-   if(p.qty > dispo(pool)) e.trans = `Stock Propre ${pool} insuffisant (${n0(dispo(pool))} disponibles pour ${n0(p.qty)} demandées).`;
    if(Object.keys(e).length) return e;
 
-   save(`Transport validé pour ${p.to} (${n0(p.qty)} palettes) et exporté dans le programme des transports.`, () => {
+   const deficit = Math.max(0, p.qty - Math.max(0, dispo(pool)));
+   const hasDeficit = deficit > 0;
+
+   save(`Transport validé pour ${p.to} (${n0(p.qty)} palettes) et exporté dans le programme des transports${hasDeficit ? ` (Demande de lavage de ${n0(deficit)} palettes sales déclenchée à l’entrepôt)` : ''}.`, () => {
+    if(hasDeficit && (!p.lavageDeclenche || p.lavageDeclenche < deficit)){
+     S.seq.LAV = (S.seq.LAV || 10) + 1;
+     const lavId = 'LAV-' + String(S.seq.LAV).padStart(3, '0');
+     S.lavages = S.lavages || [];
+     S.lavages.push({
+      id: lavId,
+      site: p.site || curSite(),
+      date: nowISO(),
+      dateOp: TODAY_ISO,
+      lot: 'LAV-CMD-' + p.id,
+      qty: deficit,
+      stockTarget: pool,
+      resp: S.me,
+      obs: `Demande de lavage déclenchée par la validation transport (${p.id} · ${n0(p.qty)} palettes vers ${p.to}) pour reconstituer le Stock ${pool} (+${n0(deficit)} palettes).`,
+      status: 'Demande Planning (À laver)',
+      planifRef: p.id
+     });
+     p.lavageDeclenche = deficit;
+     audit('Déclenchement lavage palettes (Transport)', lavId, `Ordre de lavage de ${n0(deficit)} palettes sales pour honorer ${p.id}`);
+    }
+
+    if(driverName && !S.drivers.some(d => d.name.toLowerCase() === driverName.toLowerCase() && d.trans === data.trans)){
+     S.seq.DRV = (S.seq.DRV || S.drivers.length) + 1;
+     S.drivers.push({
+      id: 'DRV-' + String(S.seq.DRV).padStart(3, '0'),
+      name: driverName,
+      trans: data.trans,
+      phone: (data.driverPhone || '').trim(),
+      veh: data.veh.trim().toUpperCase(),
+      permis: 'Permis BCDE',
+      active: true,
+      notes: 'Ajouté lors de la programmation transport'
+     });
+    }
     // 1. Create or update official transport in S.transports
     let trId = p.transport;
     let tr = trId ? S.transports.find(x => x.id === trId) : null;
@@ -4854,7 +5064,7 @@ function programmerTransportPlanif(id){
       po: p.po || '',
       trans: data.trans,
       veh: data.veh.trim().toUpperCase(),
-      driver: data.driver.trim(),
+      driver: driverName,
       driverPhone: (data.driverPhone || '').trim(),
       from: origin,
       to: p.to,
@@ -4923,7 +5133,7 @@ function programmerTransportPlanif(id){
     p.transport = trId;
     p.trans = data.trans;
     p.veh = data.veh.trim().toUpperCase();
-    p.driver = data.driver.trim();
+    p.driver = driverName;
     p.driverPhone = (data.driverPhone || '').trim();
     p.depP = data.depP;
     p.arrP = data.arrP;
@@ -4935,10 +5145,11 @@ function programmerTransportPlanif(id){
 
     audit('Validation Transport & Export', trId, `${p.id} exporté vers le programme des transports (${trId}) · ${data.veh} · ${p.qty} palettes ${pool}`);
     closeModal();
-    toast(`Demande ${p.id} : Transport programmé avec succès (${p.trans} · ${p.veh}). Retirée du planning et transmise aux transports en cours.`, 'ok');
+    toast(`Demande ${p.id} : Transport programmé avec succès (${p.trans} · ${p.veh} · ${driverName}).${hasDeficit ? ` Une demande de lavage de ${n0(deficit)} palettes sales a été transmise à l’entrepôt.` : ''}`, 'ok');
    }, submitBtn());
   }
  );
+ bindDriverSelector($('#mform'), { currentDriver: p.driver });
 }
 
 /* ===================== Synthèse des Transports Réalisés ===================== */
@@ -5228,6 +5439,7 @@ function vTransport(){
   <button data-trsub="missions" aria-pressed="${trSub==='missions'}">Transports en cours (${list.length})</button>
   <button data-trsub="planning" aria-pressed="${trSub==='planning'}">Planning & Commandes</button>
   <button data-trsub="destinations" aria-pressed="${trSub==='destinations'}">Trajets & Destinations (${dests.length})</button>
+  <button data-trsub="chauffeurs" aria-pressed="${trSub==='chauffeurs'}">Répertoire Chauffeurs (${(S.drivers||[]).length})</button>
  </div>`;
  const stockBanner=`<div class="panel" style="margin-bottom:14px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
   <div style="font-size:13px">
@@ -5323,6 +5535,100 @@ function vTransport(){
     </tr>`;
    }).join('')||`<tr><td colspan="8" class="empty">Aucun trajet enregistré.</td></tr>`}
   </tbody></table></div>`;
+ }else if(trSub==='chauffeurs'){
+  const q = (drvQ||'').toLowerCase().trim();
+  const allDrivers = S.drivers || [];
+  const activeCount = allDrivers.filter(d => d.active !== false).length;
+  const coveredTrans = [...new Set(allDrivers.map(d => d.trans))];
+  const drvChips = [
+   ['Tous', 'Tous les chauffeurs', allDrivers.length],
+   ...transporteursList().map(trName => [
+    trName,
+    `🚚 ${trName}`,
+    allDrivers.filter(d => d.trans === trName).length
+   ])
+  ];
+  const drvList = allDrivers.filter(d => {
+   const matchFilter = (drvFilter === 'Tous' || d.trans === drvFilter);
+   const matchQ = !q || [d.id, d.name, d.trans, d.phone, d.veh, d.permis, d.notes].join(' ').toLowerCase().includes(q);
+   return matchFilter && matchQ;
+  });
+
+  content = `
+  <div class="panel" style="margin-bottom:14px;padding:12px 16px;border-left:5px solid var(--accent);background:linear-gradient(135deg,#FFFDF7 0%,#FFF8EB 100%);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+   <div>
+    <b style="font-size:14.5px;color:#92400E">🪪 Répertoire officiel des Chauffeurs partenaires :</b><br>
+    <span class="muted" style="font-size:13px">Annuaire centralisé des chauffeurs routiers rattachés aux entreprises partenaires de transport (${coveredTrans.length} transporteurs couverts). Permet la sélection dynamique et l’auto-remplissage immédiat lors des programmations de transport.</span>
+   </div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <span class="badge b-ok" style="font-size:12px;font-weight:700">✓ ${activeCount} chauffeurs actifs</span>
+    <span class="badge b-warn" style="font-size:12px;font-weight:700">🚚 ${coveredTrans.length} entreprises liées</span>
+   </div>
+  </div>
+
+  <div class="toolbar">
+   <input class="field-inline grow" id="drvq" type="search" placeholder="Rechercher un chauffeur, numéro de contact, entreprise, immatriculation camion, permis…" value="${esc(drvQ)}" aria-label="Rechercher un chauffeur">
+   <button class="btn primary${lockCls('transport')}" data-act="newDriver">${plus()}Nouveau chauffeur</button>
+  </div>
+  <div class="chips" style="margin-bottom:14px">
+   ${drvChips.map(([k,l,c])=>`<button class="chip" data-drf="${esc(k)}" aria-pressed="${drvFilter===k}">${esc(l)}<span class="c">${c}</span></button>`).join('')}
+  </div>
+
+  <div class="tablewrap"><table>
+   <thead><tr>
+    <th>Réf. Chauffeur</th>
+    <th>Nom du Chauffeur</th>
+    <th>Entreprise liée (Transporteur)</th>
+    <th>Contact Téléphonique</th>
+    <th>Camion habituel</th>
+    <th>Permis / Habilitation</th>
+    <th>Missions réalisées</th>
+    <th>Statut</th>
+    <th>Actions</th>
+   </tr></thead>
+   <tbody>
+    ${drvList.map(d => {
+     const missionsCnt = (S.transports || []).filter(t => t.driver === d.name || (t.driverPhone && t.driverPhone === d.phone)).length;
+     const isAct = d.active !== false;
+     return `<tr style="border-left:4px solid ${isAct ? 'var(--accent)' : 'var(--line)'}">
+      <td><span class="ref">${esc(d.id)}</span></td>
+      <td>
+       <div style="display:flex;align-items:center;gap:8px">
+        <div class="avatar" style="background:#E2E8F0;color:#1E293B;font-weight:700;width:32px;height:32px;font-size:12px;border-radius:50%;display:flex;align-items:center;justify-content:center">${initials(d.name)}</div>
+        <div>
+         <b style="font-size:14px;color:var(--text)">${esc(d.name)}</b>
+         ${d.notes ? `<div style="font-size:11.5px;color:var(--muted)">${esc(d.notes)}</div>` : ''}
+        </div>
+       </div>
+      </td>
+      <td>
+       <span class="badge b-warn" style="font-weight:700;font-size:12px"><span aria-hidden="true">🚚</span> ${esc(d.trans)}</span>
+      </td>
+      <td>
+       <a href="tel:${esc(d.phone)}" class="num" style="display:inline-flex;align-items:center;gap:4px;font-weight:700;color:var(--blue);text-decoration:none;background:#F0F9FF;padding:4px 8px;border-radius:6px;border:1px solid #BAE6FD" title="Appeler ${esc(d.name)} (${esc(d.phone)})">
+        <span>📞</span> ${esc(d.phone || 'Non renseigné')}
+       </a>
+      </td>
+      <td>
+       <span class="num" style="font-weight:700;color:var(--navy);background:var(--surface-2);padding:3px 8px;border-radius:6px;border:1px solid var(--line);font-size:12.5px">${esc(d.veh || '—')}</span>
+      </td>
+      <td>
+       <span class="badge" style="background:#F1F5F9;color:#475569;font-weight:600;font-size:11.5px">🪪 ${esc(d.permis || 'Permis BCDE')}</span>
+      </td>
+      <td>
+       <b>${missionsCnt}</b> mission${missionsCnt > 1 ? 's' : ''}
+      </td>
+      <td>
+       ${isAct ? badge('ok','Actif','✓') : badge('mute','Inactif')}
+      </td>
+      <td style="white-space:nowrap">
+       <button class="btn small${lockCls('transport')}" data-act="editDriver" data-id="${d.id}">Modifier</button>
+       <button class="btn small${lockCls('transport')}" data-act="toggleDriver" data-id="${d.id}">${isAct ? 'Désactiver' : 'Activer'}</button>
+      </td>
+     </tr>`;
+    }).join('') || `<tr><td colspan="9" class="empty">Aucun chauffeur ne correspond aux critères de recherche.</td></tr>`}
+   </tbody>
+  </table></div>`;
  }else{
   content=`<div class="toolbar">
    <div class="chips grow">${sts.map(s=>`<button class="chip" data-tf="${s}" aria-pressed="${trFilter===s}">${s}</button>`).join('')}</div>
@@ -5354,6 +5660,136 @@ function tCard(t){
   <div class="meta" style="grid-template-columns:1fr 1fr;gap:8px 12px"><div><div style="margin-bottom:2px">Départ prévu : <b>${fmt(t.depP)||'—'}</b></div><div>Départ réel : <b style="color:${t.depR?'var(--ok)':'var(--text)'}">${fmt(t.depR)||'—'}</b></div></div><div><div style="margin-bottom:2px">Arrivée prévue : <b>${fmt(t.arrP)||'—'}</b></div><div>Arrivée réelle : <b style="color:${t.arrR?'var(--ok)':'var(--text)'}">${fmt(t.arrR)||'—'}</b></div></div><div>Palettes propres (${pl}) : <b>${n0(t.qty)}</b></div><div>Planning / ITR : <b>${t.liv||'—'} · ${t.itr||'—'}</b></div></div>
   ${t.status==='En cours'&&t.incidents.length===1?`<div class="comment" style="font-size:13px;border-color:var(--bad)"><b style="color:var(--bad)">Incident :</b> ${esc(t.incidents[0])}</div>`:t.status==='En cours'&&t.incidents.length>1?`<div class="comment" style="font-size:13px;border-color:var(--bad);background:#FEF2F2"><div style="display:flex;align-items:center;gap:6px;color:var(--bad);font-weight:700"><span class="badge b-bad" style="font-size:11px">⚠️ ${t.incidents.length} incidents enregistrés</span><span>Signalisation d'incidents multiples sur ce transport</span></div><div style="font-size:12px;color:var(--text);margin-top:4px">Dernier incident : ${esc(t.incidents[t.incidents.length-1])}</div></div>`:''}
   <div class="acts">${acts}${!['Clôturé','Annulé'].includes(t.status)?`<button class="btn small${lockCls('transport')}" data-act="tIncident" data-id="${t.id}">Signaler un incident</button>`:''}</div></article>`;
+}
+
+
+/* ===================== Répertoire des Chauffeurs & Lavage Planning ===================== */
+function newDriver(defaultTrans = ''){
+ if(!guard('transport')) return;
+ const initTrans = defaultTrans || (drvFilter !== 'Tous' ? drvFilter : (transporteursList()[0] || ''));
+ openModal('Nouveau Chauffeur · Répertoire Transport',
+  fld('Entreprise partenaire (Transporteur)','trans','select',{req:1,full:1,options:transporteursList(),value:initTrans})+
+  fld('Nom complet du chauffeur','name','text',{req:1,ph:'Ex. Moussa Koné'})+
+  fld('Numéro de téléphone / Contact direct','phone','tel',{req:1,ph:'Ex. +225 07 08 41 22 15'})+
+  fld('Immatriculation habituelle du camion / tracteur','veh','text',{req:1,ph:'Ex. AB-4521-CI'})+
+  fld('Catégorie de permis / Habilitation','permis','text',{ph:'Ex. Permis BCDE',value:'Permis BCDE'})+
+  fld('Notes & Affectation habituelle','notes','textarea',{full:1,ph:'Spécificités, plateau 40ft, navette portuaire, etc.'}),
+  'Enregistrer le chauffeur', data => {
+   const e = req(data, ['trans','name','phone','veh']);
+   const nm = data.name?.trim();
+   const tr = data.trans?.trim();
+   if(nm && S.drivers.some(d => d.name.toLowerCase() === nm.toLowerCase() && d.trans === tr)){
+     e.name = `Ce chauffeur est déjà répertorié pour l’entreprise ${tr}.`;
+   }
+   if(Object.keys(e).length) return e;
+   save(`Chauffeur « ${nm} » rattaché à l’entreprise ${tr} enregistré dans le répertoire.`, () => {
+    S.seq.DRV = (S.seq.DRV || S.drivers.length) + 1;
+    const id = 'DRV-' + String(S.seq.DRV).padStart(3, '0');
+    S.drivers.push({
+      id,
+      name: nm,
+      trans: tr,
+      phone: data.phone.trim(),
+      veh: data.veh.trim().toUpperCase(),
+      permis: data.permis?.trim() || 'Permis BCDE',
+      notes: data.notes?.trim() || '',
+      active: true
+    });
+    audit('Création chauffeur', id, `${nm} · ${tr} · ${data.phone.trim()}`);
+    closeModal();
+   }, submitBtn());
+  }
+ );
+}
+
+function editDriver(id){
+ if(!guard('transport')) return;
+ const d = (S.drivers || []).find(x => x.id === id);
+ if(!d) return;
+ openModal(`Modifier le chauffeur · ${d.name}`,
+  fld('Entreprise partenaire (Transporteur)','trans','select',{req:1,full:1,options:transporteursList(),value:d.trans})+
+  fld('Nom complet du chauffeur','name','text',{req:1,value:d.name})+
+  fld('Numéro de téléphone / Contact direct','phone','tel',{req:1,value:d.phone})+
+  fld('Immatriculation habituelle du camion / tracteur','veh','text',{req:1,value:d.veh})+
+  fld('Catégorie de permis / Habilitation','permis','text',{value:d.permis||'Permis BCDE'})+
+  fld('Notes & Affectation habituelle','notes','textarea',{full:1,value:d.notes||''}),
+  'Enregistrer les modifications', data => {
+   const e = req(data, ['trans','name','phone','veh']);
+   const nm = data.name?.trim();
+   const tr = data.trans?.trim();
+   if(nm && (nm.toLowerCase() !== d.name.toLowerCase() || tr !== d.trans) && S.drivers.some(x => x.id !== d.id && x.name.toLowerCase() === nm.toLowerCase() && x.trans === tr)){
+     e.name = `Ce nom de chauffeur existe déjà pour l’entreprise ${tr}.`;
+   }
+   if(Object.keys(e).length) return e;
+   save(`Fiche du chauffeur « ${nm} » mise à jour.`, () => {
+    const oldName = d.name;
+    Object.assign(d, {
+      name: nm,
+      trans: tr,
+      phone: data.phone.trim(),
+      veh: data.veh.trim().toUpperCase(),
+      permis: data.permis?.trim() || 'Permis BCDE',
+      notes: data.notes?.trim() || ''
+    });
+    if(oldName !== nm){
+      (S.transports || []).forEach(t => { if(t.driver === oldName) t.driver = nm; });
+      (S.planifications || []).forEach(p => { if(p.driver === oldName) p.driver = nm; });
+    }
+    audit('Modification chauffeur', d.id, `${nm} · ${tr}`);
+    closeModal();
+   }, submitBtn());
+  }
+ );
+}
+
+function toggleDriver(id){
+ if(!guard('transport')) return;
+ const d = (S.drivers || []).find(x => x.id === id);
+ if(!d) return;
+ const newStatus = d.active === false ? true : false;
+ save(newStatus ? `Chauffeur « ${d.name} » réactivé.` : `Chauffeur « ${d.name} » désactivé.`, () => {
+   d.active = newStatus;
+   audit(newStatus ? 'Chauffeur réactivé' : 'Chauffeur désactivé', d.id, `${d.name} · ${d.trans}`);
+ });
+}
+
+function executerLavagePlanning(id){
+ if(!guard('entrepot')) return;
+ const lav = (S.lavages||[]).find(l => l.id === id);
+ if(!lav) return;
+ const s = stock();
+ openModal(`Exécuter le lavage commandé · ${lav.id}`,
+  `<div class="panel" style="border-left:4px solid var(--accent);background:#FFFBEB;padding:12px 14px;margin-bottom:12px">
+     <b style="color:#B45309">🧼 Demande issue du Planning (${esc(lav.lot)}) :</b><br>
+     <span style="font-size:13px;color:#92400E">Quantité demandée : <b>${n0(lav.qty)} palettes sales</b> à laver et à verser dans le <b>Stock ${esc(lav.stockTarget||'SKCI')}</b>.</span><br>
+     <small class="muted">${esc(lav.obs)}</small>
+   </div>`+
+  fld('Stock d’origine des palettes','fromCat','select',{req:1,full:1,options:[['sale',`Palettes sales (${n0(s.sale)} en stock)`]],value:'sale'})+
+  fld('Quantité lavée effective','qty','number',{req:1,min:1,value:Math.min(lav.qty,Math.max(1,s.sale||lav.qty))})+
+  fld('Affectation des palettes lavées','stockTarget','select',{req:1,options:[['SKCI','Stock SKCI'],['Global','Stock Global']],value:lav.stockTarget||'SKCI'})+
+  fld('Observations / Contrôle qualité','obs','textarea',{full:1,value:lav.obs||''}),
+  'Confirmer le lavage & Créditer le stock propre', data => {
+   const q = +data.qty;
+   const from = data.fromCat || 'sale';
+   const curS = stock();
+   if(!Number.isInteger(q) || q <= 0) return { qty: 'Saisissez une quantité entière supérieure à 0.' };
+   if(q > curS[from]) return { qty: `Quantité supérieure au stock disponible en « ${catL(from)} » (${n0(curS[from])}).` };
+
+   const toCat = data.stockTarget === 'SKCI' ? 'propre_skci' : 'propre_global';
+   save(`Lavage ${lav.lot} validé : ${n0(q)} palettes lavées affectées au Stock ${data.stockTarget}.`, () => {
+    transfer(from, toCat, q, lav.id, `Lavage exécuté (${lav.lot}) : ${q} palettes affectées au Stock ${data.stockTarget}`, `Lavage & Affectation Stock ${data.stockTarget}`);
+    lav.status = 'Validée';
+    lav.qty = q;
+    lav.stockTarget = data.stockTarget;
+    lav.dateOp = TODAY_ISO;
+    lav.resp = S.me;
+    if(data.obs) lav.obs = data.obs.trim();
+    audit('Exécution lavage Planning', lav.id, `${lav.lot} : ${q} palettes sales lavées → Stock ${data.stockTarget}`);
+    closeModal();
+    toast(`Lavage terminé : ${n0(q)} palettes lavées intégrées au Stock ${data.stockTarget}. La commande du planning est couverte !`, 'ok');
+   }, submitBtn());
+  }
+ );
 }
 
 function newDestination(){
@@ -5418,14 +5854,30 @@ function tPlan(id){
  if(!guard('transport'))return;
  const t=S.transports.find(x=>x.id===id);if(!t)return;
  const pool=t.pool||destPool(t.to);
- if(t.qty>dispo(pool)){
-  toast(`Validation du transport ${t.id} refusée : Stock Propre ${pool} insuffisant (${n0(dispo(pool))} disponibles pour ${n0(t.qty)} nécessaires).`,'bad');
-  return;
- }
- save(`Transport ${t.id} planifié : ${n0(t.qty)} palettes réservées théoriquement sur le Stock ${pool}.`,()=>{
+ const deficit = Math.max(0, t.qty - Math.max(0, dispo(pool)));
+ const hasDeficit = deficit > 0;
+ save(`Transport ${t.id} planifié : ${n0(t.qty)} palettes réservées sur le Stock ${pool}${hasDeficit ? ` · Demande de lavage de ${n0(deficit)} palettes déclenchée à l’entrepôt` : ''}.`,()=>{
   t.status='Planifié';t.pool=pool;
+  if(hasDeficit){
+   S.seq.LAV = (S.seq.LAV || 10) + 1;
+   const lavId = 'LAV-' + String(S.seq.LAV).padStart(3, '0');
+   S.lavages = S.lavages || [];
+   S.lavages.push({
+    id: lavId,
+    site: t.site || curSite(),
+    date: nowISO(),
+    dateOp: TODAY_ISO,
+    lot: 'LAV-TR-' + t.id,
+    qty: deficit,
+    stockTarget: pool,
+    resp: S.me,
+    obs: `Demande de lavage déclenchée pour le transport ${t.id} (${n0(deficit)} palettes sales à laver pour le Stock ${pool}).`,
+    status: 'Demande Planning (À laver)',
+    transportRef: t.id
+   });
+  }
   const l=S.deliveries.find(x=>x.id===t.liv);if(l){l.status='Réservée';l.pool=pool;l.cat=propreCat(pool)}
-  audit('Transport planifié & stock réservé',t.id,`${t.qty} palettes (${pool})`);
+  audit('Transport planifié & stock réservé',t.id,`${t.qty} palettes (${pool})${hasDeficit ? ` · Lavage déclenché (${deficit} pal.)` : ''}`);
  });
 }
 
@@ -5669,7 +6121,18 @@ function newLivraison(){
   });
 }
 function lReserve(id){if(!guard('livraisons'))return;const l=S.deliveries.find(x=>x.id===id);if(!l){toast('Livraison introuvable.','bad');return;}const pool=l.pool||destPool(l.to);
- save(`${l.qty} palettes propres réservées sur le Stock ${pool} pour ${l.id}.`,()=>{if(l.status!=='Brouillon')return 'Cette livraison est déjà réservée.';if(l.qty>dispo(pool))return `Réservation refusée : ${n0(dispo(pool))} palettes propres disponibles dans le Stock ${pool} pour ${l.qty} demandées.`;l.status='Réservée';l.pool=pool;l.cat=propreCat(pool);audit('Réservation stock',l.id,`${l.qty} palettes (${pool})`)})}
+ const deficit = Math.max(0, l.qty - Math.max(0, dispo(pool)));
+ save(`${l.qty} palettes propres réservées sur le Stock ${pool} pour ${l.id}${deficit>0?` · Demande de lavage de ${n0(deficit)} palettes déclenchée à l’entrepôt`:''}.`,()=>{
+  if(l.status!=='Brouillon'&&l.status!=='En attente validation Stock Dépôt')return 'Cette livraison est déjà réservée.';
+  l.status='Réservée';l.pool=pool;l.cat=propreCat(pool);
+  if(deficit>0){
+   S.seq.LAV=(S.seq.LAV||10)+1;
+   const lavId='LAV-'+String(S.seq.LAV).padStart(3,'0');
+   S.lavages=S.lavages||[];
+   S.lavages.push({id:lavId,site:l.site||curSite(),date:nowISO(),dateOp:TODAY_ISO,lot:'LAV-LV-'+l.id,qty:deficit,stockTarget:pool,resp:S.me,obs:`Demande de lavage déclenchée depuis le planning pour ${l.id} (${n0(deficit)} palettes sales à laver pour le Stock ${pool}).`,status:'Demande Planning (À laver)',livRef:l.id});
+  }
+  audit('Réservation stock',l.id,`${l.qty} palettes (${pool})${deficit>0?` · Lavage déclenché (${deficit} pal.)`:''}`);
+ })}
 function lShip(id){if(!guard('livraisons'))return;const l=S.deliveries.find(x=>x.id===id);if(!l){toast('Livraison introuvable.','bad');return;}const t=S.transports.find(x=>x.id===l.transport);
  save(`${l.id} expédiée : sortie physique de ${l.qty} palettes propres (${l.pool||destPool(l.to)}) enregistrée.`,()=>{shipDelivery(l,t);if(t&&t.status==='Planifié'){t.status='En cours';t.depR=TODAY_ISO}})}
 function lReceive(id){if(!guard('livraisons'))return;const l=S.deliveries.find(x=>x.id===id);if(!l){toast('Livraison introuvable.','bad');return;}confirmReception(l,S.transports.find(x=>x.id===l.transport))}
@@ -6776,6 +7239,12 @@ function search(q){q=q.trim().toLowerCase();const r=$('#results');if(q.length<2)
   ...S.transports.filter(t=>[t.id,t.veh,t.trans,t.to].join(' ').toLowerCase().includes(q)).map(t=>({k:'Suivi Transport',t:t.id,s:`${t.trans} · ${t.to} (${t.status})`,go:()=>{lvSub='suivi';trFilter='Tous';goTab('livraisons')}})),
   ...(S.planifications||[]).filter(p=>[p.id,p.to,p.trans,p.veh,p.driver].join(' ').toLowerCase().includes(q)).map(p=>({k:'Planification',t:p.id,s:`${p.to} · ${p.qty} palettes (${p.status})`,go:()=>{lvSub='planification';plnFilter='Tous';goTab('livraisons')}})),
   ...S.deliveries.filter(l=>[l.id,l.itr,l.po,l.to].filter(Boolean).join(' ').toLowerCase().includes(q)).map(l=>({k:'Livraison',t:l.id,s:`${l.itr?l.itr+' · ':''}${l.qty} palettes · ${l.status}`,go:()=>{lvSub='livraisons';lvFilter='Tous';goTab('livraisons')}})),
+  ...(S.drivers||[]).filter(d=>[d.id,d.name,d.trans,d.phone,d.veh,d.permis,d.notes].join(' ').toLowerCase().includes(q)).map(d=>({
+    k:'Chauffeur ('+d.trans+')',
+    t:d.name,
+    s:`Tél : ${d.phone} · Camion : ${d.veh} · ${d.permis||''}`,
+    go:()=>{trSub='chauffeurs';drvQ=d.name;goTab('transport')}
+   })),
   ...(S.destinations||[]).filter(d=>[d.id,d.name,d.client,d.address,d.pool].join(' ').toLowerCase().includes(q)).map(d=>({k:'Destination ('+d.pool+')',t:d.name,s:d.address,go:()=>{trSub='destinations';goTab('transport')}})),
   ...(S.operators||[]).filter(o=>[o.id,o.name,o.code,o.type].join(' ').toLowerCase().includes(q)).map(o=>({k:o.type,t:o.name,s:`${o.id} · ${o.code}`,go:()=>{opFilter=o.type;goTab('operateurs')}}))].slice(0,10);
  window._sr=items;r.innerHTML=items.length?items.map((x,i)=>`<button data-sr="${i}"><span class="k">${x.k}</span><span><b>${esc(x.t)}</b><br><small class="muted">${esc(x.s)}</small></span></button>`).join(''):'<p class="empty" style="padding:14px">Aucun résultat pour cette recherche.</p>';r.classList.add('open')}
@@ -6805,6 +7274,7 @@ document.addEventListener('click',e=>{
  const ff=e.target.closest('[data-ff]');if(ff){fFilter=ff.dataset.ff;render();return}
  const tf=e.target.closest('[data-tf]');if(tf){trFilter=tf.dataset.tf;render();return}
  const ts=e.target.closest('[data-trsub]');if(ts){trSub=ts.dataset.trsub;render();return}
+  const drf=e.target.closest('[data-drf]');if(drf){drvFilter=drf.dataset.drf;render();return}
  const ls=e.target.closest('[data-lvsub]');if(ls){lvSub=ls.dataset.lvsub;render();return}
  const pf=e.target.closest('[data-plnf]');if(pf){plnFilter=pf.dataset.plnf;render();return}
  const pl=e.target.closest('[data-pool]');if(pl){poolFilter=pl.dataset.pool;render();return}
@@ -6831,7 +7301,7 @@ document.addEventListener('click',e=>{
    openOpProvenance:()=>openOpProvenance(a.dataset.kind,id),
   finishReparation:()=>finishReparation(id),
   commentMove:()=>commentMove(id),
-  newTransport,newDemandeTransport,newDestination,newLivraison,newOperateur,newConv,newUser,
+  newTransport,newDemandeTransport,newDestination,newLivraison,newOperateur,newConv,newUser,newDriver,
   validerStockPlanif:()=>validerStockPlanif(id),
   confirmerCamionPlanif:()=>confirmerCamionPlanif(id),
   goSuiviTransports:()=>{lvSub='suivi';goTab('livraisons')},
@@ -6841,7 +7311,7 @@ document.addEventListener('click',e=>{
   resumeDepotage:()=>resumeDepotage(id),
   validerReceptionDepotage:()=>validerReceptionDepotage(id),
   goValidateRec:()=>{closeDrawer();ent='stock';goTab('entrepot');setTimeout(()=>validerReceptionDepotage(id),80)},
-  editOperateur:()=>editOperateur(id),toggleOperateur:()=>toggleOperateur(id),
+  editOperateur:()=>editOperateur(id),toggleOperateur:()=>toggleOperateur(id),editDriver:()=>editDriver(id),toggleDriver:()=>toggleDriver(id),executerLavagePlanning:()=>executerLavagePlanning(id),
   newInvoice:()=>newInvoice(id),
   viewInvoice:()=>viewInvoice(id),
   printInvoice:()=>printInvoice(id),
@@ -6949,6 +7419,7 @@ document.addEventListener('input',e=>{
  if(e.target.id==='q')search(e.target.value);
  if(e.target.id==='fq'){fQ=e.target.value;const p=e.target.selectionStart;render();const n=$('#fq');n.focus();n.setSelectionRange(p,p)}
  if(e.target.id==='opq'){opQ=e.target.value;const p=e.target.selectionStart;render();const n=$('#opq');n.focus();n.setSelectionRange(p,p)}
+  if(e.target.id==='drvq'){drvQ=e.target.value;const p=e.target.selectionStart;render();const n=$('#drvq');if(n){n.focus();n.setSelectionRange(p,p)}}
  if(e.target.id==='cq'){chatQ=e.target.value;const p=e.target.selectionStart;render();const n=$('#cq');n.focus();n.setSelectionRange(p,p)}
 });
 document.addEventListener('change',e=>{
