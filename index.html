@@ -911,14 +911,14 @@ const PALETTE_MODELS=['MB5','MB4','MB7','MB9'];
 const CATS=[
  {k:'sale',label:'Palettes sales',liv:false,c:'--warn',desc:'Destinées au lavage (issues des réceptions et des retours de soudure)'},
  {k:'propre_skci',label:'Stock SKCI',liv:true,pool:'SKCI',c:'--skci',desc:'Palettes lavées affectées au Stock SKCI — exclusivement pour les sites SKCI'},
- {k:'propre_global',label:'Stock Global',liv:true,pool:'Global',c:'--global',desc:'Palettes lavées affectées au Stock Global — destinées aux autres clients'},
+ {k:'propre_global',label:'Stock Classique',liv:true,pool:'Global',c:'--global',desc:'Palettes lavées affectées au Stock Classique — destinées aux autres clients'},
  {k:'reparation',label:'Soudure',liv:false,c:'--accent',desc:'Palettes en Soudure ou DOOR SWAP avant retour dans le circuit'},
  {k:'quarantaine',label:'En quarantaine',liv:false,c:'--bad',desc:'Palettes isolées (rouillées / état dégradé) pouvant revenir dans le circuit'},
  {k:'autre',label:'Autre',liv:false,c:'--autre',isAutre:true,desc:'Palettes hors modèle habituel MB5 (MB4, MB7, MB9…) — cliquez pour voir le détail ou créer de nouvelles palettes'}];
 const DEP_CAT_META={
- propre_global:{label:'Palettes lavées · Stock Global',badge:'ok',col:'var(--ok)'},
+ propre_global:{label:'Palettes lavées · Stock Classique',badge:'ok',col:'var(--ok)'},
  propre_skci:{label:'Palettes lavées · Stock SKCI',badge:'ok',col:'var(--ok)'},
- lavee:{label:'Palettes lavées · Stock Global',badge:'ok',col:'var(--ok)'},
+ lavee:{label:'Palettes lavées · Stock Classique',badge:'ok',col:'var(--ok)'},
  sale:{label:'Palettes sales',badge:'warn',col:'var(--warn)'},
  quarantaine:{label:'En quarantaine',badge:'bad',col:'var(--bad)'},
  reparation:{label:'Pour soudure',badge:'info',col:'var(--accent)'},
@@ -989,7 +989,7 @@ function seed(){
  ];
  const receptions=[
   {id:'REC-001',dossier:'GT-2026-101',cont:'MSCU4821930',date:iso(-30),model:'MB5',typeRec:'sale',cat:'sale',qtyEmise:140,qtyRecue:140,total:140,status:'Validée',by:'u3',valBy:'u4',valAt:ago(-30,14),depotStartAt:ago(-30,11,15),depotEndAt:ago(-30,12,8),obs:'Lot de palettes sales MB5 orienté vers le lavage.'},
-  {id:'REC-002',dossier:'GT-2026-102',cont:'CMAU0073415',date:iso(-20),model:'MB5',typeRec:'lavee',cat:'propre_global',qtyEmise:130,qtyRecue:130,total:130,status:'Validée',by:'u3',valBy:'u4',valAt:ago(-20,15),depotStartAt:ago(-20,13,0),depotEndAt:ago(-20,13,46),obs:'Palettes lavées MB5 contrôlées et rangées en Stock Global.'},
+  {id:'REC-002',dossier:'GT-2026-102',cont:'CMAU0073415',date:iso(-20),model:'MB5',typeRec:'lavee',cat:'propre_global',qtyEmise:130,qtyRecue:130,total:130,status:'Validée',by:'u3',valBy:'u4',valAt:ago(-20,15),depotStartAt:ago(-20,13,0),depotEndAt:ago(-20,13,46),obs:'Palettes lavées MB5 contrôlées et rangées en Stock Classique.'},
   {id:'REC-003',dossier:'GT-2026-103',cont:'MSKU7702158',date:iso(-6),model:'MB5',typeRec:'',cat:'',qtyEmise:140,qtyRecue:null,total:140,status:'En attente',by:'u3',valBy:'',valAt:'',depotStartAt:'',depotEndAt:'',obs:''},
   {id:'REC-004',dossier:'GT-2026-105',cont:'MSCU5530087',date:iso(-38),model:'MB5',typeRec:'sale',cat:'quarantaine',qtyEmise:140,qtyRecue:140,total:140,status:'Validée',by:'u3',valBy:'u4',valAt:ago(-38,14),depotStartAt:ago(-38,10,30),depotEndAt:ago(-38,11,21),obs:'Lot reçu avec traces de rouille — isolé en quarantaine.'},
   {id:'REC-005',dossier:'GT-2026-106',cont:'CMAU0901176',date:iso(-24),model:'MB5',typeRec:'sale',cat:'reparation',qtyEmise:130,qtyRecue:130,total:130,status:'Validée',by:'u3',valBy:'u4',valAt:ago(-24,14),depotStartAt:ago(-24,9,45),depotEndAt:ago(-24,10,34),obs:'Palettes venues pour soudure (intervention requise).'},
@@ -1021,8 +1021,8 @@ function seed(){
  M(iso(-47),'Réception palette hors MB5 (MB4)','autre',1,45,'REC-007','u4','Réception de 45 palettes modèle MB4 affectées au stock Autre','TXA1','14:10');
  M(iso(-20),'Lavage & Affectation Stock SKCI','sale',-1,220,'LAV-001','u4','Lavage lot LOT-2026-31 : 220 palettes lavées affectées au Stock SKCI','TXL1','11:00');
  M(iso(-20),'Lavage & Affectation Stock SKCI','propre_skci',1,220,'LAV-001','u4','Entrée de 220 palettes lavées (LOT-2026-31) en Stock SKCI','TXL1','11:00');
- M(iso(-19),'Lavage & Affectation Stock Global','sale',-1,130,'LAV-002','u4','Lavage lot LOT-2026-32 : 130 palettes lavées affectées au Stock Global','TXL2','15:20');
- M(iso(-19),'Lavage & Affectation Stock Global','propre_global',1,130,'LAV-002','u4','Entrée de 130 palettes lavées (LOT-2026-32) en Stock Global','TXL2','15:20');
+ M(iso(-19),'Lavage & Affectation Stock Classique','sale',-1,130,'LAV-002','u4','Lavage lot LOT-2026-32 : 130 palettes lavées affectées au Stock Classique','TXL2','15:20');
+ M(iso(-19),'Lavage & Affectation Stock Classique','propre_global',1,130,'LAV-002','u4','Entrée de 130 palettes lavées (LOT-2026-32) en Stock Classique','TXL2','15:20');
  M(iso(-14),'Mise en quarantaine (palettes rouillées au lavage)','sale',-1,12,'Q-LAV-01','u4','12 palettes rouillées détectées au lavage → transférées en quarantaine','TXQL1','16:05');
  M(iso(-14),'Mise en quarantaine (palettes rouillées au lavage)','quarantaine',1,12,'Q-LAV-01','u4','Entrée en quarantaine de 12 palettes rouillées issues du lavage','TXQL1','16:05');
  M(iso(-5),'Lavage & Affectation Stock SKCI','sale',-1,180,'LAV-003','u4','Lavage lot LOT-2026-33 : 180 palettes lavées affectées au Stock SKCI','TXL3','10:20');
@@ -1030,8 +1030,8 @@ function seed(){
  M(iso(-15),'Sortie pour livraison (SKCI)','propre_skci',-1,300,'TR-0021','u4','Expédition client SKCI · Usine Yopougon (LV-0041)',null,'08:30');
  M(iso(-3),'Sortie pour livraison (Global)','propre_global',-1,200,'TR-0022','u4','Expédition client SOLIBRA · PK24 (LV-0042)',null,'09:15');
  /* Opérations de la journée (TODAY_ISO) pour la fiche de production journalière */
- M(iso(0),'Lavage & Affectation Stock Global','sale',-1,120,'LAV-004','u4','Lavage lot LOT-2026-34 : 120 palettes lavées affectées au Stock Global','TXL4','09:10');
- M(iso(0),'Lavage & Affectation Stock Global','propre_global',1,120,'LAV-004','u4','Entrée de 120 palettes lavées (LOT-2026-34) en Stock Global','TXL4','09:10');
+ M(iso(0),'Lavage & Affectation Stock Classique','sale',-1,120,'LAV-004','u4','Lavage lot LOT-2026-34 : 120 palettes lavées affectées au Stock Classique','TXL4','09:10');
+ M(iso(0),'Lavage & Affectation Stock Classique','propre_global',1,120,'LAV-004','u4','Entrée de 120 palettes lavées (LOT-2026-34) en Stock Classique','TXL4','09:10');
  M(iso(0),'Mise en quarantaine (palettes rouillées au lavage)','sale',-1,8,'Q-LAV-02','u4','8 palettes rouillées isolées en quarantaine lors du contrôle de lavage','TXQL2','10:25');
  M(iso(0),'Mise en quarantaine (palettes rouillées au lavage)','quarantaine',1,8,'Q-LAV-02','u4','Entrée en quarantaine de 8 palettes rouillées','TXQL2','10:25');
  M(iso(0),'Entrée en Soudure','quarantaine',-1,14,'REP-001','u4','Sortie de quarantaine pour intervention de Soudure (14 palettes)','TXQR','11:15');
@@ -1042,9 +1042,9 @@ function seed(){
  M(iso(0),'Fin de Soudure → Palettes sales','sale',1,18,'REP-003','u4','Entrée de 18 palettes soudées dans le stock de palettes sales','TXR','16:30');
  const lavages=[
   {id:'LAV-001',date:ago(-20,11),dateOp:iso(-20),lot:'LOT-2026-31',qty:220,stockTarget:'SKCI',resp:'u4',obs:'Lot lavé et affecté au Stock SKCI.',status:'Validée'},
-  {id:'LAV-002',date:ago(-19,15),dateOp:iso(-19),lot:'LOT-2026-32',qty:130,stockTarget:'Global',resp:'u4',obs:'Lot lavé et affecté au Stock Global.',status:'Validée'},
+  {id:'LAV-002',date:ago(-19,15),dateOp:iso(-19),lot:'LOT-2026-32',qty:130,stockTarget:'Global',resp:'u4',obs:'Lot lavé et affecté au Stock Classique.',status:'Validée'},
   {id:'LAV-003',date:ago(-5,10),dateOp:iso(-5),lot:'LOT-2026-33',qty:180,stockTarget:'SKCI',resp:'u4',obs:'180 palettes lavées affectées au Stock SKCI après contrôle.',status:'Validée'},
-  {id:'LAV-004',date:ago(0,9,10),dateOp:iso(0),lot:'LOT-2026-34',qty:120,stockTarget:'Global',resp:'u4',obs:'120 palettes lavées affectées au Stock Global.',status:'Validée'}];
+  {id:'LAV-004',date:ago(0,9,10),dateOp:iso(0),lot:'LOT-2026-34',qty:120,stockTarget:'Global',resp:'u4',obs:'120 palettes lavées affectées au Stock Classique.',status:'Validée'}];
  const reparations=[
   {id:'REP-001',date:ago(0,11,15),dateOp:iso(0),lot:'SOUD-LOT-01',kind:'Soudure',sens:'Entrée en soudure',fromCat:'quarantaine',toCat:'reparation',qty:14,resp:'u4',obs:'14 palettes sorties de quarantaine pour soudure des montants.',status:'En soudure'},
   {id:'REP-002',date:ago(0,14,0),dateOp:iso(0),lot:'SOUD-LOT-02',kind:'DOOR SWAP',sens:'Fin de DOOR SWAP → Lavage',fromCat:'reparation',toCat:'sale',qty:15,resp:'u4',obs:'Opération DOOR SWAP terminée : remplacement des portes sur 15 palettes → envoyées au lavage (Palettes sales).',status:'Terminée'},
@@ -1071,7 +1071,7 @@ function seed(){
     Mx('u3',0,8,12,'Le navire du GT-2026-109 est annoncé avec 2 jours d’avance.','GT-2026-109'),
     Mx('u3',0,8,20,'Je mets à jour l’ETA dans la fiche.')]},
   {id:'c-entrepot',type:'canal',title:'Équipe Entrepôt',topic:'Lavage des palettes sales, Soudure / DOOR SWAP et Stock SKCI',members:['u1','u2','u4'],unread:1,messages:[
-    Mx('u4',-1,15,30,'Le lot LOT-2026-34 (120 palettes lavées) a été affecté au Stock Global.','LAV-004'),
+    Mx('u4',-1,15,30,'Le lot LOT-2026-34 (120 palettes lavées) a été affecté au Stock Classique.','LAV-004'),
     Mx('u2',-1,16,2,'Très bien. Les 15 palettes en DOOR SWAP sont bien suivies dans le stock Soudure.'),
     Mx('u4',0,7,55,'Bien reçu ! Les 2 réceptions de dépotage REC-003 et REC-006 sont prêtes à être validées.')]},
   {id:'c-transport',type:'canal',title:'Équipe Transport',topic:'Planification, chauffeurs et incidents de route',members:['u1','u2','u5'],unread:0,messages:[
@@ -1100,7 +1100,7 @@ function seed(){
  ];
  return {v:15,curSite:'abidjan',me:'u1',users,operators,destinations,receptions,paletteModels,autresPalettes,dossiers,movements:mv,lavages,reparations,deliveries,transports,planifications,convs,
   stockInit:{sale:300,propre_skci:340,propre_global:310,reparation:48,quarantaine:18,autre:45},
-  audit:[{t:ago(-1,16,5),user:'u3',action:'Dépotage transmis à l’entrepôt',obj:'GT-2026-103',details:'REC-003 (140 palettes) transféré automatiquement en Stock & Réceptions'},{t:ago(0,9,10),user:'u4',action:'Lavage enregistré',obj:'LAV-004',details:'Lot LOT-2026-34 : 120 palettes lavées affectées au Stock Global'},{t:ago(0,14,0),user:'u4',action:'Opération DOOR SWAP',obj:'REP-002',details:'15 palettes en DOOR SWAP envoyées au lavage (Palettes sales)'}],
+  audit:[{t:ago(-1,16,5),user:'u3',action:'Dépotage transmis à l’entrepôt',obj:'GT-2026-103',details:'REC-003 (140 palettes) transféré automatiquement en Stock & Réceptions'},{t:ago(0,9,10),user:'u4',action:'Lavage enregistré',obj:'LAV-004',details:'Lot LOT-2026-34 : 120 palettes lavées affectées au Stock Classique'},{t:ago(0,14,0),user:'u4',action:'Opération DOOR SWAP',obj:'REP-002',details:'15 palettes en DOOR SWAP envoyées au lavage (Palettes sales)'}],
   invoices,payments,relances,drivers:JSON.parse(JSON.stringify(DEFAULT_DRIVERS)),seq:{MV:k,LV:44,TR:23,PLN:3,LAV:4,REP:3,AUT:3,GT:109,ARM:5,TRS:4,REC:7,DST:6,FAC:4,REG:2,REL:1,DRV:8}};
 }
 let S;
@@ -1191,7 +1191,7 @@ if(!S.receptions.some(r=>siteOf(r)==='sanpedro')){
 if(!S.lavages.some(l=>siteOf(l)==='sanpedro')){
  S.lavages.push(
   {id:'LAV-SP-001',site:'sanpedro',date:ago(-10,14,30),dateOp:iso(-10),lot:'LOT-SP-2026-01',qty:120,stockTarget:'SKCI',status:'Validée',by:'u4',obs:'Lavage de 120 palettes au Dépôt San-Pedro affectées au Stock SKCI.'},
-  {id:'LAV-SP-002',site:'sanpedro',date:ago(-3,11,0),dateOp:iso(-3),lot:'LOT-SP-2026-02',qty:80,stockTarget:'Global',status:'Validée',by:'u4',obs:'Lavage de 80 palettes au Dépôt San-Pedro affectées au Stock Global.'}
+  {id:'LAV-SP-002',site:'sanpedro',date:ago(-3,11,0),dateOp:iso(-3),lot:'LOT-SP-2026-02',qty:80,stockTarget:'Global',status:'Validée',by:'u4',obs:'Lavage de 80 palettes au Dépôt San-Pedro affectées au Stock Classique.'}
  );
 }
 if(!S.reparations.some(r=>siteOf(r)==='sanpedro')){
@@ -1208,7 +1208,7 @@ if(!S.transports.some(t=>siteOf(t)==='sanpedro'&&t.id.startsWith('TR-SP'))){
 }
 if(!S.planifications.some(p=>siteOf(p)==='sanpedro'&&p.id.startsWith('PLN-SP'))){
  S.planifications.push(
-  {id:'PLN-SP-0001',site:'sanpedro',liv:'LV-SP-0043',transport:'',itr:'1000000053',po:'2000088153',from:'SKCI · Dépôt San-Pedro',to:'SOGB · Usine de Grand-Béréby',pool:'Global',qty:90,depP:iso(2),arrP:iso(2),status:'Stock confirmé',createdBy:'u5',createdAt:ago(-1,11),stockValBy:'u4',stockValAt:ago(0,8,0),camionValBy:'',camionValAt:'',trans:'',veh:'',driver:'',driverPhone:'',obs:'Stock Global disponible et réservé au Dépôt San-Pedro pour SOGB.'},
+  {id:'PLN-SP-0001',site:'sanpedro',liv:'LV-SP-0043',transport:'',itr:'1000000053',po:'2000088153',from:'SKCI · Dépôt San-Pedro',to:'SOGB · Usine de Grand-Béréby',pool:'Global',qty:90,depP:iso(2),arrP:iso(2),status:'Stock confirmé',createdBy:'u5',createdAt:ago(-1,11),stockValBy:'u4',stockValAt:ago(0,8,0),camionValBy:'',camionValAt:'',trans:'',veh:'',driver:'',driverPhone:'',obs:'Stock Classique disponible et réservé au Dépôt San-Pedro pour SOGB.'},
   {id:'PLN-SP-0002',site:'sanpedro',liv:'',transport:'',itr:'1000000054',po:'2000088154',from:'SKCI · Dépôt San-Pedro',to:'CHCI · Usine de Cavally',pool:'Global',qty:60,depP:iso(4),arrP:iso(4),status:'En attente Entrepôt',createdBy:'u5',createdAt:ago(-1,15),stockValBy:'',stockValAt:'',camionValBy:'',camionValAt:'',trans:'',veh:'',driver:'',driverPhone:'',obs:'Demande de chargement stock Global à San-Pedro pour CHCI.'}
  );
 }
@@ -1343,7 +1343,7 @@ const destPool=nameOrId=>{const d=destInfo(nameOrId);if(d)return d.pool;return S
 const destTarif=nameOrId=>{const d=destInfo(nameOrId);return d&&d.tarif!=null?+d.tarif:0};
 const fcfa=v=>v!=null&&+v>0?`${n0(+v)} FCFA`:'—';
 (S?.transports||[]).forEach(t=>{if(t.tarif==null)t.tarif=destTarif(t.to)});
-const poolBadge=p=>p==='SKCI'?`<span class="badge b-skci" style="font-weight:700">Stock SKCI</span>`:`<span class="badge b-global" style="font-weight:700">Stock Global</span>`;
+const poolBadge=p=>p==='SKCI'?`<span class="badge b-skci" style="font-weight:700">Stock SKCI</span>`:`<span class="badge b-global" style="font-weight:700">Stock Classique</span>`;
 const nextId=(p,pad=4)=>p+'-'+String(++S.seq[p]).padStart(pad,'0');
 const GUEST_USER = {
   id: 'guest',
@@ -1548,7 +1548,7 @@ function alerts(){
  siteTransports(cS).filter(trLate).forEach(t=>a.push({k:'warn',ic:'◷',t:`${t.id} : livraison en retard`,s:`Prévue le ${fmt(t.arrP)} · ${t.to}`,go:()=>goTab('transport')}));
  siteDeliveries(cS).filter(l=>l.qtyRec!=null&&l.qtyRec!==l.qtyShip&&l.status!=='Clôturée').forEach(l=>a.push({k:'warn',ic:'≠',t:`${l.id} : écart de réception`,s:`${l.qtyShip} expédiées, ${l.qtyRec} reçues`,go:()=>goTab('livraisons')}));
  if(dispo('SKCI',cS)<150)a.push({k:'bad',ic:'▼',t:`Stock propre SKCI faible (${siteName(cS)})`,s:`${n0(dispo('SKCI',cS))} disponibles (seuil de sécurité : 150)`,go:()=>{ent='dispo';goTab('entrepot')}});
- if(dispo('Global',cS)<150)a.push({k:'bad',ic:'▼',t:`Stock propre Global faible (${siteName(cS)})`,s:`${n0(dispo('Global',cS))} disponibles (seuil de sécurité : 150)`,go:()=>{ent='dispo';goTab('entrepot')}});
+ if(dispo('Global',cS)<150)a.push({k:'bad',ic:'▼',t:`Stock propre Classique faible (${siteName(cS)})`,s:`${n0(dispo('Global',cS))} disponibles (seuil de sécurité : 150)`,go:()=>{ent='dispo';goTab('entrepot')}});
  siteInvoices(cS).filter(i=>i.status!=='Payée'&&i.due&&i.due<TODAY_ISO).forEach(i=>{const dL=days(TODAY_ISO,i.due);a.push({k:'bad',ic:'💰',t:`${i.num} (${i.client}) : facture échue en retard (+${dL} j)`,s:`Solde dû : ${fcfa(i.balance)} · Dossier ${i.dossier}`,go:()=>goTab('recouvrement')})});
  siteLavages(cS).filter(l=>l.status==='En cours').forEach(l=>a.push({k:'info',ic:'↻',t:`${l.id} : lavage à valider & répartir (SKCI / Global)`,s:`${l.recu} palettes sales du lot ${l.lot}`,go:()=>{ent='lavage';goTab('entrepot')}}));
  const ord={bad:0,warn:1,info:2};return a.sort((x,y)=>ord[x.k]-ord[y.k]);
@@ -2180,7 +2180,7 @@ function vDash(){
       <div class="ui-cat-box" data-go="entrepot">
        <div class="icon" style="background:#ECFDF5;color:#0D7A5F">🟢</div>
        <div class="info">
-        <small>Stock Global</small>
+        <small>Stock Classique</small>
         <b>${n0(dispoGlobal)}</b>
        </div>
       </div>
@@ -2386,7 +2386,7 @@ function vDash(){
      <div class="ui-volet-panel-icon" style="background:#ECFDF5;color:#10B981">📦</div>
      <div>
       <h3 style="margin:0;font-size:18px;font-weight:700">Volet 2 · Entrepôt & Gestion des Stocks Bi-Sites</h3>
-      <small style="color:#64748B">Disponibilité immédiate du Stock Dédié SKCI et Stock Global (SAPH, SOGB, CHCI...), lavages et transferts.</small>
+      <small style="color:#64748B">Disponibilité immédiate du Stock Dédié SKCI et Stock Classique (SAPH, SOGB, CHCI...), lavages et transferts.</small>
      </div>
     </div>
     <button class="btn small primary" data-go="entrepot">Accéder à l’Entrepôt →</button>
@@ -2403,7 +2403,7 @@ function vDash(){
     <div class="ui-cat-box" data-go="entrepot" style="padding:16px">
      <div class="icon" style="background:#ECFDF5;color:#0D7A5F;font-size:20px;width:40px;height:40px">🟢</div>
      <div class="info">
-      <small>Stock Global (SAPH, SOGB...)</small>
+      <small>Stock Classique (SAPH, SOGB...)</small>
       <b style="font-size:20px">${n0(dispoGlobal)}</b>
       <div style="font-size:11px;color:#64748B">Réservé : ${n0(resGlobal)} pal.</div>
      </div>
@@ -3525,7 +3525,7 @@ function printFicheProd(){
   <table>
    <thead><tr><th>Poste de production</th><th>Détail / Affectation</th><th class="right">Quantité du jour</th></tr></thead>
    <tbody>
-    <tr><td><b>Qté lavées</b></td><td>Lots de lavage validés (Stock SKCI : ${n0(st.qLavSkci)} · Stock Global : ${n0(st.qLavGlobal)})</td><td class="right"><b>${n0(st.qLavees)}</b></td></tr>
+    <tr><td><b>Qté lavées</b></td><td>Lots de lavage validés (Stock SKCI : ${n0(st.qLavSkci)} · Stock Classique : ${n0(st.qLavGlobal)})</td><td class="right"><b>${n0(st.qLavees)}</b></td></tr>
     <tr><td><b>Quantité soudure</b></td><td>Opérations de soudure enregistrées vers le stock En soudure</td><td class="right"><b>${n0(st.qSoudure)}</b></td></tr>
     <tr><td><b>Quantité quarantaine</b></td><td>Palettes mises en quarantaine (rouillées ou écartées)</td><td class="right"><b>${n0(st.qQuarantaine)}</b></td></tr>
     <tr><td><b>Quantité DOOR SWAP</b></td><td>Opérations DOOR SWAP terminées et envoyées en Lavage (Palettes sales)</td><td class="right"><b>${n0(st.qDoorSwap)}</b></td></tr>
@@ -4013,7 +4013,7 @@ function vEntrepot(){
    <button class="btn primary${lockCls('entrepot')}" data-act="newMove">${plus()}Transfert libre</button></div>
    <div class="grid g2">
    ${poolCard('SKCI','Stock SKCI · Sites SKCI','Exclusivement destiné aux sites du client SKCI.')}
-   ${poolCard('Global','Stock Global · Autres clients','Destiné à tous les autres clients.')}
+   ${poolCard('Global','Stock Classique · Autres clients','Destiné à tous les autres clients.')}
   </div>
   <section class="panel" style="margin-top:16px"><h3>Autres stocks en entrepôt</h3>
    <div class="kv" style="margin-top:6px">${CATS.filter(c=>!c.liv).map(c=>`<div><span>${c.label}</span><b class="num" style="font-size:20px">${n0(s[c.k])}</b></div>`).join('')}</div>
@@ -4369,17 +4369,17 @@ function validerReceptionDepotage(id){
  openModal(`Valider la réception en stock · ${r.id} (${r.dossier})`,
   `<div class="full" style="padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);font-size:13px">
    <b>Conteneur <span class="num">${esc(r.cont)}</span> · Dépotage du ${fmt(r.date)} : <span class="num" style="color:var(--blue);font-size:16px">${n0(r.total)}</span> palettes à recevoir</b><br>
-   <small class="muted">Précisez s’il s’agit de <b>palettes sales</b> ou de <b>palettes lavées (Stock Global ou Stock SKCI)</b>, le modèle de palette (MB5 habituel ou ${autresModelsList().join('/')} → Autre) et le stock où les ranger.</small>
+   <small class="muted">Précisez s’il s’agit de <b>palettes sales</b> ou de <b>palettes lavées (Stock Classique ou Stock SKCI)</b>, le modèle de palette (MB5 habituel ou ${autresModelsList().join('/')} → Autre) et le stock où les ranger.</small>
   </div>`+
   fld('Statut des palettes reçues','typeRec','select',{req:1,options:[
    ['sale','Palettes sales reçues'],
-   ['lavee_global','Palettes lavées reçues · Stock Global'],
+   ['lavee_global','Palettes lavées reçues · Stock Classique'],
    ['lavee_skci','Palettes lavées reçues · Stock SKCI']
   ],value:'sale'})+
   fld('Modèle de palette','model','select',{req:1,options:[['MB5','MB5 (Palette habituelle)'],...autresModelsList().map(m=>[m,`${m} (Hors MB5 → Stock Autre)`])],value:defModel})+
   fld('Ranger dans le stock','cat','select',{req:1,full:1,options:[
    ['sale','Palettes sales (destinées au lavage)'],
-   ['propre_global','Stock Global (Palettes lavées Global)'],
+   ['propre_global','Stock Classique (Palettes lavées Classique)'],
    ['propre_skci','Stock SKCI (Palettes lavées SKCI)'],
    ['quarantaine','En quarantaine'],
    ['reparation','Soudure'],
@@ -4394,7 +4394,7 @@ function validerReceptionDepotage(id){
    const model=data.model||'MB5';
    const targetCat=model!=='MB5'?'autre':data.cat;
    const lbl=catL(targetCat);
-   const etatLabel=data.typeRec==='lavee_skci'?'Palettes lavées · Stock SKCI':data.typeRec==='lavee_global'?'Palettes lavées · Stock Global':'Palettes sales';
+   const etatLabel=data.typeRec==='lavee_skci'?'Palettes lavées · Stock SKCI':data.typeRec==='lavee_global'?'Palettes lavées · Stock Classique':'Palettes sales';
    save(`Réception ${r.id} validée : ${n0(q)} palettes (${model}) rangées dans « ${lbl} ».`,()=>{
     const tx='TXREC-'+Date.now();
     if(targetCat==='autre'){
@@ -4441,11 +4441,11 @@ function validerReceptionDepotage(id){
 }
 
 const TRANSFER_RULES={
- sale:{dests:['propre_skci','propre_global','reparation','quarantaine'],rule:'Les palettes sales passent au lavage (vers Stock SKCI ou Stock Global), ou peuvent être envoyées en soudure / quarantaine.'},
+ sale:{dests:['propre_skci','propre_global','reparation','quarantaine'],rule:'Les palettes sales passent au lavage (vers Stock SKCI ou Stock Classique), ou peuvent être envoyées en soudure / quarantaine.'},
  reparation:{dests:['sale','propre_skci','propre_global','quarantaine'],rule:'Après soudure (ou DOOR SWAP), les palettes réintègrent le stock de Palettes sales (ou lavées SKCI / Global), ou vont en quarantaine.'},
  quarantaine:{dests:['reparation','sale'],rule:'Les palettes en quarantaine doivent obligatoirement passer par la Soudure / Réparation ou le Lavage (Palettes sales), jamais directement dans les stocks SKCI ou Global.'},
- propre_global:{dests:['propre_skci','sale','reparation','quarantaine'],rule:'Les palettes lavées / propres du Stock Global peuvent être réaffectées au Stock SKCI, ou transférées vers sales, soudure ou quarantaine.'},
- propre_skci:{dests:['propre_global','sale','reparation','quarantaine'],rule:'Les palettes lavées / propres du Stock SKCI peuvent être réaffectées au Stock Global, ou transférées vers sales, soudure ou quarantaine.'},
+ propre_global:{dests:['propre_skci','sale','reparation','quarantaine'],rule:'Les palettes lavées / propres du Stock Classique peuvent être réaffectées au Stock SKCI, ou transférées vers sales, soudure ou quarantaine.'},
+ propre_skci:{dests:['propre_global','sale','reparation','quarantaine'],rule:'Les palettes lavées / propres du Stock SKCI peuvent être réaffectées au Stock Classique, ou transférées vers sales, soudure ou quarantaine.'},
  autre:{dests:['sale','propre_skci','propre_global','quarantaine','reparation'],rule:'Les palettes hors format MB5 sont gérées dans le stock Autre.'}
 };
 
@@ -4472,7 +4472,7 @@ function newMove(){
    if(from==='propre_global'&&q>dispo('Global'))e.qty=`Refusé : ${n0(dispo('Global'))} palettes propres Global non réservées disponibles.`;
    if(Object.keys(e).length)return e;
    const ref='TRF-'+String(S.movements.length+1).padStart(3,'0');
-   const opType=to==='quarantaine'?'Mise en quarantaine (palettes rouillées au lavage)':from==='quarantaine'?'Retour de quarantaine dans le circuit':to==='propre_skci'?'Affectation Stock SKCI':to==='propre_global'?'Affectation Stock Global':from==='reparation'&&to==='sale'?'Fin de soudure → Palettes sales':'Transfert inter-stocks';
+   const opType=to==='quarantaine'?'Mise en quarantaine (palettes rouillées au lavage)':from==='quarantaine'?'Retour de quarantaine dans le circuit':to==='propre_skci'?'Affectation Stock SKCI':to==='propre_global'?'Affectation Stock Classique':from==='reparation'&&to==='sale'?'Fin de soudure → Palettes sales':'Transfert inter-stocks';
    save(`Transfert validé : ${n0(q)} palettes de « ${catL(from)} » vers « ${catL(to)} ».`,()=>{
     transfer(from,to,q,ref,data.motif||`${catL(from)} → ${catL(to)}`,opType);
     audit('Transfert de stock validé',ref,`${opType} (${q} : ${catL(from)} → ${catL(to)})`);
@@ -4510,9 +4510,9 @@ function newLavage(){
  openModal('Enregistrer une opération de lavage',
   fld('Stock d’origine des palettes','fromCat','select',{req:1,full:1,options:[['sale',`Palettes sales (${n0(s.sale)} en stock)`]],value:'sale'})+
   fld('Quantité de palettes lavées','qty','number',{req:1,min:1,value:Math.min(100,Math.max(1,s.sale||50))})+
-  fld('Affectation des palettes lavées','stockTarget','select',{options:[['SKCI','Stock SKCI'],['Global','Stock Global']],value:'SKCI'})+
+  fld('Affectation des palettes lavées','stockTarget','select',{options:[['SKCI','Stock SKCI'],['Global','Stock Classique']],value:'SKCI'})+
   fld('Commentaire / Observations','obs','textarea',{full:1,ph:'Observations sur le lot lavé, contrôle qualité…'})+
-  `<p class="note">Les palettes lavées sont soit <b>Stock Global</b>, soit <b>Stock SKCI</b>. La date d’enregistrement, le numéro de lot et l’utilisateur connecté sont enregistrés automatiquement.</p>`,
+  `<p class="note">Les palettes lavées sont soit <b>Stock Classique</b>, soit <b>Stock SKCI</b>. La date d’enregistrement, le numéro de lot et l’utilisateur connecté sont enregistrés automatiquement.</p>`,
   'Enregistrer le lavage & affecter au stock',data=>{
    const e=req(data,['qty','stockTarget']);
    const q=+data.qty,from=data.fromCat||'sale';
@@ -4539,7 +4539,7 @@ function lavageQuarantaine(){
  openModal('Isoler des palettes en quarantaine (rouillées au lavage)',
   fld('Provenance des palettes','fromCat','select',{req:1,options:[
    ['sale',`Palettes sales / en cours de lavage (${n0(s.sale)} dispo)`],
-   ['propre_global',`Stock Global (${n0(dispo('Global'))} dispo)`],
+   ['propre_global',`Stock Classique (${n0(dispo('Global'))} dispo)`],
    ['propre_skci',`Stock SKCI (${n0(dispo('SKCI'))} dispo)`]
   ],value:'sale'})+
   fld('Quantité transférée en quarantaine','qty','number',{req:1,min:1,value:Math.min(10,Math.max(1,s.sale||1))})+
@@ -4593,7 +4593,7 @@ function newReparation(){
    ['reparation',`Soudure (${n0(s.reparation)} dispo)`],
    ['sale',`Palettes sales (${n0(s.sale)} dispo)`],
    ['quarantaine',`En quarantaine (${n0(s.quarantaine)} dispo)`],
-   ['propre_global',`Stock Global (${n0(dispo('Global'))} dispo)`],
+   ['propre_global',`Stock Classique (${n0(dispo('Global'))} dispo)`],
    ['propre_skci',`Stock SKCI (${n0(dispo('SKCI'))} dispo)`]
   ],value:'sale'})+
   fld('Quantité de palettes','qty','number',{req:1,min:1,value:10})+
@@ -5000,7 +5000,7 @@ function programmerTransportPlanif(id){
       </div>
      </div>
      <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <span class="badge ${pool==='SKCI'?'b-skci':'b-global'}" style="font-size:12px">Stock ${pool} dispo : <b>${n0(disp)}</b></span>${disp < p.qty ? `<span class="badge b-warn" style="font-size:11px;font-weight:700">🧼 Demande de lavage entrepôt activée (+${n0(p.qty - Math.max(0, disp))})</span>` : ''}
+      <span class="badge ${pool==='SKCI'?'b-skci':'b-global'}" style="font-size:12px">Stock ${pool==='Global'?'Classique':pool} dispo : <b>${n0(disp)}</b></span>${disp < p.qty ? `<span class="badge b-warn" style="font-size:11px;font-weight:700">🧼 Demande de lavage entrepôt activée (+${n0(p.qty - Math.max(0, disp))})</span>` : ''}
      </div>
     </div>
    </div>`+
@@ -5457,11 +5457,11 @@ function vTransport(){
  const stockBanner=`<div class="panel" style="margin-bottom:14px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
   <div style="font-size:13px">
    <b>Règle de validation & réservation des stocks par le Transport :</b><br>
-   <span class="muted">Le <b>Stock SKCI</b> (constitué en mettant à part des palettes propres après lavage des palettes sales) est réservé aux sites SKCI · Le <b>Stock Global</b> est destiné aux autres clients. Tout transport planifié déduit théoriquement le stock disponible. Si le stock est insuffisant, le transport n’est pas validé.</span>
+   <span class="muted">Le <b>Stock SKCI</b> (constitué en mettant à part des palettes propres après lavage des palettes sales) est réservé aux sites SKCI · Le <b>Stock Classique</b> est destiné aux autres clients. Tout transport planifié déduit théoriquement le stock disponible. Si le stock est insuffisant, le transport n’est pas validé.</span>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
    <span class="badge b-skci" style="font-size:12.5px">Dispo Propre SKCI : <b class="num">${n0(dispo('SKCI'))}</b> (Réservé : ${n0(reserved('SKCI'))})</span>
-   <span class="badge b-global" style="font-size:12.5px">Dispo Propre Global : <b class="num">${n0(dispo('Global'))}</b> (Réservé : ${n0(reserved('Global'))})</span>
+   <span class="badge b-global" style="font-size:12.5px">Dispo Propre Classique : <b class="num">${n0(dispo('Global'))}</b> (Réservé : ${n0(reserved('Global'))})</span>
   </div>
  </div>`;
 
@@ -5540,7 +5540,7 @@ function vTransport(){
      <td><span class="ref">${esc(d.id)}</span></td>
      <td><div style="font-weight:700;color:var(--text);font-size:13.5px">🛫 ${esc(origin)}</div><div style="font-weight:700;color:var(--blue);font-size:13.5px;margin-top:2px">🎯 ${esc(d.name)}</div></td>
      <td><b>${esc(d.client)}</b></td>
-     <td>${poolBadge(d.pool)}<br><small class="muted">${d.pool==='SKCI'?'Déduit le Stock SKCI':'Déduit le Stock Global'}</small></td>
+     <td>${poolBadge(d.pool)}<br><small class="muted">${d.pool==='SKCI'?'Déduit le Stock SKCI':'Déduit le Stock Classique'}</small></td>
      <td>${esc(d.address)}</td>
      <td><div><small class="num">📞 ${esc(d.contact||'—')}</small></div>${d.email?`<div><small class="muted" style="color:var(--blue)">✉️ ${esc(d.email)}</small></div>`:''}</td>
      <td><b>${trCnt}</b> transport${trCnt>1?'s':''}</td>
@@ -5651,7 +5651,7 @@ function vTransport(){
   <div class="tcards">${list.map(tCard).join('')||'<p class="empty">Aucun transport pour ce filtre.</p>'}</div>`;
  }
  return hero('truck','Transport & Planification','Planification des expéditions vers les destinations clients repertoriées.',
-  `<div><b>${n0(dispo('SKCI'))}</b>dispo Stock SKCI</div><div><b>${n0(dispo('Global'))}</b>dispo Stock Global</div><div><b>${n0(reserved('Tous'))}</b>réservées par Transport</div>`)+
+  `<div><b>${n0(dispo('SKCI'))}</b>dispo Stock SKCI</div><div><b>${n0(dispo('Global'))}</b>dispo Stock Classique</div><div><b>${n0(reserved('Tous'))}</b>réservées par Transport</div>`)+
   subBar+stockBanner+content+renderTransportSynthese(cS);
 }
 function tCard(t){
@@ -5779,7 +5779,7 @@ function executerLavagePlanning(id){
    </div>`+
   fld('Stock d’origine des palettes','fromCat','select',{req:1,full:1,options:[['sale',`Palettes sales (${n0(s.sale)} en stock)`]],value:'sale'})+
   fld('Quantité lavée effective','qty','number',{req:1,min:1,value:Math.min(lav.qty,Math.max(1,s.sale||lav.qty))})+
-  fld('Affectation des palettes lavées','stockTarget','select',{req:1,options:[['SKCI','Stock SKCI'],['Global','Stock Global']],value:lav.stockTarget||'SKCI'})+
+  fld('Affectation des palettes lavées','stockTarget','select',{req:1,options:[['SKCI','Stock SKCI'],['Global','Stock Classique']],value:lav.stockTarget||'SKCI'})+
   fld('Observations / Contrôle qualité','obs','textarea',{full:1,value:lav.obs||''}),
   'Confirmer le lavage & Créditer le stock propre', data => {
    const q = +data.qty;
@@ -5809,7 +5809,7 @@ function newDestination(){
  if(!guard('transport'))return;
  openModal('Nouvelle destination client',
   fld('Client','client','text',{req:1,ph:'Ex. SAPH, SOGB, CHCI, ITCA, SKCI…'})+
-  fld('Bassin de stock rattaché','pool','select',{req:1,options:[['SKCI','Stock SKCI (exclusivement pour les sites du client SKCI)'],['Global','Stock Global (pour les autres clients)']],value:'Global'})+
+  fld('Bassin de stock rattaché','pool','select',{req:1,options:[['SKCI','Stock SKCI (exclusivement pour les sites du client SKCI)'],['Global','Stock Classique (pour les autres clients)']],value:'Global'})+
   fld('Nom du site / Destination','name','text',{req:1,ph:'Ex. SAPH · Usine de Toupah ou SOGB · Usine de Grand-Béréby'})+
   fld('Adresse géographique de livraison','address','text',{req:1,full:1,ph:'Zone industrielle, plantation, ville…'})+
   fld('Interlocuteur & téléphone sur site (Contact)','contact','text',{req:1,full:1,ph:'Nom du réceptionnaire · +225 …'})+
@@ -5836,7 +5836,7 @@ function editDestination(id){
  const d=(S.destinations||[]).find(x=>x.id===id);if(!d)return;
  openModal(`Modifier la destination · ${d.name}`,
   fld('Client','client','text',{req:1,value:d.client})+
-  fld('Bassin de stock rattaché','pool','select',{req:1,options:[['SKCI','Stock SKCI (sites du client SKCI)'],['Global','Stock Global (autres clients)']],value:d.pool})+
+  fld('Bassin de stock rattaché','pool','select',{req:1,options:[['SKCI','Stock SKCI (sites du client SKCI)'],['Global','Stock Classique (autres clients)']],value:d.pool})+
   fld('Nom du site / Destination','name','text',{req:1,value:d.name})+
   fld('Adresse géographique de livraison','address','text',{req:1,full:1,value:d.address})+
   fld('Interlocuteur & téléphone sur site (Contact)','contact','text',{req:1,full:1,value:d.contact})+
