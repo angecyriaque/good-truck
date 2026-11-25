@@ -2991,6 +2991,7 @@ function pauseDepotage(id){
 
 function resumeDepotage(id){
  if(!guard('transit') && !guard('entrepot')) return;
+ closeModal();
  const { r, d } = findDepotTarget(id);
  if(!r && !d){ toast('Opération de dépotage introuvable.', 'bad'); return; }
  const cont = r?.cont || d?.cont || '—';
@@ -3660,11 +3661,11 @@ function vEntrepot(){
      <td>${depotDateHtml}</td>
      <td class="right num"><b style="font-size:16px">${n0(r.total)}</b>${r.model&&r.model!=='MB5'?` <span class="badge b-autre">${esc(r.model)}</span>`:''}</td>
      <td>${depotTimerHtml(r)}</td>
-     <td style="white-space:nowrap">
+     <td style="white-space:nowrap" onclick="event.stopPropagation()">
       ${!r.depotStartAt ? `
        <button class="btn small primary${lockCls('entrepot')}" data-act="startDepotage" data-id="${r.id}">▶️ Démarrer</button>
       ` : (st === 'En pause' ? `
-       <button class="btn small ok${lockCls('entrepot')}" data-act="resumeDepotage" data-id="${r.id}" style="background:#10B981;border-color:#059669;color:#FFF">▶️ Reprendre</button>
+       <button class="btn small ok${lockCls('entrepot')}" data-act="resumeDepotage" data-id="${r.id}" style="background:#10B981;border-color:#059669;color:#FFF;font-weight:700" title="Reprendre immédiatement le minuteur sans ouvrir de formulaire">▶️ Reprendre</button>
        <button class="btn small${lockCls('entrepot')}" data-act="validerReceptionDepotage" data-id="${r.id}" style="background:#DC2626;border-color:#B91C1C;color:#FFF;font-weight:700">Valider</button>
       ` : `
        <button class="btn small${lockCls('entrepot')}" data-act="pauseDepotage" data-id="${r.id}" style="background:#FBBF24;border-color:#D97706;color:#78350F;font-weight:700" title="Marquer une pause de l’opération de dépotage">⏸️ Pause</button>
@@ -3705,11 +3706,11 @@ function vEntrepot(){
     <td class="right num"><b style="font-size:15px">${n0(qEm)}</b></td>
     <td><span class="badge ${r.model&&r.model!=='MB5'?'b-autre':'b-info'}">${esc(r.model||'MB5')}</span></td>
     <td>${depotTimerHtml(r)}</td>
-    <td style="white-space:nowrap">
+    <td style="white-space:nowrap" onclick="event.stopPropagation()">
      ${!r.depotStartAt ? `
       <button class="btn small primary${lockCls('entrepot')}" data-act="startDepotage" data-id="${r.id}">▶️ Démarrer</button>
      ` : (st === 'En pause' ? `
-      <button class="btn small ok${lockCls('entrepot')}" data-act="resumeDepotage" data-id="${r.id}" style="background:#10B981;border-color:#059669;color:#FFF">▶️ Reprendre</button>
+      <button class="btn small ok${lockCls('entrepot')}" data-act="resumeDepotage" data-id="${r.id}" style="background:#10B981;border-color:#059669;color:#FFF;font-weight:700" title="Reprendre immédiatement le minuteur sans ouvrir de formulaire">▶️ Reprendre</button>
       <button class="btn small${lockCls('entrepot')}" data-act="validerReceptionDepotage" data-id="${r.id}" style="background:#DC2626;border-color:#B91C1C;color:#FFF;font-weight:700">Valider</button>
      ` : `
       <button class="btn small${lockCls('entrepot')}" data-act="pauseDepotage" data-id="${r.id}" style="background:#FBBF24;border-color:#D97706;color:#78350F;font-weight:700" title="Marquer une pause de l’opération de dépotage">⏸️ Pause</button>
