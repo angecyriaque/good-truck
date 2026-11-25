@@ -3649,12 +3649,12 @@ function vEntrepot(){
    ${pendRecs.length?badge('warn',`${pendRecs.length} réception${pendRecs.length>1?'s':''} en attente de validation`,'📥'):badge('ok','Aucune réception en attente','✓')}
   </div>
   <div style="padding:14px 18px">
-   <div class="tablewrap"><table style="margin:0"><thead><tr><th>Réception</th><th>Dossier / Conteneur</th><th>Date de dépotage</th><th class="right">Quantité totale</th><th>Chronomètre Dépotage</th><th>Action Dépotage & Stock</th></tr></thead><tbody>
+   <div class="tablewrap"><table style="margin:0"><thead><tr><th>Réception</th><th>N° Conteneur (TC) / Dossier</th><th>Date de dépotage</th><th class="right">Quantité totale</th><th>Chronomètre Dépotage</th><th>Action Dépotage & Stock</th></tr></thead><tbody>
    ${pendRecs.map(r=>{
     const st = r.depotStatus || (r.status === 'Validée' ? 'Terminé' : (r.depotStartAt ? 'En cours' : 'Non démarré'));
     return `<tr>
      <td><span class="ref">${r.id}</span></td>
-     <td><button class="refchip" style="border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer;padding:0" data-dossier="${r.dossier}">${r.dossier}</button><br><small class="muted num">${r.cont}</small></td>
+     <td><b class="num" style="font-size:14.5px;color:#1E1B4B;letter-spacing:0.6px">${esc(r.cont)}</b><br><button class="refchip" style="border:0;background:none;color:var(--blue);font-size:12px;cursor:pointer;padding:0" data-dossier="${r.dossier}">Dossier : ${esc(r.dossier)}</button></td>
      <td><b>${fmt(r.date)}</b></td>
      <td class="right num"><b style="font-size:16px">${n0(r.total)}</b>${r.model&&r.model!=='MB5'?` <span class="badge b-autre">${esc(r.model)}</span>`:''}</td>
      <td>${depotTimerHtml(r)}</td>
@@ -3689,13 +3689,13 @@ function vEntrepot(){
    </div>
    ${pendRecs.length?badge('warn',`${pendRecs.length} dépotage${pendRecs.length>1?'s':''} non encore validé${pendRecs.length>1?'s':''}`,'⏳'):badge('ok','Aucun dépotage en attente','✓')}
   </div>
-  <div class="tablewrap"><table><thead><tr><th>Réception</th><th>Dossier / TC</th><th>Date dépotage</th><th>Émis par (Transit)</th><th class="right">Quantité à recevoir</th><th>Modèle</th><th>Statut</th><th>Action</th></tr></thead><tbody>
+  <div class="tablewrap"><table><thead><tr><th>Réception</th><th>N° Conteneur (TC) / Dossier</th><th>Date dépotage</th><th>Émis par (Transit)</th><th class="right">Quantité à recevoir</th><th>Modèle</th><th>Statut</th><th>Action</th></tr></thead><tbody>
   ${pendRecs.map(r=>{
    const qEm=r.qtyEmise??r.total;
    const st = r.depotStatus || (r.status === 'Validée' ? 'Terminé' : (r.depotStartAt ? 'En cours' : 'Non démarré'));
    return `<tr class="click" data-act="openOpProvenance" data-kind="rec" data-id="${r.id}" style="border-left:4px solid var(--warn)" title="Cliquez sur la ligne pour voir toute l’information sur la provenance">
     <td><span class="ref">${r.id}</span></td>
-    <td><button class="refchip" style="border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer;padding:0" data-dossier="${r.dossier}">${r.dossier}</button><br><small class="muted num">${r.cont}</small></td>
+    <td><b class="num" style="font-size:14.5px;color:#1E1B4B;letter-spacing:0.6px">${esc(r.cont)}</b><br><button class="refchip" style="border:0;background:none;color:var(--blue);font-size:12px;cursor:pointer;padding:0" data-dossier="${r.dossier}">Dossier : ${esc(r.dossier)}</button></td>
     <td><b>${fmt(r.date)}</b></td>
     <td><b>${esc(user(r.by).name)}</b></td>
     <td class="right num"><b style="font-size:15px">${n0(qEm)}</b></td>
@@ -3728,7 +3728,7 @@ function vEntrepot(){
     ${badge('ok',`${validRecs.length} dépotage${validRecs.length>1?'s':''} validé${validRecs.length>1?'s':''}`,'✓')}
    </div>
   </div>
-  <div class="tablewrap"><table><thead><tr><th style="cursor:pointer" data-act="toggleRecValSort" title="Cliquer pour inverser le tri">Validation ${recValSort==='desc'?'↓':'↑'}</th><th>Réception</th><th>Dossier / TC</th><th>Date dépotage</th><th>Opérateur</th><th class="right">Quantité émise</th><th class="right">Quantité reçue</th><th>Affectation (Catégorie de stock)</th><th>Statut</th></tr></thead><tbody>
+  <div class="tablewrap"><table><thead><tr><th style="cursor:pointer" data-act="toggleRecValSort" title="Cliquer pour inverser le tri">Validation ${recValSort==='desc'?'↓':'↑'}</th><th>Réception</th><th>N° Conteneur (TC) / Dossier</th><th>Date dépotage</th><th>Opérateur</th><th class="right">Quantité émise</th><th class="right">Quantité reçue</th><th>Affectation (Catégorie de stock)</th><th>Statut</th></tr></thead><tbody>
   ${validRecs.map(r=>{
    const qEm=r.qtyEmise??r.total;
    const qRec=r.qtyRecue!=null?r.qtyRecue:r.total;
@@ -3740,7 +3740,7 @@ function vEntrepot(){
    return `<tr class="click" data-act="openOpProvenance" data-kind="rec" data-id="${r.id}" style="border-left:4px solid ${rowCol}" title="Cliquez sur la ligne pour voir toute l’information sur la provenance">
     <td style="white-space:nowrap"><b style="color:var(--ok)">${valDateStr}</b>${valTimeStr?`<br><small class="muted num">à ${valTimeStr}</small>`:''}</td>
     <td><span class="ref">${r.id}</span></td>
-    <td><button class="refchip" style="border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer;padding:0" data-dossier="${r.dossier}">${r.dossier}</button><br><small class="muted num">${r.cont}</small></td>
+    <td><b class="num" style="font-size:14px;color:#1E1B4B;letter-spacing:0.6px">${esc(r.cont)}</b><br><button class="refchip" style="border:0;background:none;color:var(--blue);font-size:12px;cursor:pointer;padding:0" data-dossier="${r.dossier}">Dossier : ${esc(r.dossier)}</button></td>
     <td>${fmt(r.date)}</td>
     <td><small>Émis : <b>${esc(user(r.by).name)}</b><br>Validé : <b>${r.valBy?esc(user(r.valBy).name):'—'}</b></small></td>
     <td class="right num"><b>${n0(qEm)}</b></td>
