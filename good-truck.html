@@ -3056,9 +3056,7 @@ function depotageSummary(d){
    ` : (st === 'En pause' ? `
     <button type="button" class="btn small ok${lockCls('entrepot')}" data-act="resumeDepotage" data-id="${esc(recId)}" style="background:#10B981;border-color:#059669;color:#FFF">▶️ Reprendre le dépotage</button>
     <button type="button" class="btn small primary${lockCls('entrepot')}" data-act="validerReceptionDepotage" data-id="${esc(recId)}">✓ Terminer & Ranger en stock</button>
-   ` : (target.status === 'Validée' || st === 'Terminé' ? `
-    <span class="badge b-ok" style="font-weight:700">✓ Dépotage terminé & validé dans le stock</span>
-   ` : `
+   ` : (target.status === 'Validée' || st === 'Terminé' ? '' : `
     <button type="button" class="btn small warn${lockCls('entrepot')}" data-act="pauseDepotage" data-id="${esc(recId)}">⏸️ Marquer une pause</button>
     <button type="button" class="btn small primary${lockCls('entrepot')}" data-act="validerReceptionDepotage" data-id="${esc(recId)}">✓ Terminer & Ranger en stock</button>
    `))}
