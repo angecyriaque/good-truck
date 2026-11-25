@@ -3028,7 +3028,7 @@ function ensureDepotageTransmis(d, totalQty=140, model='MB5'){
  if(!d || !d.D5 || d.depotage) return;
  S.seq.REC = (S.seq.REC || 7) + 1;
  const recId = 'REC-' + String(S.seq.REC).padStart(3, '0');
- const total = +totalQty || 140;
+ const total = +totalQty || d.total || d.qty || 140;
  d.depotage = {
   date: TODAY_ISO,
   total,
@@ -3099,7 +3099,7 @@ function depotageSummary(d){
      <span class="badge ${model!=='MB5'?'b-autre':'b-info'}">${esc(model)}</span>
     </div>
     <div style="font-size:12.5px;color:var(--text);margin-top:3px">
-     Quantité à recevoir : <b class="num" style="color:var(--blue);font-size:14px">${n0(total)} palettes</b> · Date : <b>${fmt(d.depotage.date||d.D6)}</b>
+     Quantité à recevoir : <b class="num" style="color:var(--blue);font-size:14px">${n0(total)} palettes</b>
     </div>
    </div>
    <div>
@@ -3398,8 +3398,9 @@ function newDossier(){
  openModal('Nouveau dossier de transit',
   fld('N° Conteneur(TC)','cont','text',{req:1,ph:'Ex. MSCU0012345'})+
   fld('N° Bon de Livraison','bl','text',{req:1,ph:'BL-ABJ-…'})+
-  fld('Armateur','lam','select',{req:1,full:1,options:armateursList(),blank:'Choisir'})+
-  fld('ETA Navire','D2','date',{req:1,value:iso(2),min:TODAY_ISO})+
+  fld('Armateur','lam','select',{req:1,options:armateursList(),blank:'Choisir'})+
+  fld('Quantité de palettes attendue','qty','number',{req:1,min:1,value:140,ph:'Ex. 140'})+
+  fld('ETA Navire','D2','date',{req:1,value:iso(2),min:TODAY_ISO,full:1})+
   `<div class="full" style="background:var(--surface-2);border:1px dashed var(--blue);border-radius:8px;padding:10px 14px;font-size:13px;display:flex;align-items:center;justify-content:space-between;margin:4px 0 8px">
     <span>ℹ️ <b>Fin de franchise calculée :</b></span>
     <span id="previewFranchise" style="font-weight:700;color:var(--muted)">En attente d’arrivée navire (ATA + 21j)</span>
@@ -3407,15 +3408,17 @@ function newDossier(){
   fld('Premier commentaire','c','textarea',{full:1})+
   `<p class="note">La date ATA (Arrivée navire) et la fin de franchise ne sont pas saisies à la création. Vous confirmerez l’arrivée effective du navire via le bouton dédié dès l’accostage au port, ce qui déclenchera automatiquement le calcul des 21 jours de franchise.</p>`,
   'Créer le dossier',data=>{
-   const e=req(data,['cont','bl','lam','D2']);
+   const e=req(data,['cont','bl','lam','qty','D2']);
    if(data.cont&&!/^[A-Za-z]{4}\d{7}$/.test(data.cont.trim()))e.cont='Format attendu : 4 lettres et 7 chiffres (zéros conservés).';
+   const q=+(data.qty??0);
+   if(!Number.isInteger(q)||q<=0)e.qty='Saisissez une quantité entière supérieure à 0.';
    if(data.D2&&data.D2<TODAY_ISO)e.D2='Aucune date antérieure ne doit être saisie.';
    if(Object.keys(e).length)return e;
    const n='GT-2026-'+(++S.seq.GT);
-   save(`Dossier ${n} créé.`,()=>{
-    const d={id:n,num:n,site:curSite(),cont:data.cont.trim().toUpperCase(),bl:data.bl.trim(),lam:data.lam,trans:'',status:'Ouvert',createdBy:S.me,createdAt:nowISO(),updatedBy:S.me,updatedAt:nowISO(),comments:[],D1:'',D2:data.D2,D3:'',D4:'',D5:'',D6:'',D7:'',D8:''};
+   save(`Dossier ${n} créé (${q} palettes).`,()=>{
+    const d={id:n,num:n,site:curSite(),cont:data.cont.trim().toUpperCase(),bl:data.bl.trim(),lam:data.lam,qty:q,total:q,trans:'',status:'Ouvert',createdBy:S.me,createdAt:nowISO(),updatedBy:S.me,updatedAt:nowISO(),comments:[],D1:'',D2:data.D2,D3:'',D4:'',D5:'',D6:'',D7:'',D8:''};
     if(data.c?.trim())d.comments.push({id:'c'+Date.now(),author:S.me,t:nowISO(),text:data.c.trim(),history:[]});
-    S.dossiers.unshift(d);audit('Création de dossier',n,`${d.cont} · ${d.bl} · ${d.lam}`);closeModal();setTimeout(()=>openDossier(n),50)},submitBtn());
+    S.dossiers.unshift(d);audit('Création de dossier',n,`${d.cont} · ${d.bl} · ${d.lam} · ${q} palettes`);closeModal();setTimeout(()=>openDossier(n),50)},submitBtn());
   });
 }
 function editInit(id){
@@ -3427,7 +3430,8 @@ function editInit(id){
   fld('N° Conteneur(TC)','cont','text',{req:1,value:d.cont})+
   fld('N° Bon de Livraison','bl','text',{req:1,value:d.bl})+
   fld('Armateur','lam','select',{req:1,options:armateursList(),value:d.lam})+
-  fld('ETA Navire','D2','date',{req:1,value:d.D2>=TODAY_ISO?d.D2:TODAY_ISO,min:TODAY_ISO})+
+  fld('Quantité de palettes attendue','qty','number',{req:1,min:1,value:d.qty||d.total||140})+
+  fld('ETA Navire','D2','date',{req:1,value:d.D2>=TODAY_ISO?d.D2:TODAY_ISO,min:TODAY_ISO,full:1})+
   `<div class="full" style="background:var(--surface-2);border:1px dashed var(--blue);border-radius:8px;padding:10px 14px;font-size:13px;display:flex;align-items:center;justify-content:space-between;margin:4px 0 8px">
     <span>ℹ️ <b>Fin de franchise calculée :</b></span>
     <span id="previewFranchise" style="font-weight:700;color:var(--muted)">En attente d’arrivée navire (ATA + 21j)</span>
@@ -3442,6 +3446,7 @@ function editInit(id){
    if(Object.keys(e).length)return e;
    save(`Informations initiales de ${newNum} mises à jour.`,()=>{
     const oldNum=d.num;
+    const q=+(data.qty??0);if(Number.isInteger(q)&&q>0){d.qty=q;d.total=q;if(d.depotage)d.depotage.total=q;}
     d.id=newNum;d.num=newNum;d.cont=data.cont.trim().toUpperCase();d.bl=data.bl.trim();d.lam=data.lam;d.D2=data.D2;d.D3='';d.D1='';
     d.updatedAt=nowISO();d.updatedBy=S.me;
     audit('Modification infos initiales',newNum,`ETA: ${fmt(d.D2)} · ATA: En attente · Franchise: En attente`);closeModal();setTimeout(()=>openDossier(d.id),50)},submitBtn());
