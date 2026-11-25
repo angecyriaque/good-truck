@@ -3649,7 +3649,7 @@ function vEntrepot(){
    ${pendRecs.length?badge('warn',`${pendRecs.length} réception${pendRecs.length>1?'s':''} en attente de validation`,'📥'):badge('ok','Aucune réception en attente','✓')}
   </div>
   <div style="padding:14px 18px">
-   <div class="tablewrap"><table style="margin:0"><thead><tr><th>Réception</th><th>N° Conteneur (TC) / Dossier</th><th>Date de dépotage</th><th class="right">Quantité totale</th><th>Chronomètre Dépotage</th><th>Action Dépotage & Stock</th></tr></thead><tbody>
+   <div class="tablewrap"><table style="margin:0"><thead><tr><th>Réception</th><th>N° Conteneur (TC) / Dossier</th><th>Date de dépotage</th><th class="right">Quantité totale</th><th>Chronomètre Dépotage</th><th>Action</th></tr></thead><tbody>
    ${pendRecs.map(r=>{
     const st = r.depotStatus || (r.status === 'Validée' ? 'Terminé' : (r.depotStartAt ? 'En cours' : 'Non démarré'));
     return `<tr>
