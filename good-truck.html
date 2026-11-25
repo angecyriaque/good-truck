@@ -990,10 +990,10 @@ function seed(){
  const receptions=[
   {id:'REC-001',dossier:'GT-2026-101',cont:'MSCU4821930',date:iso(-30),model:'MB5',typeRec:'sale',cat:'sale',qtyEmise:140,qtyRecue:140,total:140,status:'Validée',by:'u3',valBy:'u4',valAt:ago(-30,14),depotStartAt:ago(-30,11,15),depotEndAt:ago(-30,12,8),obs:'Lot de palettes sales MB5 orienté vers le lavage.'},
   {id:'REC-002',dossier:'GT-2026-102',cont:'CMAU0073415',date:iso(-20),model:'MB5',typeRec:'lavee',cat:'propre_global',qtyEmise:130,qtyRecue:130,total:130,status:'Validée',by:'u3',valBy:'u4',valAt:ago(-20,15),depotStartAt:ago(-20,13,0),depotEndAt:ago(-20,13,46),obs:'Palettes lavées MB5 contrôlées et rangées en Stock Classique.'},
-  {id:'REC-003',dossier:'GT-2026-103',cont:'MSKU7702158',date:iso(-6),model:'MB5',typeRec:'',cat:'',qtyEmise:140,qtyRecue:null,total:140,status:'En attente',by:'u3',valBy:'',valAt:'',depotStartAt:'',depotEndAt:'',obs:''},
+  {id:'REC-003',dossier:'GT-2026-103',cont:'MSKU7702158',date:'',model:'MB5',typeRec:'',cat:'',qtyEmise:140,qtyRecue:null,total:140,status:'En attente',by:'u3',valBy:'',valAt:'',depotStartAt:'',depotEndAt:'',obs:''},
   {id:'REC-004',dossier:'GT-2026-105',cont:'MSCU5530087',date:iso(-38),model:'MB5',typeRec:'sale',cat:'quarantaine',qtyEmise:140,qtyRecue:140,total:140,status:'Validée',by:'u3',valBy:'u4',valAt:ago(-38,14),depotStartAt:ago(-38,10,30),depotEndAt:ago(-38,11,21),obs:'Lot reçu avec traces de rouille — isolé en quarantaine.'},
   {id:'REC-005',dossier:'GT-2026-106',cont:'CMAU0901176',date:iso(-24),model:'MB5',typeRec:'sale',cat:'reparation',qtyEmise:130,qtyRecue:130,total:130,status:'Validée',by:'u3',valBy:'u4',valAt:ago(-24,14),depotStartAt:ago(-24,9,45),depotEndAt:ago(-24,10,34),obs:'Palettes venues pour soudure (intervention requise).'},
-  {id:'REC-006',dossier:'GT-2026-107',cont:'MSKU0310984',date:iso(-12),model:'MB5',typeRec:'',cat:'',qtyEmise:140,qtyRecue:null,total:140,status:'En attente',by:'u3',valBy:'',valAt:'',depotStartAt:'',depotEndAt:'',obs:''},
+  {id:'REC-006',dossier:'GT-2026-107',cont:'MSKU0310984',date:'',model:'MB5',typeRec:'',cat:'',qtyEmise:140,qtyRecue:null,total:140,status:'En attente',by:'u3',valBy:'',valAt:'',depotStartAt:'',depotEndAt:'',obs:''},
   {id:'REC-007',dossier:'GT-2026-108',cont:'TGHU0122309',date:iso(-47),model:'MB4',typeRec:'lavee',cat:'autre',qtyEmise:45,qtyRecue:45,total:45,status:'Validée',by:'u3',valBy:'u4',valAt:ago(-47,14),depotStartAt:ago(-47,10,0),depotEndAt:ago(-47,10,39),obs:'Palettes modèle MB4 (hors MB5 habituel) rangées dans Autre.'}
  ];
  const paletteModels=['MB4','MB7','MB9'];
@@ -3030,7 +3030,7 @@ function ensureDepotageTransmis(d, totalQty=140, model='MB5'){
  const recId = 'REC-' + String(S.seq.REC).padStart(3, '0');
  const total = +totalQty || d.total || d.qty || 140;
  d.depotage = {
-  date: TODAY_ISO,
+  date: '',
   total,
   model,
   recId,
@@ -3048,7 +3048,7 @@ function ensureDepotageTransmis(d, totalQty=140, model='MB5'){
   id: recId,
   dossier: d.num,
   cont: d.cont,
-  date: TODAY_ISO,
+  date: '',
   total,
   model,
   typeRec: 'sale',
@@ -3117,18 +3117,17 @@ function depotageSummary(d){
 
 function applyDepotage(d,dateD6,totalQty,model='MB5'){
  const total=+totalQty||0;
- const validDate=TODAY_ISO;
- d.D6=validDate;
+ d.D6='';
  if(!S.receptions)S.receptions=[];
  S.seq.REC=(S.seq.REC||7)+1;
  const recId='REC-'+String(S.seq.REC).padStart(3,'0');
  const rec={
-  id:recId,site:siteOf(d)||curSite(),dossier:d.num,cont:d.cont,date:validDate,
+  id:recId,site:siteOf(d)||curSite(),dossier:d.num,cont:d.cont,date:'',
   model:model||'MB5',typeRec:'',cat:'',qtyEmise:total,qtyRecue:null,total,status:'En attente',by:S.me,valBy:'',valAt:'',obs:'',
   depotStartAt:'',depotEndAt:'',depotStatus:'Non démarré',depotPauseMs:0,depotPausedAt:'',depotPauses:[]
  };
  S.receptions.unshift(rec);
- d.depotage={date:validDate,status:'En attente',recId,total,model:model||'MB5',cat:'',by:S.me,at:nowISO(),depotStartAt:'',depotEndAt:'',depotStatus:'Non démarré',depotPauseMs:0,depotPausedAt:'',depotPauses:[]};
+ d.depotage={date:'',status:'En attente',recId,total,model:model||'MB5',cat:'',by:S.me,at:nowISO(),depotStartAt:'',depotEndAt:'',depotStatus:'Non démarré',depotPauseMs:0,depotPausedAt:'',depotPauses:[]};
  audit('Dépotage confirmé & transmis à l’Entrepôt',d.num,`${recId} · ${total} palettes (${model||'MB5'}) transférées automatiquement en Stock & Réceptions`);
 }
 
@@ -3652,22 +3651,24 @@ function vEntrepot(){
    <div class="tablewrap"><table style="margin:0"><thead><tr><th>Réception</th><th>N° Conteneur (TC) / Dossier</th><th>Date de dépotage</th><th class="right">Quantité totale</th><th>Chronomètre Dépotage</th><th>Action</th></tr></thead><tbody>
    ${pendRecs.map(r=>{
     const st = r.depotStatus || (r.status === 'Validée' ? 'Terminé' : (r.depotStartAt ? 'En cours' : 'Non démarré'));
+    const depotDateHtml = (r.status === 'Validée' || r.depotStatus === 'Terminé') && (r.date || r.depotEndAt)
+     ? `<b>${fmt(r.date || r.depotEndAt.slice(0, 10))}</b>`
+     : `<span class="badge b-mute" style="color:var(--muted);font-weight:600">À la fin du dépotage</span>`;
     return `<tr>
      <td><span class="ref">${r.id}</span></td>
      <td><b class="num" style="font-size:14.5px;color:#1E1B4B;letter-spacing:0.6px">${esc(r.cont)}</b><br><button class="refchip" style="border:0;background:none;color:var(--blue);font-size:12px;cursor:pointer;padding:0" data-dossier="${r.dossier}">Dossier : ${esc(r.dossier)}</button></td>
-     <td><b>${fmt(r.date)}</b></td>
+     <td>${depotDateHtml}</td>
      <td class="right num"><b style="font-size:16px">${n0(r.total)}</b>${r.model&&r.model!=='MB5'?` <span class="badge b-autre">${esc(r.model)}</span>`:''}</td>
      <td>${depotTimerHtml(r)}</td>
      <td style="white-space:nowrap">
       ${!r.depotStartAt ? `
        <button class="btn small primary${lockCls('entrepot')}" data-act="startDepotage" data-id="${r.id}">▶️ Démarrer</button>
-       <button class="btn small${lockCls('entrepot')}" data-act="validerReceptionDepotage" data-id="${r.id}">Valider</button>
       ` : (st === 'En pause' ? `
        <button class="btn small ok${lockCls('entrepot')}" data-act="resumeDepotage" data-id="${r.id}" style="background:#10B981;border-color:#059669;color:#FFF">▶️ Reprendre</button>
-       <button class="btn small primary${lockCls('entrepot')}" data-act="validerReceptionDepotage" data-id="${r.id}">✓ Valider en stock</button>
+       <button class="btn small${lockCls('entrepot')}" data-act="validerReceptionDepotage" data-id="${r.id}" style="background:#DC2626;border-color:#B91C1C;color:#FFF;font-weight:700">Valider</button>
       ` : `
-       <button class="btn small warn${lockCls('entrepot')}" data-act="pauseDepotage" data-id="${r.id}" title="Marquer une pause de l’opération de dépotage">⏸️ Pause</button>
-       <button class="btn small primary${lockCls('entrepot')}" data-act="validerReceptionDepotage" data-id="${r.id}">✓ Valider en stock</button>
+       <button class="btn small${lockCls('entrepot')}" data-act="pauseDepotage" data-id="${r.id}" style="background:#FBBF24;border-color:#D97706;color:#78350F;font-weight:700" title="Marquer une pause de l’opération de dépotage">⏸️ Pause</button>
+       <button class="btn small${lockCls('entrepot')}" data-act="validerReceptionDepotage" data-id="${r.id}" style="background:#DC2626;border-color:#B91C1C;color:#FFF;font-weight:700">Valider</button>
       `)}
      </td>
     </tr>`;
@@ -3693,10 +3694,13 @@ function vEntrepot(){
   ${pendRecs.map(r=>{
    const qEm=r.qtyEmise??r.total;
    const st = r.depotStatus || (r.status === 'Validée' ? 'Terminé' : (r.depotStartAt ? 'En cours' : 'Non démarré'));
+   const depotDateHtml = (r.status === 'Validée' || r.depotStatus === 'Terminé') && (r.date || r.depotEndAt)
+    ? `<b>${fmt(r.date || r.depotEndAt.slice(0, 10))}</b>`
+    : `<span class="badge b-mute" style="color:var(--muted);font-weight:600">À la fin du dépotage</span>`;
    return `<tr class="click" data-act="openOpProvenance" data-kind="rec" data-id="${r.id}" style="border-left:4px solid var(--warn)" title="Cliquez sur la ligne pour voir toute l’information sur la provenance">
     <td><span class="ref">${r.id}</span></td>
     <td><b class="num" style="font-size:14.5px;color:#1E1B4B;letter-spacing:0.6px">${esc(r.cont)}</b><br><button class="refchip" style="border:0;background:none;color:var(--blue);font-size:12px;cursor:pointer;padding:0" data-dossier="${r.dossier}">Dossier : ${esc(r.dossier)}</button></td>
-    <td><b>${fmt(r.date)}</b></td>
+    <td>${depotDateHtml}</td>
     <td><b>${esc(user(r.by).name)}</b></td>
     <td class="right num"><b style="font-size:15px">${n0(qEm)}</b></td>
     <td><span class="badge ${r.model&&r.model!=='MB5'?'b-autre':'b-info'}">${esc(r.model||'MB5')}</span></td>
@@ -3704,13 +3708,12 @@ function vEntrepot(){
     <td style="white-space:nowrap">
      ${!r.depotStartAt ? `
       <button class="btn small primary${lockCls('entrepot')}" data-act="startDepotage" data-id="${r.id}">▶️ Démarrer</button>
-      <button class="btn small${lockCls('entrepot')}" data-act="validerReceptionDepotage" data-id="${r.id}">Valider</button>
      ` : (st === 'En pause' ? `
       <button class="btn small ok${lockCls('entrepot')}" data-act="resumeDepotage" data-id="${r.id}" style="background:#10B981;border-color:#059669;color:#FFF">▶️ Reprendre</button>
-      <button class="btn small primary${lockCls('entrepot')}" data-act="validerReceptionDepotage" data-id="${r.id}">✓ Valider en stock</button>
+      <button class="btn small${lockCls('entrepot')}" data-act="validerReceptionDepotage" data-id="${r.id}" style="background:#DC2626;border-color:#B91C1C;color:#FFF;font-weight:700">Valider</button>
      ` : `
-      <button class="btn small warn${lockCls('entrepot')}" data-act="pauseDepotage" data-id="${r.id}" title="Marquer une pause de l’opération de dépotage">⏸️ Pause</button>
-      <button class="btn small primary${lockCls('entrepot')}" data-act="validerReceptionDepotage" data-id="${r.id}">✓ Valider en stock</button>
+      <button class="btn small${lockCls('entrepot')}" data-act="pauseDepotage" data-id="${r.id}" style="background:#FBBF24;border-color:#D97706;color:#78350F;font-weight:700" title="Marquer une pause de l’opération de dépotage">⏸️ Pause</button>
+      <button class="btn small${lockCls('entrepot')}" data-act="validerReceptionDepotage" data-id="${r.id}" style="background:#DC2626;border-color:#B91C1C;color:#FFF;font-weight:700">Valider</button>
      `)}
     </td>
    </tr>`;
@@ -4419,7 +4422,7 @@ function validerReceptionDepotage(id){
  const defModel=r.model||'MB5';
  openModal(`Valider la réception en stock · ${r.id} (${r.dossier})`,
   `<div class="full" style="padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);font-size:13px">
-   <b>Conteneur <span class="num">${esc(r.cont)}</span> · Dépotage du ${fmt(r.date)} : <span class="num" style="color:var(--blue);font-size:16px">${n0(r.total)}</span> palettes à recevoir</b><br>
+   <b>Conteneur <span class="num">${esc(r.cont)}</span>${r.date ? ` · Dépotage du ${fmt(r.date)}` : ''} : <span class="num" style="color:var(--blue);font-size:16px">${n0(r.total)}</span> palettes à recevoir</b><br>
    <small class="muted">Précisez s’il s’agit de <b>palettes sales</b> ou de <b>palettes propres</b>, le modèle de palette (MB5 habituel ou ${autresModelsList().join('/')} → Autre) et le stock où les ranger.</small>
   </div>`+
   fld('Statut des palettes reçues','typeRec','select',{req:1,options:[
@@ -4460,18 +4463,26 @@ function validerReceptionDepotage(id){
      r.depotPausedAt = '';
     }
     if(!r.depotStartAt){
-     r.depotStartAt = r.date ? (r.date + 'T08:00:00Z') : nowVal;
+     r.depotStartAt = nowVal;
     }
+    const finishDate = TODAY_ISO;
+    r.date = finishDate;
     r.depotEndAt = nowVal;
     r.depotStatus = 'Terminé';
     r.typeRec=data.typeRec;r.model=model;r.cat=targetCat;r.qtyEmise=r.qtyEmise??r.total;r.qtyRecue=q;r.total=q;r.status='Validée';r.valBy=S.me;r.valAt=nowVal;r.obs=data.obs?.trim()||'';
     const dos=S.dossiers.find(d=>d.num===r.dossier);
-    if(dos&&dos.depotage){
-     dos.depotage.status='Validée';
-     dos.depotage.cat=targetCat;
-     dos.depotage.model=model;
-     dos.depotage.depotEndAt = nowVal;
-     dos.depotage.depotStatus = 'Terminé';
+    if(dos){
+     dos.D6 = finishDate;
+     dos.updatedAt = nowVal;
+     dos.updatedBy = S.me;
+     if(dos.depotage){
+      dos.depotage.date = finishDate;
+      dos.depotage.status = 'Validée';
+      dos.depotage.cat = targetCat;
+      dos.depotage.model = model;
+      dos.depotage.depotEndAt = nowVal;
+      dos.depotage.depotStatus = 'Terminé';
+     }
     }
     audit('Réception dépotage validée en Entrepôt',r.id,`${r.dossier} : ${q} palettes (${model}) → ${lbl}`);
     closeModal();
