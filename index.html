@@ -3024,6 +3024,17 @@ function resumeDepotage(id){
  });
 }
 
+function isDepotageTermine(d){
+ if(!d) return false;
+ if(!d.D6) return false;
+ const r = (S?.receptions||[]).find(x => (d.depotage && x.id === d.depotage.recId) || x.dossier === d.num);
+ const target = r || d.depotage;
+ if(target){
+  return target.status === 'Validée' || target.depotStatus === 'Terminé' || Boolean(target.depotEndAt);
+ }
+ return Boolean(d.D7 || d.D8);
+}
+
 function depotageSummary(d){
  if(!d||!d.depotage) return '';
  const r = (S.receptions||[]).find(x => x.id === d.depotage.recId || x.dossier === d.num);
@@ -3033,13 +3044,14 @@ function depotageSummary(d){
  const total = target.total || d.depotage.total || 140;
  const model = target.model || d.depotage.model || 'MB5';
  const recId = r ? r.id : (d.depotage.recId || 'REC-???');
+ const termine = isDepotageTermine(d);
 
  return `<div class="full" style="margin-top:10px;padding:12px 14px;border:1px solid #DDD6FE;border-left:5px solid #7C3AED;border-radius:10px;background:#F5F3FF;box-shadow:0 2px 6px rgba(124,58,237,0.06)">
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
    <div>
     <div style="display:flex;align-items:center;gap:8px">
      <span style="font-size:16px">📦</span>
-     <b style="color:#5B21B6;font-size:13.5px">Dépotage conteneur · ${esc(recId)}</b>
+     <b style="color:#5B21B6;font-size:13.5px">Suivi du dépotage · ${esc(recId)}</b>
      <span class="badge ${model!=='MB5'?'b-autre':'b-info'}">${esc(model)}</span>
     </div>
     <div style="font-size:12.5px;color:var(--text);margin-top:3px">
@@ -3050,16 +3062,9 @@ function depotageSummary(d){
     ${depotTimerHtml(target)}
    </div>
   </div>
-  <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-   ${!target.depotStartAt ? `
-    <button type="button" class="btn small primary${lockCls('entrepot')}" data-act="startDepotage" data-id="${esc(recId)}">▶️ Démarrer le dépotage</button>
-   ` : (st === 'En pause' ? `
-    <button type="button" class="btn small ok${lockCls('entrepot')}" data-act="resumeDepotage" data-id="${esc(recId)}" style="background:#10B981;border-color:#059669;color:#FFF">▶️ Reprendre le dépotage</button>
-    <button type="button" class="btn small primary${lockCls('entrepot')}" data-act="validerReceptionDepotage" data-id="${esc(recId)}">✓ Terminer & Ranger en stock</button>
-   ` : (target.status === 'Validée' || st === 'Terminé' ? '' : `
-    <button type="button" class="btn small warn${lockCls('entrepot')}" data-act="pauseDepotage" data-id="${esc(recId)}">⏸️ Marquer une pause</button>
-    <button type="button" class="btn small primary${lockCls('entrepot')}" data-act="validerReceptionDepotage" data-id="${esc(recId)}">✓ Terminer & Ranger en stock</button>
-   `))}
+  <div style="margin-top:8px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px">
+   <span>📍</span>
+   <span>Opération exécutée en Entrepôt (Stock & Réceptions) · Statut dépotage : <b style="color:${termine?'var(--ok)':'var(--blue)'}">${esc(st)}</b></span>
   </div>
   ${(target.depotPauses && target.depotPauses.length) ? `
    <div style="margin-top:8px;font-size:11.5px;color:var(--muted);border-top:1px dashed #DDD6FE;padding-top:6px">
@@ -3148,20 +3153,26 @@ function syncSeqForm(){
  const f=$('#datesForm');if(!f)return;
  const dId=f.dataset.id,d=S.dossiers.find(x=>x.id===dId);if(!d)return;
  let prevVal=d.D3;
+ const depDone = isDepotageTermine(d);
  SEQ_STEPS.forEach(s=>{
   const el=f.querySelector(`[name="${s.k}"]`),box=f.querySelector(`[data-step="${s.k}"]`),hint=f.querySelector(`[data-hint="${s.k}"]`),chk=f.querySelector(`[data-chk="${s.k}"]`);
   if(!el)return;
   const already=Boolean(d[s.k]);
+  const stepPrevOk = s.k==='D7' ? (Boolean(prevVal) && depDone) : Boolean(prevVal);
   if(already){
    el.value=d[s.k];el.disabled=true;
    if(chk){chk.checked=true;chk.disabled=true}
    if(box)box.style.opacity='1';
    if(hint)hint.textContent=`🔒 Déjà validé le ${s.type==='select'?d[s.k]:fmt(d[s.k])}`;
-  }else if(!prevVal){
+  }else if(!stepPrevOk){
    el.value='';el.disabled=true;
    if(chk){chk.checked=false;chk.disabled=true}
    if(box)box.style.opacity='.75';
-   if(hint)hint.textContent=`🔒 Indisponible · validez d’abord « ${s.prevLabel} »`;
+   if(hint){
+    hint.textContent=(s.k==='D7' && prevVal && !depDone)
+      ? '🔒 Indisponible · dépotage non terminé en Entrepôt'
+      : `🔒 Indisponible · validez d’abord « ${s.prevLabel} »`;
+   }
   }else{
    el.disabled=false;
    if(chk)chk.disabled=false;
@@ -3218,7 +3229,9 @@ function openDossier(id,edit=false){
   <section class="panel"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><h3 style="margin:0">2. Suivi quotidien de l'opération</h3>${!arrived?badge('bad','Confirmez d’abord l’arrivée du navire','!'):badge('info','Date du jour : '+fmt(TODAY_ISO))}</div>
    <p class="muted" style="margin:0 0 10px;font-size:12.5px">Aucune date antérieure ne peut être saisie : chaque validation prend en compte la date du jour de validation (<b>${fmt(TODAY_ISO)}</b>).</p>
    <form id="datesForm" data-id="${d.id}" class="dates" style="grid-template-columns:1fr">${SEQ_STEPS.map(s=>{
-    const prevOk=Boolean(d[s.prev]),val=d[s.k]||'';
+    const depDone=isDepotageTermine(d);
+    const prevOk=s.k==='D7'?(Boolean(d.D6)&&depDone):Boolean(d[s.prev]);
+    const val=d[s.k]||'';
     let ctrl;
     if(edit){
      if(s.type==='select'){
@@ -3232,7 +3245,8 @@ function openDossier(id,edit=false){
        <input type="hidden" name="${s.k}" value="${esc(val)}" ${val||!prevOk?'disabled':''}>
       </div>`;
      }
-     ctrl+=`<small data-hint="${s.k}" class="muted" style="margin-top:3px">${val?`🔒 Déjà validé`:prevOk?`✓ Disponible à la validation (${fmt(TODAY_ISO)})`:`🔒 Indisponible · validez d’abord « ${s.prevLabel} »`}</small>`;
+     const attenteHint=(s.k==='D7' && d.D6 && !depDone)?'dépotage terminé en Entrepôt':s.prevLabel;
+     ctrl+=`<small data-hint="${s.k}" class="muted" style="margin-top:3px">${val?`🔒 Déjà validé`:prevOk?`✓ Disponible à la validation (${fmt(TODAY_ISO)})`:`🔒 Indisponible · validez d’abord « ${attenteHint} »`}</small>`;
      if(s.k==='D6'){
       ctrl+=d.depotage?depotageSummary(d):`<div data-dep-box style="margin-top:8px;padding:10px;border:1px dashed var(--line);border-radius:8px;background:var(--surface-2);display:${prevOk?'block':'none'}">
        <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px">
@@ -3253,7 +3267,8 @@ function openDossier(id,edit=false){
       else if(s.k==='D8')actBtn=`<button type="button" class="btn small primary${lockCls('transit')}" data-act="validerStepJour" data-id="${d.id}" data-step="${s.k}" style="background:#059669;border-color:#047857">Valider récupération & Clôturer</button>`;
       else actBtn=`<button type="button" class="btn small primary${lockCls('transit')}" data-act="validerStepJour" data-id="${d.id}" data-step="${s.k}">Valider ce jour</button>`;
      }
-     ctrl=disp||(prevOk?`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px"><span class="badge b-bad">Non renseigné · prêt à valider</span>${actBtn}</div>`:`<span class="badge b-bad">🔒 Non renseigné (attente : ${s.prevLabel})</span>`);
+     const attenteMsg=(s.k==='D7' && d.D6 && !depDone)?'Dépotage terminé en Entrepôt':s.prevLabel;
+     ctrl=disp||(prevOk?`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px"><span class="badge b-bad">Non renseigné · prêt à valider</span>${actBtn}</div>`:`<span class="badge b-bad">🔒 Non renseigné (attente : ${attenteMsg})</span>`);
      if(s.k==='D6'&&d.depotage)ctrl+=depotageSummary(d);
     }
     return `<div class="date${!val?' undated':''}" data-step="${s.k}" style="opacity:${!edit&&!prevOk&&!val?'.85':'1'}"><span class="code">${s.step}</span><div style="flex:1;min-width:0"><small>${s.label}</small>${ctrl}</div></div>`;
@@ -7324,6 +7339,7 @@ document.addEventListener('click',e=>{
    const sk=a.dataset.step,st=SEQ_STEPS.find(x=>x.k===sk);if(!st||d[sk])return;
    if(sk==='D4'||sk==='trans'){validerMiseEnLivraison(id);return;}
    if(!d[st.prev]){toast(`Validez d’abord « ${st.prevLabel} ».`,'bad');return}
+   if(sk==='D7'&&!isDepotageTermine(d)){toast('Le mail de récupération ne peut pas être envoyé tant que le dépotage n’a pas été terminé en Entrepôt.','bad');return}
    const isRecovery=sk==='D8';
    const successMsg=isRecovery
     ?`Conteneur récupéré le ${fmt(TODAY_ISO)} : le dossier ${d.num} est désormais clôturé.`
@@ -7348,6 +7364,7 @@ document.addEventListener('click',e=>{
     const chk=f.querySelector(`[data-chk="${s.k}"]`);
     const raw=s.type==='date'?(chk?.checked?TODAY_ISO:(vals[s.k]||'')):(vals[s.k]||'');
     if(!prevOk&&raw){toast(`Ordre séquentiel non respecté : validez d’abord « ${s.prevLabel} » avant « ${s.label} ».`,'bad');return}
+    if(s.k==='D7'&&raw&&!isDepotageTermine(d)){toast('Le mail de récupération ne peut pas être validé tant que le dépotage n’a pas été terminé en Entrepôt.','bad');return}
     if(s.k==='D4'&&raw&&!vals.trans&&!d.trans){toast('Lors de la mise en livraison, veuillez sélectionner le transporteur.','bad');return}
     if(s.type==='date'&&raw&&raw<TODAY_ISO){toast(`Aucune date antérieure ne peut être saisie pour « ${s.label} ». C’est la date du jour (${fmt(TODAY_ISO)}) qui est prise en compte.`,'bad');return}
     next[s.k]=prevOk?(s.type==='date'&&raw?TODAY_ISO:raw):'';
