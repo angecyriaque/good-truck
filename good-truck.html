@@ -3876,13 +3876,13 @@ function vEntrepot(){
       suiviHtml = `<span class="badge b-mute" style="color:var(--muted);font-weight:600">Arrivée en attente</span>`;
       actionBtnHtml = `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
        <button class="btn small primary${lockCls('entrepot')}" data-act="confirmerReceptionTC" data-id="${r.id}" style="background:#2563EB;border-color:#1D4ED8;color:#FFF;font-weight:700" title="Confirmer l’arrivée effective du conteneur au quai de l’entrepôt">📥 Confirmer réception TC</button>
-       <button class="btn small${lockCls('entrepot')}" data-act="startDepotage" data-id="${r.id}" title="Démarrer directement le dépotage">▶️ Démarrer</button>
+       <button class="btn small${lockCls('entrepot')}" data-act="startDepotage" data-id="${r.id}" title="Démarrer directement le dépotage">Dépoter</button>
       </div>`;
      } else if(step === 2){
       stepBadge = `<span class="badge" style="background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;font-weight:700">2. Dépotage</span><br><small style="color:var(--text);font-weight:600">${st === 'En cours' ? '⏱️ En cours' : (st === 'En pause' ? '⏸️ En pause' : 'Non démarré')}</small>`;
       suiviHtml = depotTimerHtml(r);
       if(!r.depotStartAt){
-       actionBtnHtml = `<button class="btn small primary${lockCls('entrepot')}" data-act="startDepotage" data-id="${r.id}">▶️ Démarrer</button>`;
+       actionBtnHtml = `<button class="btn small primary${lockCls('entrepot')}" data-act="startDepotage" data-id="${r.id}">Dépoter</button>`;
       } else if(st === 'En pause'){
        actionBtnHtml = `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <button class="btn small ok${lockCls('entrepot')}" data-act="resumeDepotage" data-id="${r.id}" style="background:#10B981;border-color:#059669;color:#FFF;font-weight:700" title="Reprendre immédiatement le minuteur">▶️ Reprendre</button>
@@ -3897,11 +3897,11 @@ function vEntrepot(){
      } else if(step === 3){
       stepBadge = `<span class="badge" style="background:#EDE9FE;color:#6D28D9;border:1px solid #DDD6FE;font-weight:700">3. Mail récupération</span><br><small style="color:var(--ok);font-weight:600">✓ Dépotage validé</small>`;
       suiviHtml = `<b>${fmt(r.date || dos?.D6 || TODAY_ISO)}</b><br><small style="color:var(--ok);font-weight:700">✓ Palettes en stock</small>`;
-      actionBtnHtml = `<button class="btn small${lockCls('entrepot')}" data-act="envoyerMailRecup" data-id="${dos?.id || r.id}" style="background:#7C3AED;border-color:#6D28D9;color:#FFF;font-weight:700" title="Envoyer le mail de mise à disposition du conteneur vide à l’Armateur et au Transporteur">📧 Envoyer mail récupération</button>`;
+      actionBtnHtml = `<button class="btn small${lockCls('entrepot')}" data-act="envoyerMailRecup" data-id="${dos?.id || r.id}" style="background:#7C3AED;border-color:#6D28D9;color:#FFF;font-weight:700" title="Envoyer le mail de mise à disposition du conteneur vide à l’Armateur et au Transporteur">Mail récupération</button>`;
      } else if(step === 4){
       stepBadge = `<span class="badge" style="background:#ECFDF5;color:#047857;border:1px solid #A7F3D0;font-weight:700">4. Restitution TC</span><br><small style="color:#6D28D9;font-weight:600">📧 Avis envoyé le ${fmt(dos?.D7)}</small>`;
       suiviHtml = `<b>Avis ${fmt(dos?.D7)}</b><br><small style="color:#059669;font-weight:700">TC vide prêt au quai</small>`;
-      actionBtnHtml = `<button class="btn small ok${lockCls('entrepot')}" data-act="confirmerRecuperationTC" data-id="${dos?.id || r.id}" style="background:#059669;border-color:#047857;color:#FFF;font-weight:700" title="Confirmer l’enlèvement et la restitution du conteneur vide par le transporteur et clôturer le dossier">🚚 Confirmer récupération TC</button>`;
+      actionBtnHtml = `<button class="btn small ok${lockCls('entrepot')}" data-act="confirmerRecuperationTC" data-id="${dos?.id || r.id}" style="background:#059669;border-color:#047857;color:#FFF;font-weight:700" title="Confirmer l’enlèvement et la restitution du conteneur vide par le transporteur et clôturer le dossier">Récupérer TC</button>`;
      } else {
       stepBadge = badge('ok','Cycle terminé','✓');
       suiviHtml = `<span class="badge b-ok">Restitué le ${fmt(dos?.D8)}</span>`;
@@ -3957,7 +3957,7 @@ function vEntrepot(){
     <td>${depotTimerHtml(r)}</td>
     <td style="white-space:nowrap">
      ${!r.depotStartAt ? `
-      <button class="btn small primary${lockCls('entrepot')}" data-act="startDepotage" data-id="${r.id}">▶️ Démarrer</button>
+      <button class="btn small primary${lockCls('entrepot')}" data-act="startDepotage" data-id="${r.id}">Dépoter</button>
      ` : (st === 'En pause' ? `
       <button class="btn small ok${lockCls('entrepot')}" data-act="resumeDepotage" data-id="${r.id}" style="background:#10B981;border-color:#059669;color:#FFF;font-weight:700" title="Reprendre immédiatement le minuteur sans ouvrir de formulaire">▶️ Reprendre</button>
       <button class="btn small${lockCls('entrepot')}" data-act="validerReceptionDepotage" data-id="${r.id}" style="background:#DC2626;border-color:#B91C1C;color:#FFF;font-weight:700">Valider</button>
@@ -4006,7 +4006,7 @@ function vEntrepot(){
      ${mailSent ? `
       <span class="badge b-ok" style="font-weight:700" title="Mail de récupération envoyé le ${fmt(dos.D7)}">📧 Mail envoyé (${fmt(dos.D7)})</span>
      ` : (dos && dos.status !== 'Clôturé' ? `
-      <button class="btn small" data-act="envoyerMailRecup" data-id="${dos.id}" style="background:#7C3AED;border-color:#6D28D9;color:#FFF;font-weight:700" title="Envoyer le mail de récupération du conteneur vide">📧 Envoyer mail récupération</button>
+      <button class="btn small" data-act="envoyerMailRecup" data-id="${dos.id}" style="background:#7C3AED;border-color:#6D28D9;color:#FFF;font-weight:700" title="Envoyer le mail de récupération du conteneur vide">Mail récupération</button>
      ` : badge('ok','Validé','✓'))}
     </td>`;
    })()}
