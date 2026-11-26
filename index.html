@@ -1679,7 +1679,7 @@ const TABS=[
  {k:'livraisons',l:'Planning',ic:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/><path class="a-check" d="M14.5 15.5l1.8 1.8 3.2-3.6" stroke-width="2.2"/></svg>`},
  {k:'facturation',l:'Facturation',ic:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8M16 17H8M10 9H8"/></svg>`},
  {k:'recouvrement',l:'Recouvrement',ic:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 6v12"/></svg>`},
- {k:'operateurs',l:'Opérateurs',ic:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><circle cx="12" cy="5" r="2.5"/><path d="M12 7.5v11M7 11h10"/><path d="M5 14c0 3.5 3 5.5 7 5.5s7-2 7-5.5"/><path d="M4 14l2-2 1.5 2M20 14l-2-2-1.5 2"/></svg>`},
+ {k:'operateurs',l:'Intervenants',ic:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><circle cx="12" cy="5" r="2.5"/><path d="M12 7.5v11M7 11h10"/><path d="M5 14c0 3.5 3 5.5 7 5.5s7-2 7-5.5"/><path d="M4 14l2-2 1.5 2M20 14l-2-2-1.5 2"/></svg>`},
  {k:'chat',l:'Chat',ic:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 4h16v12H9l-5 4z"/><g class="a-dots" fill="currentColor" stroke="none"><circle cx="8.5" cy="10" r="1.3"/><circle cx="12" cy="10" r="1.3"/><circle cx="15.5" cy="10" r="1.3"/></g></svg>`},
  {k:'utilisateurs',l:'Utilisateurs',ic:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c.8-4 3.6-6 7-6s6.2 2 7 6"/><g class="a-wave"><circle cx="17.5" cy="7" r="2.5"/><path d="M16 13.5c2.6-.4 5 1.3 5.8 4.5"/></g></svg>`}];
 
@@ -8365,15 +8365,15 @@ function vOperateurs(){
  const arms=ops.filter(o=>o.type==='Armateur'), trs=ops.filter(o=>o.type==='Transporteur');
  const q=opQ.toLowerCase();
  const list=ops.filter(o=>(opFilter==='Tous'||o.type===opFilter)&&(!q||[o.id,o.name,o.type,o.code,o.contact,o.phone,o.email,o.zone].join(' ').toLowerCase().includes(q)));
- const chips=[['Tous','Tous les opérateurs',ops.length],['Armateur','⚓ Armateurs (Compagnies maritimes)',arms.length],['Transporteur','🚚 Transporteurs (Traction routière)',trs.length]];
- return hero('port','Opérateurs · Armateurs & Transporteurs','Référentiel unifié distinguant les Armateurs et les Transporteurs.',
-  `<div><b>${arms.filter(o=>o.active).length}</b>⚓ armateurs actifs</div><div><b>${trs.filter(o=>o.active).length}</b>🚚 transporteurs actifs</div><div><b>${ops.length}</b>opérateurs référencés</div>`)+
+ const chips=[['Tous','Tous les intervenants',ops.length],['Armateur','⚓ Armateurs (Compagnies maritimes)',arms.length],['Transporteur','🚚 Transporteurs (Traction routière)',trs.length]];
+ return hero('port','Intervenants · Armateurs & Transporteurs','Référentiel unifié distinguant les Armateurs et les Transporteurs.',
+  `<div><b>${arms.filter(o=>o.active).length}</b>⚓ armateurs actifs</div><div><b>${trs.filter(o=>o.active).length}</b>🚚 transporteurs actifs</div><div><b>${ops.length}</b>intervenants référencés</div>`)+
  `<div class="toolbar">
    <input class="field-inline grow" id="opq" type="search" placeholder="Rechercher un armateur, un transporteur, code SCAC, contact, téléphone…" value="${esc(opQ)}" aria-label="Rechercher un opérateur">
-   <button class="btn primary${lockCls('operateurs')}" data-act="newOperateur">${plus()}Nouvel opérateur</button>
+   <button class="btn primary${lockCls('operateurs')}" data-act="newOperateur">${plus()}Nouvel intervenant</button>
   </div>
   <div class="chips" style="margin-bottom:14px">${chips.map(([k,l,c])=>`<button class="chip" data-of="${k}" aria-pressed="${opFilter===k}">${l}<span class="c">${c}</span></button>`).join('')}</div>
-  <div class="tablewrap"><table><thead><tr><th>Réf. / Code</th><th>Catégorie d’opérateur</th><th>Raison sociale</th><th>Domaine & Spécificité</th><th>Interlocuteur & Coordonnées</th><th>Activité liée</th><th>Statut</th><th>Actions</th></tr></thead>
+  <div class="tablewrap"><table><thead><tr><th>Réf. / Code</th><th>Catégorie d’intervenant</th><th>Raison sociale</th><th>Domaine & Spécificité</th><th>Interlocuteur & Coordonnées</th><th>Activité liée</th><th>Statut</th><th>Actions</th></tr></thead>
   <tbody>${list.map(o=>{
    const isArm=o.type==='Armateur';
    const dos=S.dossiers.filter(d=>isArm?d.lam===o.name:d.trans===o.name);
@@ -8396,12 +8396,12 @@ function vOperateurs(){
      <button class="btn small${lockCls('operateurs')}" data-act="toggleOperateur" data-id="${o.id}">${o.active?'Désactiver':'Activer'}</button>
     </td>
    </tr>`;
-  }).join('')||`<tr><td colspan="8" class="empty">Aucun opérateur ne correspond à ce filtre.</td></tr>`}</tbody></table></div>`;
+  }).join('')||`<tr><td colspan="8" class="empty">Aucun intervenant ne correspond à ce filtre.</td></tr>`}</tbody></table></div>`;
 }
 function newOperateur(){
  if(!guard('operateurs'))return;
- openModal('Nouvel opérateur (Armateur ou Transporteur)',
-  fld('Catégorie d’opérateur','type','select',{req:1,full:1,options:[['Armateur','⚓ Armateur (Compagnie maritime)'],['Transporteur','🚚 Transporteur (Transport routier)']],value:opFilter==='Transporteur'?'Transporteur':'Armateur'})+
+ openModal('Nouvel intervenant (Armateur ou Transporteur)',
+  fld('Catégorie d’intervenant','type','select',{req:1,full:1,options:[['Armateur','⚓ Armateur (Compagnie maritime)'],['Transporteur','🚚 Transporteur (Transport routier)']],value:opFilter==='Transporteur'?'Transporteur':'Armateur'})+
   fld('Nom / Raison sociale','name','text',{req:1,ph:'Ex. Bolloré, Grimaldi, Ivoire Fret…'})+
   fld('Code (SCAC maritime ou Réf. flotte)','code','text',{req:1,ph:'Ex. MSCU ou TLG-CI'})+
   fld('Interlocuteur principal','contact','text',{req:1,ph:'Nom et prénom du contact'})+
@@ -8427,7 +8427,7 @@ function newOperateur(){
 function editOperateur(id){
  if(!guard('operateurs'))return;
  const o=S.operators.find(x=>x.id===id);if(!o)return;
- openModal(`Modifier l’opérateur · ${o.name}`,
+ openModal(`Modifier l’intervenant · ${o.name}`,
   fld('Catégorie d’opérateur','type','select',{req:1,full:1,options:[['Armateur','⚓ Armateur (Compagnie maritime)'],['Transporteur','🚚 Transporteur (Transport routier)']],value:o.type})+
   fld('Nom / Raison sociale','name','text',{req:1,value:o.name})+
   fld('Code (SCAC maritime ou Réf. flotte)','code','text',{req:1,value:o.code})+
@@ -8440,7 +8440,7 @@ function editOperateur(id){
    const nm=data.name?.trim();
    if(nm&&nm.toLowerCase()!==o.name.toLowerCase()&&S.operators.some(x=>x.name.toLowerCase()===nm.toLowerCase()))e.name='Ce nom d’opérateur existe déjà.';
    if(Object.keys(e).length)return e;
-   save(`Opérateur « ${nm} » mis à jour.`,()=>{
+   save(`Intervenant « ${nm} » mis à jour.`,()=>{
     const oldName=o.name;
     Object.assign(o,{type:data.type,name:nm,code:data.code.trim().toUpperCase(),contact:data.contact.trim(),phone:data.phone.trim(),email:data.email.trim(),zone:data.zone.trim()});
     if(oldName!==nm){
@@ -8457,7 +8457,7 @@ function toggleOperateur(id){
  const o=S.operators.find(x=>x.id===id);if(!o)return;
  save(o.active?`${o.type} « ${o.name} » désactivé.`:`${o.type} « ${o.name} » réactivé.`,()=>{
   o.active=!o.active;
-  audit(o.active?'Opérateur réactivé':'Opérateur désactivé',o.id,`${o.type} · ${o.name}`);
+  audit(o.active?'Intervenant réactivé':'Intervenant désactivé',o.id,`${o.type} · ${o.name}`);
  });
 }
 
@@ -8540,7 +8540,7 @@ function vUsers(){
     ${admin&&u.id!==S.me?`<button class="btn small" data-act="toggleUser" data-id="${u.id}">${u.active?'Désactiver':'Réactiver'}</button>`:''}
    </td>
   </tr>`).join('')}</tbody></table></div>`;
- if(usub==='droits'){const mods=[['transit','Transit'],['entrepot','Entrepôt'],['transport','Transport'],['livraisons','Livraisons'],['operateurs','Opérateurs'],['users','Utilisateurs']];
+ if(usub==='droits'){const mods=[['transit','Transit'],['entrepot','Entrepôt'],['transport','Transport'],['livraisons','Livraisons'],['operateurs','Intervenants'],['users','Utilisateurs']];
   body=`<div class="tablewrap"><table><thead><tr><th>Niveau d’accès (Rôle)</th>${mods.map(m=>`<th>${m[1]}</th>`).join('')}<th>Chat</th><th>Tableau de bord</th></tr></thead><tbody>${ROLES.map(r=>`<tr><td><b>${r}</b></td>${mods.map(([k])=>`<td>${PERMS[r].includes(k)?badge('ok','Créer, modifier, valider','✓'):badge('mute','Consulter')}</td>`).join('')}<td>${badge('ok','Échanger','✓')}</td><td>${badge('info','Consulter')}</td></tr>`).join('')}</tbody></table></div>
   <p class="muted" style="font-size:13px">Proposition à valider par Good Pack. En production, chaque permission est contrôlée côté serveur à chaque opération.</p>`;}
  if(usub==='audit')body=`<div class="toolbar"><span class="muted grow">Journal complet : création, dates, mouvements, validations, transferts.</span><button class="btn" data-act="exportJSON" title="Sauvegarde complète JSON de la base de données">📥 Exporter JSON</button>${admin?'<button class="btn danger" data-act="reset">Réinitialiser la démonstration</button>':''}</div><div class="tablewrap"><table><thead><tr><th>Horodatage</th><th>Utilisateur</th><th>Action</th><th>Objet</th><th>Détails</th></tr></thead><tbody>${S.audit.map(a=>`<tr><td>${fmtT(a.t)}</td><td>${esc(user(a.user).name)}</td><td>${esc(a.action)}</td><td><b>${esc(a.obj)}</b></td><td class="wrap">${esc(a.details)}</td></tr>`).join('')}</tbody></table></div>`;
@@ -8555,7 +8555,7 @@ function viewUser(id){
   entrepot:'Entrepôt & Stockage',
   transport:'Transport Routier',
   livraisons:'Dossiers de Livraison',
-  operateurs:'Opérateurs (Armateurs/Transporteurs)',
+  operateurs:'Intervenants (Armateurs/Transporteurs)',
   users:'Gestion des utilisateurs'
  }[m]||m));
  openModal(`Fiche Utilisateur · ${u.name}`,
