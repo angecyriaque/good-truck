@@ -4168,7 +4168,7 @@ function vEntrepot(){
    <th>Trajet & Sites</th>
    <th>Catégorie de palettes</th>
    <th class="right">Quantité</th>
-   <th>Transporteur · Camion · Chauffeur</th>
+   <th>Transporteur</th>
    <th>Date départ</th>
    <th>Arrivée (Prévue / Réelle)</th>
    <th>Statut</th>
@@ -4191,7 +4191,7 @@ function vEntrepot(){
     </td>
     <td><b style="color:${catCol}">${catL(t.cat)}</b> <span class="badge b-info">${esc(t.model||'MB5')}</span></td>
     <td class="right num"><b style="font-size:16px;color:var(--blue)">${n0(t.qty)}</b></td>
-    <td><b>${esc(t.trans)}</b><br><span class="num" style="font-weight:700;color:var(--navy)">${esc(t.veh)}</span> · ${esc(t.driver)}</td>
+    <td><b title="Camion : ${esc(t.veh||'—')} · Chauffeur : ${esc(t.driver||'—')}">${esc(t.trans)}</b></td>
     <td><b>${fmt(t.dateDep)}</b></td>
     <td>${isTransit?`<b>${fmt(t.dateArrP)}</b> <small class="muted">(prévue)</small>`:`<b>${fmt(t.dateArrR)}</b> <span class="badge b-ok" style="font-size:10px">Reçu</span>`}</td>
     <td>${isTransit?`<span class="badge b-warn pulse-badge">🚚 En transit</span>`:`<span class="badge b-ok">✓ Réceptionné</span>`}</td>
