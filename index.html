@@ -6959,7 +6959,7 @@ function vFacturation() {
        ⏳ 1. Opérations ${labelMetier}
       </h3>
       <small class="muted">
-       ${facSub==='transit'?'Dossiers dont le dépotage est clôturé et validé. Cliquez sur une ligne ou sur « Renseigner facturation » pour lui attribuer son numéro de facture et sa date.':
+       ${facSub==='transit'?'Dossiers dont le dépotage est clôturé et validé. Cliquez sur une ligne ou sur « Facturer » pour lui attribuer son numéro de facture et sa date.':
          facSub==='entrepot'?'Interventions de DOOR SWAP et Soudures enregistrées. Cliquez pour attribuer le numéro et la date de facture.':
          'Transports et livraisons dont le trajet est effectué. Cliquez pour attribuer le numéro et la date de facture.'}
       </small>
@@ -6993,7 +6993,7 @@ function vFacturation() {
            <td><b>${esc(client)}</b></td>
            <td><span class="badge b-ok">✓ Dépotage validé</span></td>
            <td style="white-space:nowrap" onclick="event.stopPropagation()">
-            <button class="btn small primary${lockCls('facturation')}" data-act="facturerDossierTransit" data-id="${d.num}">📝 Renseigner facturation</button>
+            <button class="btn small primary${lockCls('facturation')}" data-act="facturerDossierTransit" data-id="${d.num}">Facturer</button>
            </td>
           </tr>`;
          }).join('') || '<tr><td colspan="9" class="empty">Tous les dossiers de transit clôturés ont été facturés !</td></tr>'
@@ -7012,7 +7012,7 @@ function vFacturation() {
            <td><b>SKCI</b><br><small class="muted">Entrepôt GoodPack</small></td>
            <td><span class="badge b-ok">✓ Prestation Réalisée</span></td>
            <td style="white-space:nowrap" onclick="event.stopPropagation()">
-            <button class="btn small primary${lockCls('facturation')}" data-act="facturerEntrepot" data-id="${r.id}">📝 Renseigner facturation</button>
+            <button class="btn small primary${lockCls('facturation')}" data-act="facturerEntrepot" data-id="${r.id}">Facturer</button>
            </td>
           </tr>`;
          }).join('') || '<tr><td colspan="9" class="empty">Toutes les opérations de DOOR SWAP et Soudure ont été facturées !</td></tr>'
@@ -7035,7 +7035,7 @@ function vFacturation() {
            <td class="right num"><b style="font-size:15px;color:var(--ink)">${n0(t.qty)}</b></td>
            <td><span class="badge b-ok">✓ Livraison Effectuée</span></td>
            <td style="white-space:nowrap" onclick="event.stopPropagation()">
-            <button class="btn small primary${lockCls('facturation')}" data-act="facturerTransport" data-id="${t.id}">📝 Renseigner facturation</button>
+            <button class="btn small primary${lockCls('facturation')}" data-act="facturerTransport" data-id="${t.id}">Facturer</button>
            </td>
           </tr>`;
          }).join('') || '<tr><td colspan="9" class="empty">Toutes les livraisons de transport effectuées ont été facturées !</td></tr>'
