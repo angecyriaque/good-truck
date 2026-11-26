@@ -6897,9 +6897,7 @@ function vFacturation() {
     const isLong = inv.delaiFacture != null && inv.delaiFacture > 3;
     const matchFilter = facFilter === 'Tous' ||
       (facFilter === '≤ 3 jours' ? isRapid :
-       facFilter === '> 3 jours' ? isLong :
-       facFilter === 'En attente' ? inv.recStatus === 'En attente' :
-       facFilter === 'Recouvrés' ? inv.recStatus === 'Recouvré' : true);
+       facFilter === '> 3 jours' ? isLong : true);
     const matchQ = !qHist || [inv.id, inv.num, inv.dossier, inv.client, inv.contact, inv.obs].join(' ').toLowerCase().includes(qHist);
     return matchFilter && matchQ;
   });
@@ -6912,7 +6910,7 @@ function vFacturation() {
   const pctMoins3j = countInvoiced ? Math.round((countMoins3j / countInvoiced) * 100) : 0;
   const countRecouvres = invoicedList.filter(i => i.recStatus === 'Recouvré').length;
 
-  const filterChips = ['Tous', '≤ 3 jours', '> 3 jours', 'En attente', 'Recouvrés'];
+  const filterChips = ['Tous', '≤ 3 jours', '> 3 jours'];
 
   return siteBanner(`Pilotage Facturation & Délais d’Exécution · ${sObj.name}`) +
   hero('finance', `Facturation · ${sObj.icon} ${sObj.name}`, 'Suivi opérationnel de la facturation : attribution de la date et du numéro de facture dès réalisation, sans saisie de montants, avec mesure du délai de traitement et transmission automatique au recouvrement.',
@@ -6947,7 +6945,7 @@ function vFacturation() {
     <div class="kpi" style="cursor:default;border-left:4px solid #10B981">
      <span style="color:#10B981">Dossiers Facturés (Total)</span>
      <b style="color:#10B981">${n0(countInvoiced)}</b>
-     <small class="muted">Dont ${countRecouvres} soldé${countRecouvres>1?'s':''} au recouvrement</small>
+     <small class="muted">Opérations archivées avec référence facture</small>
     </div>
    </div>
 
@@ -7068,9 +7066,7 @@ function vFacturation() {
       ${filterChips.map(f => `<button class="chip" data-facfilter="${f}" aria-pressed="${facFilter === f}">${f} <span class="c">${
         f === 'Tous' ? invoicedList.length :
         f === '≤ 3 jours' ? invoicedList.filter(i => i.delaiFacture != null && i.delaiFacture <= 3).length :
-        f === '> 3 jours' ? invoicedList.filter(i => i.delaiFacture != null && i.delaiFacture > 3).length :
-        f === 'En attente' ? invoicedList.filter(i => i.recStatus === 'En attente').length :
-        invoicedList.filter(i => i.recStatus === 'Recouvré').length
+        invoicedList.filter(i => i.delaiFacture != null && i.delaiFacture > 3).length
       }</span></button>`).join('')}
      </div>
     </div>
@@ -7086,8 +7082,7 @@ function vFacturation() {
         <th>Date Facturation</th>
         <th>⏱️ Durée mise pour Facturer</th>
         <th>Statut Facturation</th>
-        <th>Suivi Recouvrement</th>
-        <th>Actions</th>
+                <th>Actions</th>
        </tr>
       </thead>
       <tbody>
@@ -7096,7 +7091,7 @@ function vFacturation() {
         const isRapid = dFac <= 3;
         const isMedium = dFac > 3 && dFac <= 7;
         const isRec = inv.recStatus === 'Recouvré';
-        return `<tr style="border-left:4px solid ${isRec ? 'var(--ok)' : 'var(--blue)'}">
+        return `<tr style="border-left:4px solid var(--ok)">
          <td><span class="ref" style="font-size:13.5px;font-weight:700;color:var(--blue)">${esc(inv.num)}</span></td>
          <td>
           ${inv.category === 'transport' ? `<span class="badge b-info" style="font-size:11px">🚚 ${esc(inv.transportId || inv.dossier || 'Transport')}</span>` :
@@ -7112,16 +7107,11 @@ function vFacturation() {
           </span>
          </td>
          <td><span class="badge b-ok">✓ Facturé</span></td>
-         <td>
-          ${isRec ? `<span class="badge b-ok" style="font-weight:700">✓ Recouvré${inv.delaiRecouvrement != null ? ' (' + inv.delaiRecouvrement + ' j)' : ''}</span>` :
-            `<span class="badge b-warn" style="font-weight:700">⏳ En attente Recouvrement</span>`}
-         </td>
-         <td style="white-space:nowrap;display:flex;gap:6px">
+         <td style="white-space:nowrap">
           <button class="btn small" data-act="${inv.category === 'transport' ? 'facturerTransport' : inv.category === 'entrepot' ? 'facturerEntrepot' : 'facturerDossierTransit'}" data-id="${inv.dossier || inv.transportId || inv.reparationId || inv.id}" title="Modifier le numéro ou la date de facture">✏️ Modifier Réf.</button>
-          <button class="btn small primary${lockCls('recouvrement')}" data-act="goRecouvrementSub" data-sub="${inv.category || 'transit'}" title="Accéder au suivi dans le sous-onglet Recouvrement">→ Recouvrement</button>
          </td>
         </tr>`;
-       }).join('') || '<tr><td colspan="9" class="empty">Aucune opération facturée enregistrée pour ces critères de recherche.</td></tr>'}
+       }).join('') || '<tr><td colspan="8" class="empty">Aucune opération facturée enregistrée pour ces critères de recherche.</td></tr>'}
       </tbody>
      </table>
     </div>
