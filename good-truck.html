@@ -3884,7 +3884,7 @@ function vEntrepot(){
      const pln=(S.planifications||[]).find(p=>p.transport===t.id);
      const actBtn=t.loadStartAt
       ?`<button class="btn small${lockCls('entrepot')}" style="background:#FACC15;border-color:#EAB308;color:#1E293B;font-weight:700" data-act="tStart" data-id="${esc(t.id)}">Débuter l’expédition</button>`
-      :`<button class="btn small primary${lockCls('entrepot')}" data-act="tStartLoad" data-id="${esc(t.id)}">Démarrer le chargement</button>`;
+      :`<button class="btn small primary${lockCls('entrepot')}" data-act="tStartLoad" data-id="${esc(t.id)}">Démarrer</button>`;
      return `<tr class="click" data-act="openTransportDetails" data-id="${esc(t.id)}" title="Cliquez sur l’opération pour afficher les détails du transport">
       <td><span class="ref">${esc(t.id)}</span>${pln?`<br><small class="muted">Demande : <b>${esc(pln.id)}</b></small>`:''}</td>
       <td><b>${esc(t.to)}</b></td>
