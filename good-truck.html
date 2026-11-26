@@ -6548,8 +6548,8 @@ function newLivraison(){
  const defPo = String(2000088100 + (S.seq.PO = (S.seq.PO || 55) + 1));
 
  openModal('Nouveau Planning de transport',
-  fld('Numéro ITR (10 chiffres)','itr','text',{req:1,ph:'Ex. 1000000012',value:defItr})+
-  fld('Purchase Order (PO - 10 chiffres)','po','text',{req:1,ph:'Ex. 2000088102',value:defPo})+
+  fld('Numéro ITR','itr','text',{req:1,ph:'Ex. 1000000012',value:defItr})+
+  fld('Purchase Order (PO)','po','text',{req:1,ph:'Ex. 2000088102',value:defPo})+
   fld('Trajet pré-enregistré (Départ ➔ Arrivée)','trajet','select',{req:1,options:trajetOpts,value:trajetOpts[0]?.[0]||''})+
   fld('Quantité à transporter (palettes propres)','qty','number',{req:1,min:1,ph:'Ex. 200',value:200})+
   fld('Date de planification','dateP','date',{req:1,value:iso(2),min:TODAY_ISO})+
@@ -6558,8 +6558,7 @@ function newLivraison(){
     <div style="font-size:12.5px;color:var(--text);margin-top:3px">
      Dans le Planning, la contrainte de quantité ne bloque pas la demande. La quantité souhaitée est enregistrée librement et transmise au Dépôt qui valide la réservation et disponibilité du stock.
     </div>
-   </div>`+
-  `<p class="note">Règle de contrôle : Le <b>Numéro ITR</b> et le <b>Purchase Order (PO)</b> doivent comporter exactement <b>10 chiffres</b> et être <b>uniques</b> (aucun doublon permis). Le trajet part obligatoirement de l’entrepôt (${origin}).</p>`,
+   </div>`,
   'Enregistrer le planning',data=>{
    const e=req(data,['itr','po','dateP','qty','trajet']);
    const itr=String(data.itr||'').trim();
@@ -6569,23 +6568,8 @@ function newLivraison(){
    const from=origin;
    const pool=destPool(to);
 
-   if(!/^\d{10}$/.test(itr)){
-    e.itr='Le numéro ITR doit comporter exactement 10 chiffres.';
-   } else {
-    const isDupItr = (S.deliveries||[]).some(l=>l.itr===itr) ||
-                     (S.planifications||[]).some(p=>p.itr===itr) ||
-                     (S.transports||[]).some(t=>t.itr===itr);
-    if(isDupItr) e.itr='Ce numéro ITR existe déjà : les ITR sont uniques et ne doivent jamais se répéter.';
-   }
-
-   if(!/^\d{10}$/.test(po)){
-    e.po='Le Purchase Order (PO) doit comporter exactement 10 chiffres.';
-   } else {
-    const isDupPo = (S.deliveries||[]).some(l=>l.po===po) ||
-                    (S.planifications||[]).some(p=>p.po===po) ||
-                    (S.transports||[]).some(t=>t.po===po);
-    if(isDupPo) e.po='Ce Purchase Order (PO) existe déjà : les PO sont uniques et ne doivent jamais se répéter.';
-   }
+   if(!itr) e.itr='Veuillez renseigner le numéro ITR.';
+   if(!po) e.po='Veuillez renseigner le Purchase Order (PO).';
 
    if(data.dateP&&data.dateP<TODAY_ISO)e.dateP='Aucune date antérieure ne doit être saisie.';
    if(!Number.isInteger(q) || q <= 0) e.qty = 'La quantité à transporter doit être un nombre entier supérieur à 0.';
