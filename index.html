@@ -1031,7 +1031,7 @@ function seed(){
  M(iso(-5),'Lavage & Affectation Stock SKCI','sale',-1,180,'LAV-003','u4','Lavage lot LOT-2026-33 : 180 palettes lavées affectées au Stock SKCI','TXL3','10:20');
  M(iso(-5),'Lavage & Affectation Stock SKCI','propre_skci',1,180,'LAV-003','u4','Entrée de 180 palettes lavées (LOT-2026-33) en Stock SKCI','TXL3','10:20');
  M(iso(-15),'Sortie pour livraison (SKCI)','propre_skci',-1,300,'TR-0021','u4','Expédition client SKCI · Usine Yopougon (LV-0041)',null,'08:30');
- M(iso(-3),'Sortie pour livraison (Global)','propre_global',-1,200,'TR-0022','u4','Expédition client SOLIBRA · PK24 (LV-0042)',null,'09:15');
+ M(iso(-3),'Sortie pour livraison (Stock Classique)','propre_global',-1,200,'TR-0022','u4','Expédition client SOLIBRA · PK24 (LV-0042)',null,'09:15');
  /* Opérations de la journée (TODAY_ISO) pour la fiche de production journalière */
  M(iso(0),'Lavage & Affectation Stock Classique','sale',-1,120,'LAV-004','u4','Lavage lot LOT-2026-34 : 120 palettes lavées affectées au Stock Classique','TXL4','09:10');
  M(iso(0),'Lavage & Affectation Stock Classique','propre_global',1,120,'LAV-004','u4','Entrée de 120 palettes lavées (LOT-2026-34) en Stock Classique','TXL4','09:10');
@@ -1056,13 +1056,13 @@ function seed(){
   {id:'LV-0041',itr:'1000000012',po:'2000088102',dateP:iso(-15),from:'Entrepôt Vridi',to:'SKCI · Usine Yopougon',pool:'SKCI',cat:'propre_skci',qty:300,qtyShip:300,qtyRec:298,damaged:2,transport:'TR-0021',resp:'u4',status:'Clôturée',comments:'2 palettes endommagées au déchargement, réserve notée.'},
   {id:'LV-0042',itr:'1000000015',po:'2000088118',dateP:iso(-2),from:'Entrepôt Vridi',to:'SAPH · Usine de Toupah',pool:'Global',cat:'propre_global',qty:200,qtyShip:200,qtyRec:null,damaged:0,transport:'TR-0022',resp:'u4',status:'Expédiée',comments:''},
   {id:'LV-0043',itr:'1000000019',po:'2000088125',dateP:iso(2),from:'Entrepôt Vridi',to:'SKCI · Dépôt San-Pedro',pool:'SKCI',cat:'propre_skci',qty:150,qtyShip:null,qtyRec:null,damaged:0,transport:'TR-0023',resp:'u4',status:'Réservée',comments:'Stock SKCI réservé théoriquement par le transport TR-0023.'},
-  {id:'LV-0044',itr:'1000000022',po:'2000088130',dateP:iso(5),from:'Entrepôt Vridi',to:'SOGB · Usine de Grand-Béréby',pool:'Global',cat:'propre_global',qty:120,qtyShip:null,qtyRec:null,damaged:0,transport:'',resp:'u4',status:'Brouillon',comments:'En attente de réservation transport sur stock Global.'}];
+  {id:'LV-0044',itr:'1000000022',po:'2000088130',dateP:iso(5),from:'Entrepôt Vridi',to:'SOGB · Usine de Grand-Béréby',pool:'Global',cat:'propre_global',qty:120,qtyShip:null,qtyRec:null,damaged:0,transport:'',resp:'u4',status:'Brouillon',comments:'En attente de réservation transport sur Stock Classique.'}];
  const transports=[
   {id:'TR-0021',liv:'LV-0041',itr:'1000000012',po:'2000088102',trans:TRANSPORTEURS[0],veh:'AB-4521-CI',driver:'Moussa Koné',from:'Entrepôt Vridi',to:'SKCI · Usine Yopougon',pool:'SKCI',depP:iso(-15),arrP:iso(-15),depR:iso(-15),arrR:iso(-15),qty:300,shipped:true,status:'Clôturé',loadStartAt:ago(-15,7,45),loadEndAt:ago(-15,8,28),incidents:[]},
   {id:'TR-0022',liv:'LV-0042',itr:'1000000015',po:'2000088118',trans:TRANSPORTEURS[3],veh:'AC-1187-CI',driver:'Ibrahim Ouattara',from:'Entrepôt Vridi',to:'SAPH · Usine de Toupah',pool:'Global',depP:iso(-3),arrP:iso(-1),depR:iso(-3),arrR:'',qty:200,shipped:true,status:'En cours',loadStartAt:ago(-3,8,35),loadEndAt:ago(-3,9,12),incidents:['Crevaison sur l’autoroute du Nord, reprise prévue ce jour.']},
   {id:'TR-0023',liv:'LV-0043',itr:'1000000019',po:'2000088125',trans:TRANSPORTEURS[2],veh:'AA-9034-CI',driver:'Jean-Marc Aka',from:'Entrepôt Vridi',to:'SKCI · Dépôt San-Pedro',pool:'SKCI',depP:iso(2),arrP:iso(3),depR:'',arrR:'',qty:150,shipped:false,status:'Planifié',loadStartAt:'',loadEndAt:'',incidents:[]}];
  const planifications=[
-  {id:'PLN-0001',liv:'LV-0044',transport:'',itr:'1000000022',po:'2000088130',from:'Entrepôt Vridi',to:'SOGB · Usine de Grand-Béréby',pool:'Global',qty:120,depP:iso(4),arrP:iso(5),status:'En attente Entrepôt',createdBy:'u5',createdAt:ago(-1,10),stockValBy:'',stockValAt:'',camionValBy:'',camionValAt:'',trans:'',veh:'',driver:'',driverPhone:'',obs:'Demande de chargement de 120 palettes propres Global pour SOGB.'},
+  {id:'PLN-0001',liv:'LV-0044',transport:'',itr:'1000000022',po:'2000088130',from:'Entrepôt Vridi',to:'SOGB · Usine de Grand-Béréby',pool:'Global',qty:120,depP:iso(4),arrP:iso(5),status:'En attente Entrepôt',createdBy:'u5',createdAt:ago(-1,10),stockValBy:'',stockValAt:'',camionValBy:'',camionValAt:'',trans:'',veh:'',driver:'',driverPhone:'',obs:'Demande de chargement de 120 palettes propres Classique pour SOGB.'},
   {id:'PLN-0002',liv:'',transport:'',itr:'1000000024',po:'2000088134',from:'Entrepôt Vridi',to:'SKCI · Plateforme Vridi',pool:'SKCI',qty:80,depP:iso(1),arrP:iso(1),status:'Stock confirmé',createdBy:'u5',createdAt:ago(-1,14),stockValBy:'u4',stockValAt:ago(0,8,30),camionValBy:'',camionValAt:'',trans:'',veh:'',driver:'',driverPhone:'',obs:'Stock SKCI disponible et réservé par l’Entrepôt — en attente des infos camion & chauffeur.'},
   {id:'PLN-0003',liv:'LV-0043',transport:'TR-0023',itr:'1000000019',po:'2000088125',from:'Entrepôt Vridi',to:'SKCI · Dépôt San-Pedro',pool:'SKCI',qty:150,depP:iso(2),arrP:iso(3),status:'Camion confirmé',createdBy:'u5',createdAt:ago(-2,9),stockValBy:'u4',stockValAt:ago(-2,11),camionValBy:'u5',camionValAt:ago(-1,16),trans:TRANSPORTEURS[2],veh:'AA-9034-CI',driver:'Jean-Marc Aka',driverPhone:'+225 07 49 11 05 77',obs:'Camion confirmé pour le chargement vers San-Pedro.'}
  ];
@@ -1187,7 +1187,7 @@ if(!S.payments.some(p=>siteOf(p)==='sanpedro')){
 /* Enrichissement des opérations du site de San Pedro */
 if(!S.receptions.some(r=>siteOf(r)==='sanpedro')){
  S.receptions.push(
-  {id:'REC-SP-001',site:'sanpedro',dossier:'GT-2026-SP-01',cont:'CMAU8120341',date:iso(-19),model:'MB5',typeRec:'lavee',cat:'propre_global',qtyEmise:130,qtyRecue:130,total:130,status:'Validée',by:'u3',valBy:'u4',valAt:ago(-19,14),depotStartAt:ago(-19,10,0),depotEndAt:ago(-19,10,42),obs:'Palettes dépotées au Dépôt San-Pedro et affectées au stock Global.'},
+  {id:'REC-SP-001',site:'sanpedro',dossier:'GT-2026-SP-01',cont:'CMAU8120341',date:iso(-19),model:'MB5',typeRec:'lavee',cat:'propre_global',qtyEmise:130,qtyRecue:130,total:130,status:'Validée',by:'u3',valBy:'u4',valAt:ago(-19,14),depotStartAt:ago(-19,10,0),depotEndAt:ago(-19,10,42),obs:'Palettes dépotées au Dépôt San-Pedro et affectées au Stock Classique.'},
   {id:'REC-SP-002',site:'sanpedro',dossier:'GT-2026-SP-02',cont:'MSCU9041285',date:iso(-1),model:'MB5',typeRec:'lavee',cat:'propre_skci',qtyEmise:140,qtyRecue:140,total:140,status:'Validée',by:'u3',valBy:'u4',valAt:ago(-1,15),depotStartAt:ago(-1,11,15),depotEndAt:ago(-1,12,3),obs:'Lot palettes dépotées à San-Pedro et affectées au stock SKCI local.'},
   {id:'REC-SP-003',site:'sanpedro',dossier:'GT-2026-SP-02',cont:'MSCU9041285',date:iso(0),model:'MB5',typeRec:'',cat:'',qtyEmise:120,qtyRecue:null,total:120,status:'En attente',by:'u3',valBy:'',valAt:'',depotStartAt:'',depotEndAt:'',obs:''}
  );
@@ -1213,7 +1213,7 @@ if(!S.transports.some(t=>siteOf(t)==='sanpedro'&&t.id.startsWith('TR-SP'))){
 if(!S.planifications.some(p=>siteOf(p)==='sanpedro'&&p.id.startsWith('PLN-SP'))){
  S.planifications.push(
   {id:'PLN-SP-0001',site:'sanpedro',liv:'LV-SP-0043',transport:'',itr:'1000000053',po:'2000088153',from:'SKCI · Dépôt San-Pedro',to:'SOGB · Usine de Grand-Béréby',pool:'Global',qty:90,depP:iso(2),arrP:iso(2),status:'Stock confirmé',createdBy:'u5',createdAt:ago(-1,11),stockValBy:'u4',stockValAt:ago(0,8,0),camionValBy:'',camionValAt:'',trans:'',veh:'',driver:'',driverPhone:'',obs:'Stock Classique disponible et réservé au Dépôt San-Pedro pour SOGB.'},
-  {id:'PLN-SP-0002',site:'sanpedro',liv:'',transport:'',itr:'1000000054',po:'2000088154',from:'SKCI · Dépôt San-Pedro',to:'CHCI · Usine de Cavally',pool:'Global',qty:60,depP:iso(4),arrP:iso(4),status:'En attente Entrepôt',createdBy:'u5',createdAt:ago(-1,15),stockValBy:'',stockValAt:'',camionValBy:'',camionValAt:'',trans:'',veh:'',driver:'',driverPhone:'',obs:'Demande de chargement stock Global à San-Pedro pour CHCI.'}
+  {id:'PLN-SP-0002',site:'sanpedro',liv:'',transport:'',itr:'1000000054',po:'2000088154',from:'SKCI · Dépôt San-Pedro',to:'CHCI · Usine de Cavally',pool:'Global',qty:60,depP:iso(4),arrP:iso(4),status:'En attente Entrepôt',createdBy:'u5',createdAt:ago(-1,15),stockValBy:'',stockValAt:'',camionValBy:'',camionValAt:'',trans:'',veh:'',driver:'',driverPhone:'',obs:'Demande de chargement Stock Classique à San-Pedro pour CHCI.'}
  );
 }
 if(!S.deliveries.some(l=>siteOf(l)==='sanpedro'&&l.id.startsWith('LV-SP'))){
@@ -1555,7 +1555,7 @@ function alerts(){
  if(dispo('SKCI',cS)<150)a.push({k:'bad',ic:'▼',t:`Stock propre SKCI faible (${siteName(cS)})`,s:`${n0(dispo('SKCI',cS))} disponibles (seuil de sécurité : 150)`,go:()=>{ent='dispo';goTab('entrepot')}});
  if(dispo('Global',cS)<150)a.push({k:'bad',ic:'▼',t:`Stock propre Classique faible (${siteName(cS)})`,s:`${n0(dispo('Global',cS))} disponibles (seuil de sécurité : 150)`,go:()=>{ent='dispo';goTab('entrepot')}});
  siteInvoices(cS).filter(i=>i.status!=='Payée'&&i.due&&i.due<TODAY_ISO).forEach(i=>{const dL=days(TODAY_ISO,i.due);a.push({k:'bad',ic:'💰',t:`${i.num} (${i.client}) : facture échue en retard (+${dL} j)`,s:`Solde dû : ${fcfa(i.balance)} · Dossier ${i.dossier}`,go:()=>goTab('recouvrement')})});
- siteLavages(cS).filter(l=>l.status==='En cours').forEach(l=>a.push({k:'info',ic:'↻',t:`${l.id} : lavage à valider & répartir (SKCI / Global)`,s:`${l.recu} palettes sales du lot ${l.lot}`,go:()=>{ent='lavage';goTab('entrepot')}}));
+ siteLavages(cS).filter(l=>l.status==='En cours').forEach(l=>a.push({k:'info',ic:'↻',t:`${l.id} : lavage à valider & répartir (SKCI / Classique)`,s:`${l.recu} palettes sales du lot ${l.lot}`,go:()=>{ent='lavage';goTab('entrepot')}}));
  const ord={bad:0,warn:1,info:2};return a.sort((x,y)=>ord[x.k]-ord[y.k]);
 }
 
@@ -2304,7 +2304,7 @@ function vDash(){
      <!-- Barre de progression segmentée avec gradient -->
      <div class="ui-cat-progress">
       <span style="width:45%;background:#6D28D9" title="SKCI"></span>
-      <span style="width:35%;background:#0D7A5F" title="Global"></span>
+      <span style="width:35%;background:#0D7A5F" title="Stock Classique"></span>
       <span style="width:12%;background:#F59E0B" title="Lavage"></span>
       <span style="width:8%;background:#3B82F6" title="Soudure"></span>
      </div>
@@ -3875,7 +3875,7 @@ function printFicheProd(){
    <div class="kcard" style="border-color:#0F766E;background:#F0FDFA">
     <span>1. Qté lavées</span>
     <b style="color:#0F766E">${n0(st.qLavees)}</b>
-    <small>SKCI : <b>${n0(st.qLavSkci)}</b> · Global : <b>${n0(st.qLavGlobal)}</b></small>
+    <small>SKCI : <b>${n0(st.qLavSkci)}</b> · Classique : <b>${n0(st.qLavGlobal)}</b></small>
    </div>
    <div class="kcard" style="border-color:#1C6FB8;background:#EFF6FF">
     <span>2. Quantité soudure</span>
@@ -3967,7 +3967,7 @@ function vEntrepot(){
   ['lavage','Lavage ('+siteLavages(cS).length+')'],
   ['reparations','Soudure & DOOR SWAP ('+reps.length+')'],
   ['mouvements','Traçabilité des mouvements'],
-  ['dispo','Disponibilité SKCI / Global']
+  ['dispo','Disponibilité SKCI / Classique']
  ];
 
  /* Tableau des réceptions en attente dans Stock & Réceptions : gestion progressive du cycle de vie du conteneur */
@@ -4418,7 +4418,7 @@ function vEntrepot(){
     <div class="kpi t-ok" style="cursor:default">
      <span>Qté lavées</span>
      <b>${n0(st.qLavees)}</b>
-     <small class="muted" style="font-size:11.5px">SKCI : <b>${n0(st.qLavSkci)}</b> · Global : <b>${n0(st.qLavGlobal)}</b></small>
+     <small class="muted" style="font-size:11.5px">SKCI : <b>${n0(st.qLavSkci)}</b> · Classique : <b>${n0(st.qLavGlobal)}</b></small>
     </div>
     <div class="kpi" style="cursor:default;border-left:4px solid var(--blue)">
      <span>Quantité soudure</span>
@@ -4470,11 +4470,11 @@ function vEntrepot(){
      <span><b style="color:${col}">■</b> Disponibles net : <b>${n0(dp)}</b></span>
      <span><b style="color:var(--warn)">■</b> Déduites théoriquement (Réservées Transport) : <b>${n0(r)}</b></span>
     </div>
-    <h4 style="margin:14px 0 6px;font-size:13px">Transports réservant théoriquement le Stock ${p}</h4>
-    ${trRes.length?`<div class="alerts">${trRes.map(t=>`<button class="alert" data-go="transport"><span class="ico b-warn" aria-hidden="true">🚚</span><span><b>${t.id} · −${n0(t.qty)} palettes propres (${p})</b><small>Destination : ${esc(t.to)} · Départ prévu le ${fmt(t.depP)} (${esc(t.trans)})</small></span></button>`).join('')}</div>`:`<p class="muted" style="margin:0;font-size:13px">Aucun transport en attente de départ sur le Stock ${p}.</p>`}
+    <h4 style="margin:14px 0 6px;font-size:13px">Transports réservant théoriquement le Stock ${p==='Global'?'Classique':p}</h4>
+    ${trRes.length?`<div class="alerts">${trRes.map(t=>`<button class="alert" data-go="transport"><span class="ico b-warn" aria-hidden="true">🚚</span><span><b>${t.id} · −${n0(t.qty)} palettes propres (${p})</b><small>Destination : ${esc(t.to)} · Départ prévu le ${fmt(t.depP)} (${esc(t.trans)})</small></span></button>`).join('')}</div>`:`<p class="muted" style="margin:0;font-size:13px">Aucun transport en attente de départ sur le Stock ${p==='Global'?'Classique':p}.</p>`}
    </section>`;
   };
-  body=`<div class="toolbar"><span class="muted grow">Les <b>Stocks SKCI</b> et <b>Global</b> sont alimentés suivant l’attribution choisie lors des opérations de lavage, et réservés selon les transports planifiés.</span>
+  body=`<div class="toolbar"><span class="muted grow">Les <b>Stocks SKCI</b> et <b>Classique</b> sont alimentés suivant l’attribution choisie lors des opérations de lavage, et réservés selon les transports planifiés.</span>
    <button class="btn primary${lockCls('entrepot')}" data-act="newMove">${plus()}Transfert libre</button></div>
    <div class="grid g2">
    ${poolCard('SKCI','Stock SKCI · Sites SKCI','Exclusivement destiné aux sites du client SKCI.')}
@@ -4486,7 +4486,7 @@ function vEntrepot(){
  }
    return siteBanner('Gestion des stocks physiques, reconditionnement et transferts inter-sites Abidjan ⇄ San Pedro')+
   hero('warehouse',`Entrepôt · ${curSiteObj().icon} ${curSiteObj().name}`,`Validation des réceptions de dépotage, lavage, soudure & DOOR SWAP, et gestion des transferts inter-sites.`,
-  `<div><b>${n0(s.sale)}</b>sales (${curSiteObj().short})</div><div><b>${n0(dispo('SKCI'))}</b>SKCI dispo</div><div><b>${n0(dispo('Global'))}</b>Global dispo</div>`)+
+  `<div><b>${n0(s.sale)}</b>sales (${curSiteObj().short})</div><div><b>${n0(dispo('SKCI'))}</b>SKCI dispo</div><div><b>${n0(dispo('Global'))}</b>Classique dispo</div>`)+
   `<div class="seg" role="group" aria-label="Espaces de l’entrepôt">${segs.map(([k,l])=>`<button data-ent="${k}" aria-pressed="${ent===k}">${l}</button>`).join('')}</div>${body||pendingPlnStockTable()}`;
  } catch(err) {
   console.error("Erreur d'affichage vEntrepot:", err);
@@ -4924,8 +4924,8 @@ function validerReceptionDepotage(id){
 
 const TRANSFER_RULES={
  sale:{dests:['propre_skci','propre_global','reparation','quarantaine'],rule:'Les palettes sales passent au lavage (vers Stock SKCI ou Stock Classique), ou peuvent être envoyées en soudure / quarantaine.'},
- reparation:{dests:['sale','propre_skci','propre_global','quarantaine'],rule:'Après soudure (ou DOOR SWAP), les palettes réintègrent le stock de Palettes sales (ou lavées SKCI / Global), ou vont en quarantaine.'},
- quarantaine:{dests:['reparation','sale'],rule:'Les palettes en quarantaine doivent obligatoirement passer par la Soudure / Réparation ou le Lavage (Palettes sales), jamais directement dans les stocks SKCI ou Global.'},
+ reparation:{dests:['sale','propre_skci','propre_global','quarantaine'],rule:'Après soudure (ou DOOR SWAP), les palettes réintègrent le stock de Palettes sales (ou lavées SKCI / Classique), ou vont en quarantaine.'},
+ quarantaine:{dests:['reparation','sale'],rule:'Les palettes en quarantaine doivent obligatoirement passer par la Soudure / Réparation ou le Lavage (Palettes sales), jamais directement dans les stocks SKCI ou Classique.'},
  propre_global:{dests:['propre_skci','sale','reparation','quarantaine'],rule:'Les palettes lavées / propres du Stock Classique peuvent être réaffectées au Stock SKCI, ou transférées vers sales, soudure ou quarantaine.'},
  propre_skci:{dests:['propre_global','sale','reparation','quarantaine'],rule:'Les palettes lavées / propres du Stock SKCI peuvent être réaffectées au Stock Classique, ou transférées vers sales, soudure ou quarantaine.'},
  autre:{dests:['sale','propre_skci','propre_global','quarantaine','reparation'],rule:'Les palettes hors format MB5 sont gérées dans le stock Autre.'}
@@ -4951,7 +4951,7 @@ function newMove(){
    else if(!allowed.includes(to))e.dest=`Transfert non autorisé : depuis « ${catL(from)} », seules les destinations (${allowed.map(catL).join(', ')}) sont permises.`;
    if(q>curS[from])e.qty=`Refusé : seulement ${n0(curS[from])} palettes présentes en « ${catL(from)} ».`;
    if(from==='propre_skci'&&q>dispo('SKCI'))e.qty=`Refusé : ${n0(dispo('SKCI'))} palettes propres SKCI non réservées disponibles.`;
-   if(from==='propre_global'&&q>dispo('Global'))e.qty=`Refusé : ${n0(dispo('Global'))} palettes propres Global non réservées disponibles.`;
+   if(from==='propre_global'&&q>dispo('Global'))e.qty=`Refusé : ${n0(dispo('Global'))} palettes propres Classique non réservées disponibles.`;
    if(Object.keys(e).length)return e;
    const ref='TRF-'+String(S.movements.length+1).padStart(3,'0');
    const opType=to==='quarantaine'?'Mise en quarantaine (palettes rouillées au lavage)':from==='quarantaine'?'Retour de quarantaine dans le circuit':to==='propre_skci'?'Affectation Stock SKCI':to==='propre_global'?'Affectation Stock Classique':from==='reparation'&&to==='sale'?'Fin de soudure → Palettes sales':'Transfert inter-stocks';
@@ -5764,7 +5764,7 @@ function openTransportDetails(id){
    author: pln?.createdBy ? user(pln.createdBy).name : 'Service Planification / Logistique',
    done: true,
    statusTag: pln ? badge('ok', 'Demande ' + pln.id, '✓') : badge('info', 'Planning actif', '✓'),
-   detail: `Quantité demandée : <b>${n0(target.qty)}</b> palettes propres (${pl})`
+   detail: `Quantité demandée : <b>${n0(target.qty)}</b> palettes propres (${pl==='Global'?'Classique':pl})`
   },
   {
    title: '2. Validation Stock Entrepôt (Disponibilité & Réservation)',
@@ -5773,7 +5773,7 @@ function openTransportDetails(id){
    author: pln?.stockValBy ? user(pln.stockValBy).name : 'Responsable Entrepôt Vridi',
    done: Boolean(pln?.stockValAt || target.shipped || ['Planifié','En cours','Livré','Clôturé'].includes(target.status)),
    statusTag: target.shipped ? badge('ok', 'Sorti physiquement', '✓') : badge('warn', 'Stock réservé théoriquement', '◫'),
-   detail: `Quantité validée en stock : <b>${n0(target.qty)}</b> palettes propres (Stock ${pl})`
+   detail: `Quantité validée en stock : <b>${n0(target.qty)}</b> palettes propres (Stock ${pl==='Global'?'Classique':pl})`
   },
   {
    title: '3. Affectation Transporteur, Camion & Chauffeur',
@@ -5845,7 +5845,7 @@ function openTransportDetails(id){
      </div>
     </div>
     <div style="text-align:right">
-     <div style="font-size:24px;font-weight:800;color:var(--blue)">${n0(target.qty)} <small style="font-size:13px;font-weight:600;color:var(--text)">palettes propres (${pl})</small></div>
+     <div style="font-size:24px;font-weight:800;color:var(--blue)">${n0(target.qty)} <small style="font-size:13px;font-weight:600;color:var(--text)">palettes propres (${pl==='Global'?'Classique':pl})</small></div>
      <small class="muted">${target.shipped ? '✓ Sortie physique' : '◫ Réservation théorique active'}</small>
     </div>
    </div>
@@ -6001,7 +6001,7 @@ function vTransport(){
       <td><b>${fmt(p.cancelledAt||p.createdAt)}</b></td>
       <td><b style="color:var(--text);font-size:13.5px">${esc(p.to)}</b></td>
       <td class="right num"><b style="font-size:15px;color:var(--muted)">${n0(p.qty)}</b></td>
-      <td><span class="badge b-ok" style="font-size:11.5px;font-weight:700">✓ +${n0(p.qty)} reversé au Stock ${p.pool||destPool(p.to)}</span></td>
+      <td><span class="badge b-ok" style="font-size:11.5px;font-weight:700">✓ +${n0(p.qty)} reversé au Stock ${(p.pool||destPool(p.to))==='Global'?'Classique':(p.pool||destPool(p.to))}</span></td>
       <td class="wrap" style="color:var(--bad);max-width:280px"><b>${esc(p.cancelReason||p.obs||'Annulation de commande')}</b></td>
       <td><small class="muted">${esc(p.cancelledBy ? user(p.cancelledBy).name : 'Utilisateur')}</small></td>
       <td><span class="badge b-bad">Annulée · Exportée</span></td>
@@ -6144,7 +6144,7 @@ function tCard(t){
   'Planifié':`<button class="btn small primary${lockCls('transport')}" data-act="tStart" data-id="${t.id}">Démarrer l’expédition</button>`,
   'En cours':`<button class="btn small primary${lockCls('transport')}" data-act="tDeliver" data-id="${t.id}">Confirmer la livraison</button>`,
   'Livré':`<button class="btn small primary${lockCls('transport')}" data-act="tClose" data-id="${t.id}">Clôturer</button>`}[t.status]||'';
- const resBadge=['Planifié','Réservé'].includes(t.status)&&!t.shipped?badge('warn',`Réservé théoriquement sur Stock ${pl} (−${t.qty})`,'◫'):t.shipped?badge('ok','Sortie physique','✓'):'';
+ const resBadge=['Planifié','Réservé'].includes(t.status)&&!t.shipped?badge('warn',`Réservé théoriquement sur Stock ${pl==='Global'?'Classique':pl} (−${t.qty})`,'◫'):t.shipped?badge('ok','Sortie physique','✓'):'';
  return `<article class="tcard" data-act="openTransportDetails" data-id="${esc(t.id)}" style="cursor:pointer" title="Cliquez sur la carte pour afficher tous les détails du transport"><div class="head"><div><h3>${t.id}</h3><div style="font-size:13px;margin-top:4px;display:flex;flex-direction:column;gap:2px"><div>Transporteur : <b>${esc(t.trans)}</b></div><div>Camion : <b class="num" style="color:var(--blue)">${esc(t.veh)}</b></div><div>Chauffeur : <b>${esc(t.driver||'—')}</b></div></div></div>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">${poolBadge(pl)}${badge(t.status==='Clôturé'?'mute':t.status==='Livré'?'ok':t.status==='En cours'?'info':'mute',t.status)}</div>${resBadge}${late?badge('warn','En retard','◷'):''}${t.incidents.length>1?badge('bad',`⚠️ ${t.incidents.length} incidents`,'!'):t.incidents.length===1&&t.status==='En cours'?badge('bad','Incident','⚠'):''}</div></div>
   <div class="route"><svg viewBox="0 0 320 42" preserveAspectRatio="none" aria-hidden="true"><line x1="10" y1="26" x2="310" y2="26" stroke="var(--line)" stroke-width="4" stroke-linecap="round"/>
@@ -6152,7 +6152,7 @@ function tCard(t){
    <g transform="translate(${x-16},8)"><g class="${run?'shake':''}"><rect x="0" y="2" width="20" height="12" rx="1" fill="var(--blue)"/><path d="M20 5h6l5 5v4H20z" fill="var(--accent)"/></g><g class="${run?'wheel':''}"><circle cx="7" cy="16" r="3" fill="var(--wheel)"/></g><g class="${run?'wheel':''}"><circle cx="25" cy="16" r="3" fill="var(--wheel)"/></g></g></svg></div>
   <div class="route" style="height:auto;margin-top:-6px"><div class="pins"><span>${esc(t.from)}</span><span style="text-align:right">${esc(t.to)}</span></div></div>
   <div class="steps" aria-label="Étape ${i+1} sur 5">${TSTEPS.map((s,j)=>`<span class="${j<=i?'on':''}" title="${s}"></span>`).join('')}</div>
-  <div class="meta" style="grid-template-columns:1fr 1fr;gap:8px 12px"><div><div style="margin-bottom:2px">Départ prévu : <b>${fmt(t.depP)||'—'}</b></div><div>Départ réel : <b style="color:${t.depR?'var(--ok)':'var(--text)'}">${fmt(t.depR)||'—'}</b></div></div><div><div style="margin-bottom:2px">Arrivée prévue : <b>${fmt(t.arrP)||'—'}</b></div><div>Arrivée réelle : <b style="color:${t.arrR?'var(--ok)':'var(--text)'}">${fmt(t.arrR)||'—'}</b></div></div><div>Palettes propres (${pl}) : <b>${n0(t.qty)}</b></div><div>Planning / ITR : <b>${t.liv||'—'} · ${t.itr||'—'}</b></div></div>
+  <div class="meta" style="grid-template-columns:1fr 1fr;gap:8px 12px"><div><div style="margin-bottom:2px">Départ prévu : <b>${fmt(t.depP)||'—'}</b></div><div>Départ réel : <b style="color:${t.depR?'var(--ok)':'var(--text)'}">${fmt(t.depR)||'—'}</b></div></div><div><div style="margin-bottom:2px">Arrivée prévue : <b>${fmt(t.arrP)||'—'}</b></div><div>Arrivée réelle : <b style="color:${t.arrR?'var(--ok)':'var(--text)'}">${fmt(t.arrR)||'—'}</b></div></div><div>Palettes propres (${pl==='Global'?'Classique':pl}) : <b>${n0(t.qty)}</b></div><div>Planning / ITR : <b>${t.liv||'—'} · ${t.itr||'—'}</b></div></div>
   ${t.status==='En cours'&&t.incidents.length===1?`<div class="comment" style="font-size:13px;border-color:var(--bad)"><b style="color:var(--bad)">Incident :</b> ${esc(t.incidents[0])}</div>`:t.status==='En cours'&&t.incidents.length>1?`<div class="comment" style="font-size:13px;border-color:var(--bad);background:#FEF2F2"><div style="display:flex;align-items:center;gap:6px;color:var(--bad);font-weight:700"><span class="badge b-bad" style="font-size:11px">⚠️ ${t.incidents.length} incidents enregistrés</span><span>Signalisation d'incidents multiples sur ce transport</span></div><div style="font-size:12px;color:var(--text);margin-top:4px">Dernier incident : ${esc(t.incidents[t.incidents.length-1])}</div></div>`:''}
   <div class="acts">${acts}${!['Clôturé','Annulé'].includes(t.status)?`<button class="btn small${lockCls('transport')}" data-act="tIncident" data-id="${t.id}">Signaler un incident</button>`:''}</div></article>`;
 }
@@ -6296,7 +6296,7 @@ function newDestination(){
   fld('Adresse géographique de livraison','address','text',{req:1,full:1,ph:'Zone industrielle, plantation, ville…'})+
   fld('Interlocuteur & téléphone sur site (Contact)','contact','text',{req:1,full:1,ph:'Nom du réceptionnaire · +225 …'})+
   fld('Adresse e-mail client (facultatif)','email','text',{full:1,ph:'contact@client.ci'})+
-  `<p class="note">Lors de la planification d’un transport vers cette destination répertoriée, le bassin de stock correspondant (<b>SKCI</b> ou <b>Global</b>) est appliqué automatiquement.</p>`,
+  `<p class="note">Lors de la planification d’un transport vers cette destination répertoriée, le bassin de stock correspondant (<b>SKCI</b> ou <b>Classique</b>) est appliqué automatiquement.</p>`,
   'Enregistrer la destination',data=>{
    const e=req(data,['client','pool','name','address','contact']);
    const nm=data.name?.trim();
@@ -6455,7 +6455,7 @@ function vLivraisons(){
   'Expédiée':`<button class="btn small${lockCls('livraisons')}" style="background:#86EFAC;border-color:#22C55E;color:#064E3B;font-weight:700" data-act="lReceive" data-id="${l.id}">Confirmer la livraison</button>`,
   'Livrée':`<button class="btn small primary${lockCls('livraisons')}" data-act="lClose" data-id="${l.id}">Clôturer</button>`})[l.status]||'';
  const kind=s=>({'Brouillon':'mute','En attente validation Stock Dépôt':'warn','Stock validé (En attente Transport)':'info','Transport programmé':'ok','Réservée':'warn','Expédiée':'info','Livrée':'ok','Clôturée':'mute','Annulée':'bad'})[s]||'info';
- return hero('delivery','Planning','Suivi du planning de livraison client : réservation théorique sur le Stock SKCI (sites SKCI) ou Global (autres clients), expédition et rapprochement des quantités reçues.',
+ return hero('delivery','Planning','Suivi du planning de livraison client : réservation théorique sur le Stock SKCI (sites SKCI) ou Classique (autres clients), expédition et rapprochement des quantités reçues.',
   `<div><b>${n0(siteDeliveries(cS).filter(l=>['Brouillon','Réservée'].includes(l.status)).length)}</b>en attente</div><div><b>${siteDeliveries(cS).filter(l=>l.status==='Expédiée').length}</b>en acheminement</div><div><b>${siteDeliveries(cS).filter(l=>['Livrée','Clôturée'].includes(l.status)).length}</b>livrées / clôturées</div>`)+
  `<div class="toolbar"><div class="chips grow">${sts.map(s=>`<button class="chip" data-lf="${s}" aria-pressed="${lvFilter===s}">${s}</button>`).join('')}</div><button class="btn primary${lockCls('livraisons')}" data-act="newLivraison">${plus()}Programmer un transport</button></div>
  <div class="tablewrap"><table><thead><tr><th>Réf. Planning</th><th>Numéro ITR</th><th>Purchase Order (PO)</th><th>Date planification</th><th>Destination</th><th class="right">Quantité</th><th class="right">Expédiée</th><th class="right">Reçue</th><th>Transport</th><th>Statut</th><th>Action</th></tr></thead><tbody>
