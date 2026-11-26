@@ -7371,7 +7371,7 @@ function facturerDossierTransit(num){
     </div>` +
     fld('Client facturé', 'client', 'text', { req: 1, value: client }) +
     fld('Observations / Références internes', 'obs', 'textarea', { full: 1, value: existingInv?.obs || '', ph: 'Notes de facturation, bon de commande client...' }),
-    '✓ Valider la facturation & Transmettre au Recouvrement',
+    'Facturer',
     (data) => {
       const e = req(data, ['num', 'date', 'client']);
       if (Object.keys(e).length) return e;
@@ -7496,7 +7496,7 @@ function facturerTransport(transId){
     </div>` +
     fld('Client facturé', 'client', 'text', { req: 1, value: clientName }) +
     fld('Observations / Références internes', 'obs', 'textarea', { full: 1, value: existingInv?.obs || '', ph: 'Notes de facturation transport...' }),
-    '✓ Valider la facturation & Transmettre au Recouvrement',
+    'Facturer',
     (data) => {
       const e = req(data, ['num', 'date', 'client']);
       if (Object.keys(e).length) return e;
@@ -7609,7 +7609,7 @@ function facturerEntrepot(repId){
     </div>` +
     fld('Client facturé', 'client', 'text', { req: 1, value: clientName }) +
     fld('Observations / Références internes', 'obs', 'textarea', { full: 1, value: existingInv?.obs || '', ph: 'Notes de facturation entrepôt...' }),
-    '✓ Valider la facturation & Transmettre au Recouvrement',
+    'Facturer',
     (data) => {
       const e = req(data, ['num', 'date', 'client']);
       if (Object.keys(e).length) return e;
