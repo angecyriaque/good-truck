@@ -3878,7 +3878,7 @@ function vEntrepot(){
     ${waitLoadTrs.length?badge('info',`${waitLoadTrs.length} camion${waitLoadTrs.length>1?'s':''} au quai`,'🚚'):badge('ok','Aucun chargement en attente','✓')}
    </div>
    <div style="padding:14px 18px">
-    <div class="tablewrap"><table style="margin:0"><thead><tr><th>Transport</th><th>Destination</th><th>Transporteur · Camion · Chauffeur</th><th>Bassin de stock</th><th class="right">Palettes à charger</th><th>Dates prévues (Départ → Arrivée)</th><th>Durée du chargement</th><th>Action</th></tr></thead><tbody>
+    <div class="tablewrap"><table style="margin:0"><thead><tr><th>Transport</th><th>Destination</th><th>Transporteur</th><th>Bassin de stock</th><th class="right">Palettes</th><th>Dates prévues (Départ → Arrivée)</th><th>Durée du chargement</th><th>Action</th></tr></thead><tbody>
     ${waitLoadTrs.map(t=>{
      const pl=t.pool||destPool(t.to);
      const pln=(S.planifications||[]).find(p=>p.transport===t.id);
@@ -3886,9 +3886,9 @@ function vEntrepot(){
       ?`<button class="btn small${lockCls('entrepot')}" style="background:#FACC15;border-color:#EAB308;color:#1E293B;font-weight:700" data-act="tStart" data-id="${esc(t.id)}">Débuter l’expédition</button>`
       :`<button class="btn small primary${lockCls('entrepot')}" data-act="tStartLoad" data-id="${esc(t.id)}">Démarrer</button>`;
      return `<tr class="click" data-act="openTransportDetails" data-id="${esc(t.id)}" title="Cliquez sur l’opération pour afficher les détails du transport">
-      <td><span class="ref">${esc(t.id)}</span>${pln?`<br><small class="muted">Demande : <b>${esc(pln.id)}</b></small>`:''}</td>
+      <td><span class="ref">${esc(t.id)}</span></td>
       <td><b>${esc(t.to)}</b></td>
-      <td><b>${esc(t.trans)}</b><br><span class="num" style="font-weight:700;color:var(--blue)">${esc(t.veh)}</span> · <b>${esc(t.driver)}</b></td>
+      <td><b>${esc(t.trans)}</b></td>
       <td>${poolBadge(pl)}</td>
       <td class="right num"><b style="font-size:16px">${n0(t.qty)}</b></td>
       <td><b>${fmt(t.depP)}</b> → ${fmt(t.arrP)}</td>
