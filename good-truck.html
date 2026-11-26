@@ -1049,9 +1049,9 @@ function seed(){
   {id:'LAV-003',date:ago(-5,10),dateOp:iso(-5),lot:'LOT-2026-33',qty:180,stockTarget:'SKCI',resp:'u4',obs:'180 palettes lavées affectées au Stock SKCI après contrôle.',status:'Validée'},
   {id:'LAV-004',date:ago(0,9,10),dateOp:iso(0),lot:'LOT-2026-34',qty:120,stockTarget:'Global',resp:'u4',obs:'120 palettes lavées affectées au Stock Classique.',status:'Validée'}];
  const reparations=[
-  {id:'REP-001',date:ago(0,11,15),dateOp:iso(0),lot:'SOUD-LOT-01',kind:'Soudure',sens:'Entrée en soudure',fromCat:'quarantaine',toCat:'reparation',qty:14,resp:'u4',obs:'14 palettes sorties de quarantaine pour soudure des montants.',status:'En soudure'},
-  {id:'REP-002',date:ago(0,14,0),dateOp:iso(0),lot:'SOUD-LOT-02',kind:'DOOR SWAP',sens:'Fin de DOOR SWAP → Lavage',fromCat:'reparation',toCat:'sale',qty:15,resp:'u4',obs:'Opération DOOR SWAP terminée : remplacement des portes sur 15 palettes → envoyées au lavage (Palettes sales).',status:'Terminée'},
-  {id:'REP-003',date:ago(0,16,30),dateOp:iso(0),lot:'SOUD-LOT-03',kind:'Soudure',sens:'Retour après soudure',fromCat:'reparation',toCat:'sale',qty:18,resp:'u4',obs:'18 palettes soudées et contrôlées, réintégrées au stock de palettes sales pour lavage.',status:'Terminée'}];
+  {id:'REP-001',date:ago(0,11,15),dateOp:iso(0),lot:'SOUD-LOT-01',kind:'Soudure',sens:'Entrée en soudure',fromCat:'quarantaine',toCat:'reparation',qty:14,resp:'u4',obs:'',status:'En soudure'},
+  {id:'REP-002',date:ago(0,14,0),dateOp:iso(0),lot:'SOUD-LOT-02',kind:'DOOR SWAP',sens:'Fin de DOOR SWAP → Lavage',fromCat:'reparation',toCat:'sale',qty:15,resp:'u4',obs:'',status:'Terminée'},
+  {id:'REP-003',date:ago(0,16,30),dateOp:iso(0),lot:'SOUD-LOT-03',kind:'Soudure',sens:'Retour après soudure',fromCat:'reparation',toCat:'sale',qty:18,resp:'u4',obs:'',status:'Terminée'}];
  const deliveries=[
   {id:'LV-0041',itr:'1000000012',po:'2000088102',dateP:iso(-15),from:'Entrepôt Vridi',to:'SKCI · Usine Yopougon',pool:'SKCI',cat:'propre_skci',qty:300,qtyShip:300,qtyRec:298,damaged:2,transport:'TR-0021',resp:'u4',status:'Clôturée',comments:'2 palettes endommagées au déchargement, réserve notée.'},
   {id:'LV-0042',itr:'1000000015',po:'2000088118',dateP:iso(-2),from:'Entrepôt Vridi',to:'SAPH · Usine de Toupah',pool:'Global',cat:'propre_global',qty:200,qtyShip:200,qtyRec:null,damaged:0,transport:'TR-0022',resp:'u4',status:'Expédiée',comments:''},
@@ -1200,8 +1200,8 @@ if(!S.lavages.some(l=>siteOf(l)==='sanpedro')){
 }
 if(!S.reparations.some(r=>siteOf(r)==='sanpedro')){
  S.reparations.push(
-  {id:'REP-SP-001',site:'sanpedro',lot:'LOT-SP-REP-01',kind:'DOOR SWAP',date:iso(-4),qty:8,fromCat:'sale',toCat:'sale',sens:'Fin de DOOR SWAP → Lavage',status:'Terminée',resp:'u4',obs:'Opération DOOR SWAP sur 8 palettes à San-Pedro.'},
-  {id:'REP-SP-002',site:'sanpedro',lot:'LOT-SP-REP-02',kind:'Soudure',date:iso(0),qty:6,fromCat:'reparation',toCat:'sale',sens:'Entrée en Soudure',status:'En soudure',resp:'u4',obs:'Intervention de soudure sur 6 palettes endommagées.'}
+  {id:'REP-SP-001',site:'sanpedro',lot:'LOT-SP-REP-01',kind:'DOOR SWAP',date:iso(-4),qty:8,fromCat:'sale',toCat:'sale',sens:'Fin de DOOR SWAP → Lavage',status:'Terminée',resp:'u4',obs:''},
+  {id:'REP-SP-002',site:'sanpedro',lot:'LOT-SP-REP-02',kind:'Soudure',date:iso(0),qty:6,fromCat:'reparation',toCat:'sale',sens:'Entrée en Soudure',status:'En soudure',resp:'u4',obs:''}
  );
 }
 if(!S.transports.some(t=>siteOf(t)==='sanpedro'&&t.id.startsWith('TR-SP'))){
@@ -4384,7 +4384,7 @@ function vEntrepot(){
    <button class="btn${lockCls('entrepot')}" data-act="retourReparation">Sortie après soudure → Lavage${openReps.length?` (${openReps.length})`:``}</button>
    <button class="btn primary${lockCls('entrepot')}" data-act="newReparation">${plus()}Nouvelle soudure / DOOR SWAP</button>
   </div>
-  <div class="tablewrap"><table><thead><tr><th>Opération</th><th>Date</th><th>Lot</th><th>Type d’intervention</th><th>Mouvement & Stock affecté</th><th class="right">Quantité</th><th>Opérateur</th><th>Commentaire</th><th>Statut</th><th>Action</th></tr></thead><tbody>
+  <div class="tablewrap"><table><thead><tr><th>Opération</th><th>Date</th><th>Lot</th><th>Type d’intervention</th><th>Mouvement & Stock affecté</th><th class="right">Quantité</th><th>Opérateur</th><th>Statut</th><th>Action</th></tr></thead><tbody>
    ${siteReparations().slice().reverse().map(r=>{
     const destLabel=r.status==='Terminée'&&r.toCat==='sale'?'Lavage (Palettes sales)':catL(r.toCat);
     return `<tr class="click" data-act="openOpProvenance" data-kind="rep" data-id="${r.id}" title="Cliquez sur la ligne pour voir toute l’information sur la provenance">
@@ -4395,10 +4395,10 @@ function vEntrepot(){
     <td><small>${esc(catL(r.fromCat))} → <b>${esc(destLabel)}</b></small></td>
     <td class="right num"><b style="font-size:15px">${n0(r.qty)}</b></td>
     <td><b>${esc(user(r.resp).name)}</b></td>
-    <td class="wrap" style="max-width:250px">${esc(r.obs)||'<span class="muted">—</span>'}</td>
+    
     <td>${r.status==='Terminée'?badge('ok','En lavage','✓'):badge('warn','En soudure','🔧')}</td>
     <td>${r.status!=='Terminée'?`<button class="btn small primary${lockCls('entrepot')}" data-act="finishReparation" data-id="${r.id}">${r.kind==='DOOR SWAP'?'Finir DOOR SWAP → Lavage':'Finir → Envoyer au lavage'}</button>`:'<span class="muted">Envoyé au lavage</span>'}</td>
-   </tr>`;}).join('')||`<tr><td colspan="10" class="empty">Aucune opération de soudure enregistrée.</td></tr>`}
+   </tr>`;}).join('')||`<tr><td colspan="9" class="empty">Aucune opération de soudure enregistrée.</td></tr>`}
   </tbody></table></div>`;
  if(ent==='mouvements'){
   const st=dailyProdStats(prodDate||TODAY_ISO);
