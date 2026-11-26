@@ -1682,7 +1682,7 @@ const TABS=[
  {k:'utilisateurs',l:'Utilisateurs',ic:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c.8-4 3.6-6 7-6s6.2 2 7 6"/><g class="a-wave"><circle cx="17.5" cy="7" r="2.5"/><path d="M16 13.5c2.6-.4 5 1.3 5.8 4.5"/></g></svg>`}];
 
 /* ===================== Navigation ===================== */
-let tab='dashboard', ent='stock', recValSort='desc', prodDate=TODAY_ISO, poolFilter='Tous', trSub='missions', drvFilter='Tous', drvQ='', trFilter='Tous', fFilter='tous', fTrans='', fQ='', lvFilter='Tous', facFilter='Tous', facQ='', recFilter='Tous', recQ='', recSub='echeancier', opFilter='Tous', opQ='', usub='comptes', chatF='tous', chatQ='', curConv=null, charts=[];
+let tab='dashboard', ent='stock', recValSort='desc', facSub='transit', facHistQ='', recHistQ='', depHistQ='', repHistQ='', lavHistQ='', trfHistQ='', trDoneQ='', cancelPlnQ='', prodDate=TODAY_ISO, poolFilter='Tous', trSub='missions', drvFilter='Tous', drvQ='', trFilter='Tous', fFilter='tous', fTrans='', fQ='', lvFilter='Tous', facFilter='Tous', facQ='', recFilter='Tous', recQ='', recSub='echeancier', opFilter='Tous', opQ='', usub='comptes', chatF='tous', chatQ='', curConv=null, charts=[];
 function goTab(t){tab=t;try{history.replaceState(null,'','#'+t)}catch(e){}closeDrawer();render();window.scrollTo({top:0})}
 function renderTabs(){
  const unread=S.convs.reduce((a,c)=>a+(c.unread||0),0);
@@ -4113,6 +4113,8 @@ function vEntrepot(){
   const da=a.valAt||a.date||'',db=b.valAt||b.date||'';
   return recValSort==='asc'?da.localeCompare(db):db.localeCompare(da);
  });
+ const qDepHist = (depHistQ || '').toLowerCase().trim();
+ const filteredValidRecs = validRecs.filter(r => !qDepHist || [r.id, r.cont, r.dossier, r.obs, user(r.by).name, r.valBy?user(r.valBy).name:''].join(' ').toLowerCase().includes(qDepHist));
  const historyRecTable=()=>`<section class="panel" style="margin-bottom:16px;border:1.5px solid ${pendRecs.length?'var(--accent)':'var(--line)'}">
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
    <div>
@@ -4163,7 +4165,7 @@ function vEntrepot(){
    </div>
   </div>
   <div class="tablewrap"><table><thead><tr><th style="cursor:pointer" data-act="toggleRecValSort" title="Cliquer pour inverser le tri">Validation ${recValSort==='desc'?'↓':'↑'}</th><th>Réception</th><th>N° Conteneur (TC) / Dossier</th><th>Date dépotage</th><th>Opérateur</th><th class="right">Quantité reçue</th><th>Affectation (Catégorie de stock)</th><th>Statut</th></tr></thead><tbody>
-  ${validRecs.map(r=>{
+  ${filteredValidRecs.map(r=>{
    const qEm=r.qtyEmise??r.total;
    const qRec=r.qtyRecue!=null?r.qtyRecue:r.total;
    const qDiff=+qRec!==+qEm;
@@ -4411,27 +4413,72 @@ function vEntrepot(){
    }).join('')||`<tr><td colspan="9" class="empty">Aucune opération de lavage enregistrée.</td></tr>`}
   </tbody></table></div>`;
  }
- if(ent==='reparations')body=`<div class="toolbar">
+ if(ent==='reparations'){
+  const allReps = siteReparations().slice().reverse();
+  const qRepHist = (repHistQ || '').toLowerCase().trim();
+  const openInterventions = allReps.filter(r => r.status !== 'Terminée');
+  const closedInterventions = allReps.filter(r => r.status === 'Terminée');
+  const filteredClosedReps = closedInterventions.filter(r => !qRepHist || [r.id, r.lot, r.kind, r.obs, user(r.resp).name].join(' ').toLowerCase().includes(qRepHist));
+
+  body=`<div class="toolbar">
    <span class="muted grow">Suivi des opérations de <b>Soudure</b> (${n0(s.reparation)} en stock) et de <b>DOOR SWAP</b>. Lorsqu’on finit un <b>DOOR SWAP</b> (ou une soudure), les palettes vont en <b>Lavage (Palettes sales)</b> et non en Soudure.</span>
    <button class="btn${lockCls('entrepot')}" data-act="retourReparation">Sortie après soudure → Lavage${openReps.length?` (${openReps.length})`:``}</button>
    <button class="btn primary${lockCls('entrepot')}" data-act="newReparation">${plus()}Nouvelle soudure / DOOR SWAP</button>
   </div>
-  <div class="tablewrap"><table><thead><tr><th>Opération</th><th>Date</th><th>Lot</th><th>Type d’intervention</th><th>Mouvement & Stock affecté</th><th class="right">Quantité</th><th>Opérateur</th><th>Statut</th><th>Action</th></tr></thead><tbody>
-   ${siteReparations().slice().reverse().map(r=>{
-    const destLabel=r.status==='Terminée'&&r.toCat==='sale'?'Lavage (Palettes sales)':catL(r.toCat);
-    return `<tr class="click" data-act="openOpProvenance" data-kind="rep" data-id="${r.id}" title="Cliquez sur la ligne pour voir toute l’information sur la provenance">
-    <td><span class="ref">${r.id}</span></td>
-    <td><b>${fmt(r.dateOp||r.date?.slice(0,10))}</b><br><small class="muted">${fmtT(r.date)}</small></td>
-    <td><span class="ref">${esc(r.lot)}</span></td>
-    <td>${r.kind==='DOOR SWAP'?badge('warn','DOOR SWAP','⇄'):badge('info','Soudure','🔧')}</td>
-    <td><small>${esc(catL(r.fromCat))} → <b>${esc(destLabel)}</b></small></td>
-    <td class="right num"><b style="font-size:15px">${n0(r.qty)}</b></td>
-    <td><b>${esc(user(r.resp).name)}</b></td>
-    
-    <td>${r.status==='Terminée'?badge('ok','En lavage','✓'):badge('warn','En soudure','🔧')}</td>
-    <td>${r.status!=='Terminée'?`<button class="btn small primary${lockCls('entrepot')}" data-act="finishReparation" data-id="${r.id}">${r.kind==='DOOR SWAP'?'Finir DOOR SWAP → Lavage':'Finir → Envoyer au lavage'}</button>`:'<span class="muted">Envoyé au lavage</span>'}</td>
-   </tr>`;}).join('')||`<tr><td colspan="9" class="empty">Aucune opération de soudure enregistrée.</td></tr>`}
-  </tbody></table></div>`;
+
+  <!-- 1. INTERVENTIONS EN COURS (DÉTACHEMENT) -->
+  <section class="panel" style="margin-bottom:16px;border-left:4px solid var(--accent)">
+   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <h3 style="margin:0;font-size:15px;color:#92400E">1. Interventions en cours (Soudure & Door Swap) (${openInterventions.length})</h3>
+    ${openInterventions.length ? badge('warn', `${openInterventions.length} en cours`, '⏳') : badge('ok', 'Aucune intervention en cours', '✓')}
+   </div>
+   <div class="tablewrap" style="margin:0"><table><thead><tr><th>Opération</th><th>Date</th><th>Lot</th><th>Type</th><th>Mouvement</th><th class="right">Quantité</th><th>Opérateur</th><th>Statut</th><th>Action</th></tr></thead><tbody>
+    ${openInterventions.map(r=>{
+     const destLabel=r.toCat==='sale'?'Lavage (Palettes sales)':catL(r.toCat);
+     return `<tr>
+      <td><span class="ref">${r.id}</span></td>
+      <td><b>${fmt(r.dateOp||r.date?.slice(0,10))}</b></td>
+      <td><span class="ref">${esc(r.lot)}</span></td>
+      <td>${r.kind==='DOOR SWAP'?badge('warn','DOOR SWAP','⇄'):badge('info','Soudure','🔧')}</td>
+      <td><small>${esc(catL(r.fromCat))} → <b>${esc(destLabel)}</b></small></td>
+      <td class="right num"><b style="font-size:15px">${n0(r.qty)}</b></td>
+      <td><b>${esc(user(r.resp).name)}</b></td>
+      <td><span class="badge b-warn">En cours</span></td>
+      <td><button class="btn small primary${lockCls('entrepot')}" data-act="finishReparation" data-id="${r.id}">${r.kind==='DOOR SWAP'?'Finir DOOR SWAP → Lavage':'Finir → Envoyer au lavage'}</button></td>
+     </tr>`;
+    }).join('') || '<tr><td colspan="9" class="empty">Aucune intervention en cours.</td></tr>'}
+   </tbody></table></div>
+  </section>
+
+  <!-- 2. HISTORIQUE DES INTERVENTIONS TERMINÉES AVEC RECHERCHE -->
+  <section class="panel" style="border-top:3px solid var(--ok)">
+   <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+    <div>
+     <h3 style="margin:0;font-size:15px;color:var(--ok)">2. Historique des interventions terminées (Door Swap & Soudure) (${closedInterventions.length})</h3>
+     <small class="muted">Palettes traitées et envoyées en lavage. Déversées automatiquement en facturation Entrepôt.</small>
+    </div>
+    <div style="max-width:380px;width:100%">
+     <input type="search" class="field-inline grow" data-bind-search="repHistQ" placeholder="🔍 Rechercher dans l'historique (Lot, type, opérateur...)" value="${esc(repHistQ)}">
+    </div>
+   </div>
+   <div class="tablewrap" style="margin:0"><table><thead><tr><th>Opération</th><th>Date</th><th>Lot</th><th>Type</th><th>Mouvement</th><th class="right">Quantité</th><th>Opérateur</th><th>Statut</th><th>Action</th></tr></thead><tbody>
+    ${filteredClosedReps.map(r=>{
+     const destLabel=r.toCat==='sale'?'Lavage (Palettes sales)':catL(r.toCat);
+     return `<tr>
+      <td><span class="ref">${r.id}</span></td>
+      <td><b>${fmt(r.dateOp||r.date?.slice(0,10))}</b></td>
+      <td><span class="ref">${esc(r.lot)}</span></td>
+      <td>${r.kind==='DOOR SWAP'?badge('warn','DOOR SWAP','⇄'):badge('info','Soudure','🔧')}</td>
+      <td><small>${esc(catL(r.fromCat))} → <b>${esc(destLabel)}</b></small></td>
+      <td class="right num"><b style="font-size:15px">${n0(r.qty)}</b></td>
+      <td><b>${esc(user(r.resp).name)}</b></td>
+      <td><span class="badge b-ok">✓ Envoyé au lavage</span></td>
+      <td><span class="muted" style="font-size:12px">Traité</span></td>
+     </tr>`;
+    }).join('') || '<tr><td colspan="9" class="empty">Aucune intervention terminée correspondant à la recherche.</td></tr>'}
+   </tbody></table></div>
+  </section>`;
+ }
  if(ent==='mouvements'){
   const st=dailyProdStats(prodDate||TODAY_ISO);
   body=`<section class="panel" style="margin-bottom:16px;border:2px solid var(--blue)">
@@ -5687,6 +5734,8 @@ function renderTransportSynthese(cS = curSite()){
  const totSkci = doneTrs.filter(t => (t.pool || destPool(t.to)) === 'SKCI').reduce((sum, t) => sum + (t.qty || 0), 0);
  const totGlobal = doneTrs.filter(t => (t.pool || destPool(t.to)) === 'Global').reduce((sum, t) => sum + (t.qty || 0), 0);
  const incidentsCount = doneTrs.filter(t => (t.incidents || []).length > 0).length;
+ const qTrDone = (trDoneQ || '').toLowerCase().trim();
+ const filteredDoneTrs = doneTrs.filter(t => !qTrDone || [t.id, t.itr, t.po, t.to, t.from, t.driver, t.veh, t.trans, ...(t.incidents||[])].join(' ').toLowerCase().includes(qTrDone));
 
  return `
  <!-- SYNTHÈSE DES TRANSPORTS RÉALISÉS -->
@@ -5728,7 +5777,7 @@ function renderTransportSynthese(cS = curSite()){
       </tr>
      </thead>
      <tbody>
-      ${doneTrs.length ? doneTrs.map(t => {
+      ${filteredDoneTrs.length ? filteredDoneTrs.map(t => {
         const pl = t.pool || destPool(t.to);
         const pln = (S.planifications||[]).find(p => p.transport === t.id || p.liv === t.liv);
         const lv = (S.deliveries||[]).find(l => l.id === t.liv || l.transport === t.id);
@@ -6568,7 +6617,7 @@ function vLivraisons(){
     <th>Réf. Planning</th><th>Numéro ITR</th><th>Purchase Order (PO)</th><th>Date d’annulation</th><th>Destination</th><th class="right">Quantité</th><th>Stock reversé au normal</th><th>Motif d’annulation</th><th>Annulé par</th><th>Statut</th>
    </tr></thead>
    <tbody>
-    ${cancelledDeliveries.map(l => `<tr>
+    ${cancelledDeliveries.filter(l => !(cancelPlnQ||'').trim() || [l.id, l.itr, l.po, l.to, l.cancelReason, l.comments].join(' ').toLowerCase().includes(cancelPlnQ.toLowerCase().trim())).map(l => `<tr>
      <td><span class="ref">${esc(l.id)}</span></td>
      <td><b class="num" style="color:var(--blue)">${esc(l.itr||'—')}</b></td>
      <td><b class="num">${esc(l.po||'—')}</b></td>
@@ -6699,12 +6748,14 @@ function lCancel(id){if(!guard('livraisons'))return;const l=S.deliveries.find(x=
 
 /* ===================== Facturation & Recouvrement (Aspects Financiers) ===================== */
 
+/* ===================== Facturation & Recouvrement (Aspects Financiers & Sous-onglets Métier) ===================== */
+
 const FAC_STATUS_META = {
  'Brouillon': { col: 'var(--muted)', bg: 'var(--surface-2)', label: 'Brouillon', ic: '📝' },
  'Émise': { col: '#2563EB', bg: '#EFF6FF', label: 'Émise (En attente)', ic: '📤' },
  'Partiellement payée': { col: '#D97706', bg: '#FFFBEB', label: 'Partiellement payée', ic: '⏳' },
  'Payée': { col: '#059669', bg: '#ECFDF5', label: 'Payée & Soldée', ic: '✓' },
- 'En retard': { col: '#DC2626', bg: '#FEF2F2', label: 'Échue en retard', ic: '⚠' }
+ 'En retard': { col: '#DC2626', bg: '#FEF2F2', label: 'Échue en retard', ic: '⚠️' }
 };
 
 function facStatusBadge(status, due) {
@@ -6714,310 +6765,738 @@ function facStatusBadge(status, due) {
  return `<span class="badge" style="background:${m.bg};color:${m.col};border:1px solid ${m.col};font-weight:700">${m.ic} ${esc(m.label)}</span>`;
 }
 
+function normalizeInvoicesCategory(){
+ (S.invoices||[]).forEach(i => {
+  if(!i.category){
+   if(i.transportId || (i.dossier && i.dossier.startsWith('TR-')) || (i.lines && i.lines.some(l => l.desc.toLowerCase().includes('traction') || l.desc.toLowerCase().includes('transport vers')))) {
+    i.category = 'transport';
+   } else if(i.reparationId || (i.dossier && (i.dossier.startsWith('REP-') || i.dossier.startsWith('SOUD-'))) || (i.lines && i.lines.some(l => l.desc.toLowerCase().includes('soudure') || l.desc.toLowerCase().includes('door swap')))) {
+    i.category = 'entrepot';
+   } else {
+    i.category = 'transit';
+   }
+  }
+ });
+}
+
+function getInvoiceForDossier(dNum){
+ normalizeInvoicesCategory();
+ return (S.invoices||[]).find(i => (i.category==='transit' || !i.category) && i.dossier === dNum);
+}
+
+function getInvoiceForTransport(tId, itr){
+ normalizeInvoicesCategory();
+ return (S.invoices||[]).find(i => 
+  i.category === 'transport' && (
+   i.transportId === tId ||
+   (tId && i.dossier === tId) ||
+   (itr && i.itr === itr) ||
+   (tId && i.lines?.some(l => l.desc.includes(tId))) ||
+   (itr && i.lines?.some(l => l.desc.includes(itr)))
+  )
+ );
+}
+
+function getInvoiceForReparation(rId, lot){
+ normalizeInvoicesCategory();
+ return (S.invoices||[]).find(i => 
+  i.category === 'entrepot' && (
+   i.reparationId === rId ||
+   (rId && i.dossier === rId) ||
+   (lot && i.lot === lot) ||
+   (rId && i.lines?.some(l => l.desc.includes(rId))) ||
+   (lot && i.lines?.some(l => l.desc.includes(lot)))
+  )
+ );
+}
+
+/* ===================== Vue Facturation ===================== */
 function vFacturation() {
  const cS = curSite(), sObj = curSiteObj();
- const invoices = siteInvoices(cS);
- 
- const q = facQ.toLowerCase();
- const filtered = invoices.filter(inv => {
+ normalizeInvoicesCategory();
+ const allInvoices = siteInvoices(cS);
+
+ // Sous-onglets : 'transit' | 'entrepot' | 'transport'
+ if(!['transit', 'entrepot', 'transport'].includes(facSub)) facSub = 'transit';
+
+ // 1. Transit pipeline
+ const allSiteDoss = siteDossiers(cS);
+ const transitCompleted = allSiteDoss.filter(d => Boolean(d.D6 || d.status === 'Clôturé' || d.depotage));
+ const transitPending = transitCompleted.filter(d => !getInvoiceForDossier(d.num));
+ const transitInvoiced = allInvoices.filter(i => (i.category === 'transit' || (!i.category && !i.transportId && !i.reparationId)));
+
+ // 2. Entrepôt pipeline (Door Swap & Soudure)
+ const allSiteReps = siteReparations(cS).filter(r => r.kind === 'DOOR SWAP' || r.kind === 'Soudure');
+ const entrepotCompleted = allSiteReps; // Réalisées/enregistrées
+ const entrepotPending = entrepotCompleted.filter(r => !getInvoiceForReparation(r.id, r.lot));
+ const entrepotInvoiced = allInvoices.filter(i => i.category === 'entrepot');
+
+ // 3. Transport pipeline (Livraisons effectuées)
+ const allSiteTrs = siteTransports(cS);
+ const allSiteLvs = siteDeliveries(cS);
+ const transportCompleted = allSiteTrs.filter(t => Boolean(t.arrR || ['Livré', 'Clôturé'].includes(t.status) || t.shipped));
+ const transportPending = transportCompleted.filter(t => !getInvoiceForTransport(t.id, t.itr));
+ const transportInvoiced = allInvoices.filter(i => i.category === 'transport');
+
+ // Métier actif
+ let labelMetier = 'Transit Maritime';
+ let pendingList = transitPending;
+ let invoicedList = transitInvoiced;
+ if(facSub === 'entrepot'){
+  labelMetier = 'Entrepôt (Door Swap & Soudure)';
+  pendingList = entrepotPending;
+  invoicedList = entrepotInvoiced;
+ } else if(facSub === 'transport'){
+  labelMetier = 'Transport & Livraisons';
+  pendingList = transportPending;
+  invoicedList = transportInvoiced;
+ }
+
+ const qHist = (facHistQ || '').toLowerCase().trim();
+ const filteredInvoiced = invoicedList.filter(inv => {
   const isLate = !['Payée', 'Brouillon'].includes(inv.status) && inv.due && inv.due < TODAY_ISO;
   const matchFilter = facFilter === 'Tous' || (facFilter === 'En retard' ? isLate : inv.status === facFilter);
-  const matchQ = !q || [inv.id, inv.num, inv.dossier, inv.client, inv.contact, inv.obs].join(' ').toLowerCase().includes(q);
+  const matchQ = !qHist || [inv.id, inv.num, inv.dossier, inv.client, inv.contact, inv.obs].join(' ').toLowerCase().includes(qHist);
   return matchFilter && matchQ;
  });
 
- const totalFactureHT = invoices.reduce((a, i) => a + (+i.ht || 0), 0);
- const totalFactureTTC = invoices.reduce((a, i) => a + (+i.ttc || 0), 0);
- const totalEncaisse = invoices.reduce((a, i) => a + (+i.paid || 0), 0);
- const totalRestant = invoices.reduce((a, i) => a + (+i.balance || 0), 0);
- const countPayees = invoices.filter(i => i.status === 'Payée').length;
- const countEnRetard = invoices.filter(i => i.status !== 'Payée' && i.due && i.due < TODAY_ISO).length;
- const countEnCours = invoices.filter(i => !['Payée', 'Brouillon'].includes(i.status) && (!i.due || i.due >= TODAY_ISO)).length;
+ const totFactureTTC = invoicedList.reduce((a, i) => a + (+i.ttc || 0), 0);
+ const totEncaisse = invoicedList.reduce((a, i) => a + (+i.paid || 0), 0);
+ const totRestant = invoicedList.reduce((a, i) => a + (+i.balance || 0), 0);
+ const countEnRetard = invoicedList.filter(i => i.status !== 'Payée' && i.due && i.due < TODAY_ISO).length;
 
  const filterChips = ['Tous', 'Émise', 'Partiellement payée', 'Payée', 'En retard', 'Brouillon'];
 
- return siteBanner(`Facturation des dossiers de transit, manutention palettes et traction · ${sObj.name}`) +
- hero('finance', `Facturation · ${sObj.icon} ${sObj.name}`, 'Gestion et émission des factures clients adossées aux dossiers de transit, dépotage et livraisons.',
-  `<div><b>${fcfa(totalFactureTTC)}</b>volume facturé TTC</div><div><b>${fcfa(totalEncaisse)}</b>encaissé</div><div><b>${fcfa(totalRestant)}</b>solde à recouvrer</div>`) +
- `<div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr));margin-bottom:16px">
+ return siteBanner(`Facturation opérationnelle par métier · ${sObj.name}`) +
+ hero('finance', `Facturation · ${sObj.icon} ${sObj.name}`, 'Facturation automatisée selon l’avancement opérationnel : déversement dès dépotage (Transit), livraison (Transport) et fin de travaux (Door Swap & Soudure).',
+  `<div><b>${n0(pendingList.length)}</b>opération${pendingList.length>1?'s':''} en attente de facture</div>`+
+  `<div><b>${fcfa(totFactureTTC)}</b>facturé TTC (${labelMetier.split(' ')[0]})</div>`+
+  `<div><b>${fcfa(totRestant)}</b>solde à recouvrer</div>`) +
+ `
+  <!-- Sous-onglets Métier Facturation -->
+  <div class="seg" role="group" aria-label="Métiers Facturation" style="margin-bottom:16px">
+   <button data-facsub="transit" aria-pressed="${facSub==='transit'}">🚢 Transit (${transitPending.length ? `<b style="color:#DC2626">${transitPending.length} à facturer</b>` : 'À jour'})</button>
+   <button data-facsub="entrepot" aria-pressed="${facSub==='entrepot'}">🏭 Entrepôt · Door Swap & Soudure (${entrepotPending.length ? `<b style="color:#DC2626">${entrepotPending.length} à facturer</b>` : 'À jour'})</button>
+   <button data-facsub="transport" aria-pressed="${facSub==='transport'}">🚚 Transport (${transportPending.length ? `<b style="color:#DC2626">${transportPending.length} à facturer</b>` : 'À jour'})</button>
+  </div>
+
+  <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr));margin-bottom:16px">
+   <div class="kpi" style="cursor:default;border-left:4px solid var(--warn)">
+    <span>Opérations en Attente de Facturation</span>
+    <b style="color:var(--warn)">${n0(pendingList.length)}</b>
+    <small class="muted">${labelMetier} achevées non facturées</small>
+   </div>
    <div class="kpi" style="cursor:default;border-left:4px solid var(--blue)">
-    <span>Volume Facturé Total</span>
-    <b style="color:var(--blue)">${fcfa(totalFactureTTC)}</b>
-    <small class="muted">HT : <b>${fcfa(totalFactureHT)}</b> · ${invoices.length} factures</small>
+    <span>Volume Facturé TTC (${labelMetier.split(' ')[0]})</span>
+    <b style="color:var(--blue)">${fcfa(totFactureTTC)}</b>
+    <small class="muted">${invoicedList.length} facture${invoicedList.length>1?'s':''} émise${invoicedList.length>1?'s':''}</small>
    </div>
    <div class="kpi t-ok" style="cursor:default">
-    <span>Factures Encaissées</span>
-    <b>${n0(countPayees)}</b>
-    <small class="muted">Total réglé : <b>${fcfa(totalEncaisse)}</b></small>
-   </div>
-   <div class="kpi t-warn" style="cursor:default">
-    <span>Factures En Cours</span>
-    <b>${n0(countEnCours)}</b>
-    <small class="muted">En attente d’échéance</small>
+    <span>Montant Déjà Encaissé</span>
+    <b>${fcfa(totEncaisse)}</b>
+    <small class="muted">Règlements reçus</small>
    </div>
    <div class="kpi t-bad" style="cursor:default">
-    <span>Factures En Retard</span>
+    <span>Créances Échues en Retard</span>
     <b>${n0(countEnRetard)}</b>
-    <small class="muted">Créances échues non réglées</small>
+    <small class="muted">Solde restant : <b>${fcfa(totRestant)}</b></small>
    </div>
   </div>
 
-  <div class="toolbar" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
-   <div style="display:flex;gap:8px;align-items:center;flex:1;max-width:480px">
-    <input type="search" id="facQIn" class="field-inline grow" placeholder="Rechercher facture, dossier, client, N° conteneur..." value="${esc(facQ)}" oninput="facQ=this.value;render()">
-   </div>
-   <div style="display:flex;gap:8px;flex-wrap:wrap">
-    <button class="btn" data-act="printRecouvrement" title="Imprimer le grand livre et l’état de facturation">🖨️ État Facturation</button>
-    <button class="btn primary${lockCls('facturation')}" data-act="newInvoice">${plus()} Nouvelle facture dossier</button>
-   </div>
-  </div>
-
-  <div class="chips" style="margin-bottom:14px">
-   ${filterChips.map(f => `<button class="chip" data-facfilter="${f}" aria-pressed="${facFilter === f}">${f} <span class="c">${f === 'Tous' ? invoices.length : f === 'En retard' ? countEnRetard : invoices.filter(i => i.status === f).length}</span></button>`).join('')}
-  </div>
-
-  <div class="tablewrap"><table><thead><tr>
-   <th>N° Facture</th>
-   <th>Dossier Transit & TC</th>
-   <th>Client & Destinataire</th>
-   <th>Émission / Échéance</th>
-   <th class="right">Montant HT</th>
-   <th class="right">Montant TTC</th>
-   <th class="right">Encaissé</th>
-   <th class="right">Reste dû</th>
-   <th>Statut</th>
-   <th>Actions</th>
-  </tr></thead><tbody>
-   ${filtered.map(inv => {
-    const isLate = !['Payée', 'Brouillon'].includes(inv.status) && inv.due && inv.due < TODAY_ISO;
-    const daysLate = isLate ? days(TODAY_ISO, inv.due) : 0;
-    const dos = S.dossiers.find(d => d.num === inv.dossier);
-    return `<tr style="border-left:4px solid ${inv.status === 'Payée' ? 'var(--ok)' : isLate ? 'var(--bad)' : 'var(--blue)'}">
-     <td><span class="ref" style="font-size:13.5px;font-weight:700">${esc(inv.num)}</span></td>
-     <td>
-      <button class="refchip" style="border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer;padding:0" data-dossier="${inv.dossier}">${esc(inv.dossier)}</button>
-      ${dos ? `<br><small class="muted num">${esc(dos.cont)} · ${esc(dos.lam)}</small>` : ''}
-     </td>
-     <td><b>${esc(inv.client)}</b><br><small class="muted">${esc(inv.contact || inv.address || '—')}</small></td>
-     <td>
-      <span>${fmt(inv.date)}</span><br>
-      <small style="color:${isLate ? 'var(--bad)' : 'var(--muted)'};font-weight:${isLate ? '700' : 'normal'}">
-       Échéance : ${fmt(inv.due)} ${isLate ? `(+${daysLate} j retard)` : ''}
-      </small>
-     </td>
-     <td class="right num"><b>${n0(inv.ht)}</b></td>
-     <td class="right num"><b style="font-size:14.5px;color:var(--ink)">${n0(inv.ttc)}</b></td>
-     <td class="right num"><b style="color:var(--ok)">${n0(inv.paid)}</b></td>
-     <td class="right num"><b style="color:${inv.balance > 0 ? 'var(--bad)' : 'var(--ok)'}">${n0(inv.balance)}</b></td>
-     <td>${facStatusBadge(inv.status, inv.due)}</td>
-     <td style="white-space:nowrap;display:flex;gap:6px">
-      <button class="btn small" data-act="viewInvoice" data-id="${inv.id}" title="Afficher la facture complète">👁️ Facture</button>
-      ${inv.balance > 0 ? `<button class="btn small primary${lockCls('recouvrement')}" data-act="newPayment" data-id="${inv.id}" title="Enregistrer un encaissement pour cette facture">💳 Encaisser</button>` : ''}
-      ${inv.status === 'Brouillon' ? `<button class="btn small primary${lockCls('facturation')}" data-act="emitInvoice" data-id="${inv.id}" title="Émettre et valider la facture">✓ Émettre</button>` : ''}
-     </td>
-    </tr>`;
-   }).join('') || '<tr><td colspan="10" class="empty">Aucune facture ne correspond à ces critères.</td></tr>'}
-  </tbody></table></div>`;
-}
-
-function vRecouvrement() {
- const cS = curSite(), sObj = curSiteObj();
- const invoices = siteInvoices(cS);
- const payments = sitePayments(cS);
- const relances = siteRelances(cS);
-
- const totalFactureTTC = invoices.reduce((a, i) => a + (+i.ttc || 0), 0);
- const totalEncaisse = invoices.reduce((a, i) => a + (+i.paid || 0), 0);
- const totalRestant = invoices.reduce((a, i) => a + (+i.balance || 0), 0);
- const tauxRecouvrement = totalFactureTTC ? Math.round((totalEncaisse / totalFactureTTC) * 100) : 100;
-
- // Balance Âgée
- const nonEchues = invoices.filter(i => i.balance > 0 && (!i.due || i.due >= TODAY_ISO));
- const echues1_30 = invoices.filter(i => {
-  if (i.balance <= 0 || !i.due || i.due >= TODAY_ISO) return false;
-  const d = days(TODAY_ISO, i.due);
-  return d >= 1 && d <= 30;
- });
- const echues31_60 = invoices.filter(i => {
-  if (i.balance <= 0 || !i.due || i.due >= TODAY_ISO) return false;
-  const d = days(TODAY_ISO, i.due);
-  return d >= 31 && d <= 60;
- });
- const echues60Plus = invoices.filter(i => {
-  if (i.balance <= 0 || !i.due || i.due >= TODAY_ISO) return false;
-  return days(TODAY_ISO, i.due) > 60;
- });
-
- const sumNonEchues = nonEchues.reduce((a, i) => a + i.balance, 0);
- const sum1_30 = echues1_30.reduce((a, i) => a + i.balance, 0);
- const sum31_60 = echues31_60.reduce((a, i) => a + i.balance, 0);
- const sum60Plus = echues60Plus.reduce((a, i) => a + i.balance, 0);
-
- const q = recQ.toLowerCase();
-
- let tabContent = '';
- if (recSub === 'echeancier') {
-  const pendingInvoices = invoices.filter(i => i.balance > 0 && (!q || [i.id, i.num, i.dossier, i.client].join(' ').toLowerCase().includes(q)));
-  tabContent = `
-   <div class="toolbar" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
-    <div style="display:flex;align-items:center;gap:8px">
-     <h3 style="margin:0">Échéancier des créances clients & relances prioritaires</h3>
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-     <button class="btn" data-act="printRecouvrement">🖨️ Imprimer l’état de recouvrement</button>
-     <button class="btn primary${lockCls('recouvrement')}" data-act="newPayment">${plus()} Enregistrer un encaissement</button>
-    </div>
-   </div>
-   <div class="tablewrap"><table><thead><tr>
-    <th>N° Facture</th>
-    <th>Client Débiteur</th>
-    <th>Dossier Transit</th>
-    <th>Date d’échéance</th>
-    <th>Ancienneté du retard</th>
-    <th class="right">Total TTC</th>
-    <th class="right">Acomptes réglés</th>
-    <th class="right">Solde à recouvrer</th>
-    <th>Dernière relance</th>
-    <th>Actions</th>
-   </tr></thead><tbody>
-    ${pendingInvoices.map(inv => {
-     const isLate = inv.due && inv.due < TODAY_ISO;
-     const lateDays = isLate ? days(TODAY_ISO, inv.due) : 0;
-     const lastRel = relances.filter(r => r.invoiceId === inv.id).slice(-1)[0];
-     return `<tr style="border-left:4px solid ${lateDays > 30 ? 'var(--bad)' : isLate ? 'var(--warn)' : 'var(--blue)'}">
-      <td><span class="ref">${esc(inv.num)}</span></td>
-      <td><b>${esc(inv.client)}</b><br><small class="muted">${esc(inv.contact || inv.address || '—')}</small></td>
-      <td><button class="refchip" style="border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer;padding:0" data-dossier="${inv.dossier}">${esc(inv.dossier)}</button></td>
-      <td><b>${fmt(inv.due)}</b></td>
-      <td>${isLate ? `<span class="badge b-bad" style="font-weight:700">En retard de ${lateDays} j</span>` : `<span class="badge b-ok">Dans les délais (${days(inv.due, TODAY_ISO)} j restants)</span>`}</td>
-      <td class="right num"><b>${n0(inv.ttc)}</b></td>
-      <td class="right num"><b style="color:var(--ok)">${n0(inv.paid)}</b></td>
-      <td class="right num"><b style="color:var(--bad);font-size:15px">${n0(inv.balance)} FCFA</b></td>
-      <td>${lastRel ? `<span class="badge b-info">${esc(lastRel.level)}</span><br><small class="muted">${fmt(lastRel.date)}</small>` : '<span class="muted">Aucune relance</span>'}</td>
-      <td style="white-space:nowrap;display:flex;gap:6px">
-       <button class="btn small primary${lockCls('recouvrement')}" data-act="newPayment" data-id="${inv.id}" title="Encaisser un règlement">💳 Encaisser</button>
-       <button class="btn small${lockCls('recouvrement')}" data-act="newRelance" data-id="${inv.id}" title="Enregistrer une relance">📣 Relancer</button>
-       <button class="btn small" data-act="viewInvoice" data-id="${inv.id}" title="Voir facture">👁️</button>
-      </td>
-     </tr>`;
-    }).join('') || '<tr><td colspan="10" class="empty">Toutes les créances sont soldées ! Aucune facture en attente de recouvrement.</td></tr>'}
-   </tbody></table></div>`;
- } else if (recSub === 'reglements') {
-  const filteredPay = payments.filter(p => !q || [p.id, p.invoiceId, p.dossier, p.client, p.ref, p.bank].join(' ').toLowerCase().includes(q));
-  tabContent = `
-   <div class="toolbar" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
-    <div><h3 style="margin:0">Historique complet des encaissements enregistrés</h3></div>
-    <button class="btn primary${lockCls('recouvrement')}" data-act="newPayment">${plus()} Enregistrer un encaissement</button>
-   </div>
-   <div class="tablewrap"><table><thead><tr>
-    <th>Réf. Règlement</th>
-    <th>Date d’encaissement</th>
-    <th>Facture liée</th>
-    <th>Dossier Transit</th>
-    <th>Client</th>
-    <th>Mode de paiement</th>
-    <th>Banque / N° Pièce</th>
-    <th class="right">Montant Encaissé</th>
-    <th>Enregistré par</th>
-   </tr></thead><tbody>
-    ${filteredPay.map(p => `<tr>
-     <td><span class="ref">${esc(p.id)}</span></td>
-     <td><b>${fmt(p.date)}</b></td>
-     <td><button class="refchip" style="border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer;padding:0" data-act="viewInvoice" data-id="${p.invoiceId}">${esc(p.invoiceId)}</button></td>
-     <td><button class="refchip" style="border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer;padding:0" data-dossier="${p.dossier}">${esc(p.dossier)}</button></td>
-     <td><b>${esc(p.client)}</b></td>
-     <td><span class="badge b-info">${esc(p.mode)}</span></td>
-     <td><b>${esc(p.bank || '—')}</b><br><small class="muted num">${esc(p.ref || '—')}</small></td>
-     <td class="right num"><b style="color:var(--ok);font-size:15px">+${n0(p.amount)} FCFA</b></td>
-     <td><b>${esc(user(p.by).name)}</b></td>
-    </tr>`).join('') || '<tr><td colspan="9" class="empty">Aucun encaissement enregistré.</td></tr>'}
-   </tbody></table></div>`;
- } else if (recSub === 'relances') {
-  const filteredRel = relances.filter(r => !q || [r.id, r.invoiceId, r.dossier, r.client, r.contact, r.notes].join(' ').toLowerCase().includes(q));
-  tabContent = `
-   <div class="toolbar" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
-    <div><h3 style="margin:0">Journal des actions de relance et promesses de règlement</h3></div>
-    <button class="btn primary${lockCls('recouvrement')}" data-act="newRelance">${plus()} Nouvelle relance client</button>
-   </div>
-   <div class="tablewrap"><table><thead><tr>
-    <th>Réf. Relance</th>
-    <th>Date</th>
-    <th>Facture liée</th>
-    <th>Client & Interlocuteur</th>
-    <th>Niveau de relance</th>
-    <th>Canal</th>
-    <th>Promesse de règlement</th>
-    <th>Compte-rendu & Notes</th>
-    <th>Agent</th>
-   </tr></thead><tbody>
-    ${filteredRel.map(r => `<tr>
-     <td><span class="ref">${esc(r.id)}</span></td>
-     <td><b>${fmt(r.date)}</b></td>
-     <td><button class="refchip" style="border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer;padding:0" data-act="viewInvoice" data-id="${r.invoiceId}">${esc(r.invoiceId)}</button></td>
-     <td><b>${esc(r.client)}</b><br><small class="muted">${esc(r.contact)} · ${esc(r.phone || '')}</small></td>
-     <td><span class="badge ${r.level.includes('Mise') ? 'b-bad' : r.level.includes('aimable') ? 'b-warn' : 'b-info'}">${esc(r.level)}</span></td>
-     <td><b>${esc(r.channel)}</b></td>
-     <td>
-      ${r.promiseDate ? `<b style="color:var(--ok)">${n0(r.promiseAmount || 0)} FCFA</b><br><small class="muted">au ${fmt(r.promiseDate)}</small>` : '<span class="muted">Aucune promesse</span>'}
-     </td>
-     <td class="wrap" style="max-width:280px">${esc(r.notes || '—')}</td>
-     <td><b>${esc(user(r.agent).name)}</b></td>
-    </tr>`).join('') || '<tr><td colspan="9" class="empty">Aucune action de relance enregistrée.</td></tr>'}
-   </tbody></table></div>`;
- }
-
- return siteBanner(`Gestion du recouvrement, balance âgée et suivi des créances · ${sObj.name}`) +
- hero('money', `Recouvrement · ${sObj.icon} ${sObj.name}`, 'Pilotage de la trésorerie, suivi des encaissements, balance âgée et relances des créances clients.',
-  `<div><b>${tauxRecouvrement}%</b>taux d’encaissement</div><div><b>${fcfa(totalRestant)}</b>solde à recouvrer</div><div><b>${payments.length}</b>règlements enregistrés</div>`) +
- `<!-- ==================== BALANCE ÂGÉE DES CRÉANCES ==================== -->
-  <section class="panel" style="margin-bottom:16px;border-top:3px solid var(--blue)">
-   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+  <!-- ==================== RUBRIQUE 1 : OPÉRATIONS EN ATTENTE DE FACTURATION (EN COURS) ==================== -->
+  <section class="panel" style="margin-bottom:20px;border-left:5px solid var(--accent);background:var(--surface);box-shadow:0 2px 8px rgba(0,0,0,0.04)">
+   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
     <div>
-     <h3 style="margin:0;font-size:16px">Diagnostic de la Balance Âgée des Créances (${sObj.name})</h3>
-     <small class="muted">Ventilation des factures impayées selon leur antériorité d’échéance</small>
+     <h3 style="margin:0;color:#92400E;display:flex;align-items:center;gap:8px">
+      ⏳ 1. Opérations ${labelMetier} déversées en attente de facturation (${pendingList.length})
+     </h3>
+     <small class="muted">
+      ${facSub==='transit'?'Dossiers dont le dépotage est clôturé et validé. Cliquez sur « Émettre facture » pour générer la facture client.':
+        facSub==='entrepot'?'Interventions de DOOR SWAP et Soudures enregistrées. Cliquez sur « Facturer prestation » pour émettre la facture.':
+        'Transports et livraisons dont le trajet est effectué. Cliquez sur « Facturer transport » pour facturer la traction.'}
+     </small>
     </div>
-    <span class="badge b-info">Total à recouvrer : <b>${fcfa(totalRestant)}</b></span>
+    ${pendingList.length ? `<span class="badge b-warn pulse-badge" style="font-weight:700">⚡ ${pendingList.length} opération${pendingList.length>1?'s':''} à facturer</span>` : `<span class="badge b-ok">✓ Aucune opération en attente</span>`}
    </div>
-   <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-bottom:0">
-    <div class="kpi t-ok" style="cursor:default">
-     <span>Non échues (< 30j)</span>
-     <b>${fcfa(sumNonEchues)}</b>
-     <small class="muted">${nonEchues.length} facture${nonEchues.length > 1 ? 's' : ''} dans les délais</small>
-    </div>
-    <div class="kpi t-warn" style="cursor:default">
-     <span>Échues 1 à 30 jours</span>
-     <b>${fcfa(sum1_30)}</b>
-     <small class="muted">${echues1_30.length} facture${echues1_30.length > 1 ? 's' : ''} · Rappels aimables</small>
-    </div>
-    <div class="kpi" style="cursor:default;border-left:4px solid #EA580C">
-     <span style="color:#EA580C">Échues 31 à 60 jours</span>
-     <b style="color:#EA580C">${fcfa(sum31_60)}</b>
-     <small class="muted">${echues31_60.length} facture${echues31_60.length > 1 ? 's' : ''} · Mises en demeure</small>
-    </div>
-    <div class="kpi t-bad" style="cursor:default">
-     <span>En souffrance (> 60 jours)</span>
-     <b>${fcfa(sum60Plus)}</b>
-     <small class="muted">${echues60Plus.length} facture${echues60Plus.length > 1 ? 's' : ''} · Risque contentieux</small>
-    </div>
+
+   <div class="tablewrap" style="margin:0">
+    <table>
+     <thead>
+      <tr>
+       ${facSub==='transit' ? '<th>N° Dossier</th><th>Conteneur (TC)</th><th>Armateur / B/L</th><th>Date Dépotage</th><th class="right">Palettes Dépotées</th><th>Client</th><th>Statut Transit</th><th>Action Facturation</th>' :
+         facSub==='entrepot' ? '<th>Réf. Intervention</th><th>Type d’Opération</th><th>Lot Entrepôt</th><th>Date Réalisation</th><th class="right">Palettes Traitées</th><th>Client Facturé</th><th>Statut Entrepôt</th><th>Action Facturation</th>' :
+         '<th>Réf. Transport</th><th>N° ITR / PO</th><th>Destination Client</th><th>Camion & Chauffeur</th><th class="right">Palettes Livrées</th><th>Date Livraison</th><th>Statut Transport</th><th>Action Facturation</th>'}
+      </tr>
+     </thead>
+     <tbody>
+      ${facSub==='transit' ? (
+        pendingList.map(d => {
+         const qDep = d.depotage?.total || 140;
+         const dDate = d.D6 || d.depotage?.date || d.D5 || d.D3;
+         const client = d.client || (d.trans?.includes('SKCI') ? 'SKCI' : 'Client Transit');
+         return `<tr>
+          <td><button class="refchip" style="border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer;padding:0" data-dossier="${esc(d.num)}">${esc(d.num)}</button></td>
+          <td><b class="num" style="color:#1E1B4B;font-size:14px">${esc(d.cont)}</b></td>
+          <td><b>${esc(d.lam||'—')}</b><br><small class="muted">${esc(d.bl||'—')}</small></td>
+          <td><b>${fmt(dDate)}</b></td>
+          <td class="right num"><b style="font-size:15px;color:var(--ink)">${n0(qDep)}</b></td>
+          <td><b>${esc(client)}</b></td>
+          <td><span class="badge b-ok">✓ Dépotage Effectué</span></td>
+          <td style="white-space:nowrap">
+           <button class="btn small primary${lockCls('facturation')}" data-act="facturerDossierTransit" data-id="${d.num}">📝 Émettre facture</button>
+          </td>
+         </tr>`;
+        }).join('') || '<tr><td colspan="8" class="empty">Tous les dossiers de transit clôturés ont été facturés !</td></tr>'
+      ) : facSub==='entrepot' ? (
+        pendingList.map(r => {
+         const isSwap = r.kind === 'DOOR SWAP';
+         return `<tr>
+          <td><span class="ref">${esc(r.id)}</span></td>
+          <td><span class="badge ${isSwap ? 'b-warn' : 'b-info'}" style="font-weight:700">${isSwap ? '⇄ DOOR SWAP' : '🔧 Soudure'}</span></td>
+          <td><b class="num">${esc(r.lot)}</b></td>
+          <td><b>${fmt(r.dateOp || r.date?.slice(0,10))}</b></td>
+          <td class="right num"><b style="font-size:15px;color:var(--ink)">${n0(r.qty)}</b></td>
+          <td><b>SKCI</b><br><small class="muted">Entrepôt GoodPack</small></td>
+          <td><span class="badge b-ok">✓ Prestation Réalisée</span></td>
+          <td style="white-space:nowrap">
+           <button class="btn small primary${lockCls('facturation')}" data-act="facturerEntrepot" data-id="${r.id}">📝 Facturer prestation</button>
+          </td>
+         </tr>`;
+        }).join('') || '<tr><td colspan="8" class="empty">Toutes les opérations de DOOR SWAP et Soudure ont été facturées !</td></tr>'
+      ) : (
+        pendingList.map(t => {
+         const destCl = t.to?.split('·')[0]?.trim() || 'Client Transport';
+         const pln = (S.planifications||[]).find(p => p.transport === t.id);
+         const lv = (S.deliveries||[]).find(l => l.id === t.liv || l.transport === t.id);
+         const refItr = t.itr || pln?.itr || lv?.itr || '—';
+         const refPo = t.po || pln?.po || lv?.po || '—';
+         return `<tr>
+          <td><span class="ref">${esc(t.id)}</span></td>
+          <td><b class="num" style="color:var(--blue)">${esc(refItr)}</b><br><small class="muted">PO: ${esc(refPo)}</small></td>
+          <td><b style="color:var(--text);font-size:13.5px">${esc(t.to)}</b></td>
+          <td><b>${esc(t.trans||'—')}</b><br><small class="muted num">${esc(t.veh||'—')} (${esc(t.driver||'—')})</small></td>
+          <td class="right num"><b style="font-size:15px;color:var(--ink)">${n0(t.qty)}</b></td>
+          <td><b>${fmt(t.arrR || t.arrP || TODAY_ISO)}</b></td>
+          <td><span class="badge b-ok">✓ Livraison Effectuée</span></td>
+          <td style="white-space:nowrap">
+           <button class="btn small primary${lockCls('facturation')}" data-act="facturerTransport" data-id="${t.id}">📝 Facturer transport</button>
+          </td>
+         </tr>`;
+        }).join('') || '<tr><td colspan="8" class="empty">Toutes les livraisons de transport effectuées ont été facturées !</td></tr>'
+      )}
+     </tbody>
+    </table>
    </div>
   </section>
 
-  <!-- Segments sous-onglets -->
-  <div class="seg" role="group" aria-label="Espaces Recouvrement" style="margin-bottom:14px">
-   <button data-recsub="echeancier" aria-pressed="${recSub === 'echeancier'}">Échéancier & Créances à recouvrer (${invoices.filter(i => i.balance > 0).length})</button>
-   <button data-recsub="reglements" aria-pressed="${recSub === 'reglements'}">Historique des Règlements (${payments.length})</button>
-   <button data-recsub="relances" aria-pressed="${recSub === 'relances'}">Journal des Relances & Promesses (${relances.length})</button>
-  </div>
-  ${tabContent}`;
+  <!-- ==================== RUBRIQUE 2 : HISTORIQUE DÉTACHÉ DES OPÉRATIONS FACTURÉES ==================== -->
+  <section class="panel" style="border:1px solid var(--line);border-top:4px solid var(--blue);background:var(--surface)">
+   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+    <div>
+     <h3 style="margin:0;display:flex;align-items:center;gap:8px">
+      📜 2. Historique des factures émises · ${labelMetier} (${invoicedList.length})
+     </h3>
+     <small class="muted">Détachement chronologique des factures. Utilisez la recherche dédiée pour retrouver des éléments spécifiques.</small>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+     <button class="btn" data-act="printRecouvrement">🖨️ Imprimer État</button>
+     <button class="btn primary${lockCls('facturation')}" data-act="newInvoice">${plus()} Nouvelle facture libre</button>
+    </div>
+   </div>
+
+   <!-- Barre de recherche dédiée dans l'historique -->
+   <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+    <div style="display:flex;gap:8px;align-items:center;flex:1;max-width:520px">
+     <input type="search" class="field-inline grow" data-bind-search="facHistQ" placeholder="🔍 Rechercher dans cet historique (N° facture, dossier, ITR, client, observation...)" value="${esc(facHistQ)}">
+    </div>
+    <div class="chips" style="margin:0">
+     ${filterChips.map(f => `<button class="chip" data-facfilter="${f}" aria-pressed="${facFilter === f}">${f} <span class="c">${f === 'Tous' ? invoicedList.length : f === 'En retard' ? countEnRetard : invoicedList.filter(i => i.status === f).length}</span></button>`).join('')}
+    </div>
+   </div>
+
+   <div class="tablewrap" style="margin:0">
+    <table>
+     <thead>
+      <tr>
+       <th>N° Facture</th>
+       <th>Réf. Opération liée</th>
+       <th>Client Facturé</th>
+       <th>Émission / Échéance</th>
+       <th class="right">Montant HT</th>
+       <th class="right">Montant TTC</th>
+       <th class="right">Encaissé</th>
+       <th class="right">Reste Dû</th>
+       <th>Statut Facture</th>
+       <th>Statut Recouvrement</th>
+       <th>Actions</th>
+      </tr>
+     </thead>
+     <tbody>
+      ${filteredInvoiced.map(inv => {
+       const isLate = !['Payée', 'Brouillon'].includes(inv.status) && inv.due && inv.due < TODAY_ISO;
+       const daysLate = isLate ? days(TODAY_ISO, inv.due) : 0;
+       const isPaid = inv.balance <= 0 || inv.status === 'Payée';
+       return `<tr style="border-left:4px solid ${isPaid ? 'var(--ok)' : isLate ? 'var(--bad)' : 'var(--blue)'}">
+        <td><span class="ref" style="font-size:13.5px;font-weight:700">${esc(inv.num)}</span></td>
+        <td>
+         ${inv.category === 'transport' ? `<span class="badge b-info" style="font-size:11px">🚚 ${esc(inv.transportId || inv.dossier || 'Transport')}</span>` :
+           inv.category === 'entrepot' ? `<span class="badge b-warn" style="font-size:11px">🏭 ${esc(inv.reparationId || inv.dossier || 'Entrepôt')}</span>` :
+           `<button class="refchip" style="border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer;padding:0" data-dossier="${esc(inv.dossier)}">🚢 ${esc(inv.dossier)}</button>`}
+        </td>
+        <td><b>${esc(inv.client)}</b><br><small class="muted">${esc(inv.contact || inv.address || '—')}</small></td>
+        <td>
+         <span>${fmt(inv.date)}</span><br>
+         <small style="color:${isLate ? 'var(--bad)' : 'var(--muted)'};font-weight:${isLate ? '700' : 'normal'}">
+          Échéance : ${fmt(inv.due)} ${isLate ? `(+ ${daysLate} j retard)` : ''}
+         </small>
+        </td>
+        <td class="right num"><b>${n0(inv.ht)}</b></td>
+        <td class="right num"><b style="font-size:14.5px;color:var(--ink)">${n0(inv.ttc)}</b></td>
+        <td class="right num"><b style="color:var(--ok)">${n0(inv.paid)}</b></td>
+        <td class="right num"><b style="color:${inv.balance > 0 ? 'var(--bad)' : 'var(--ok)'}">${n0(inv.balance)}</b></td>
+        <td>${facStatusBadge(inv.status, inv.due)}</td>
+        <td>
+         ${isPaid ? '<span class="badge b-ok" style="font-weight:700">✓ Soldé</span>' :
+           inv.paid > 0 ? '<span class="badge b-warn" style="font-weight:700">⏳ Partiel</span>' :
+           '<span class="badge b-info">En attente</span>'}
+        </td>
+        <td style="white-space:nowrap;display:flex;gap:6px">
+         <button class="btn small" data-act="viewInvoice" data-id="${inv.id}" title="Afficher la facture complète">👁️ Facture</button>
+         ${inv.balance > 0 ? `<button class="btn small primary${lockCls('recouvrement')}" data-act="newPayment" data-id="${inv.id}" title="Enregistrer un encaissement direct">💳 Encaisser</button>` : ''}
+         ${inv.status === 'Brouillon' ? `<button class="btn small primary${lockCls('facturation')}" data-act="emitInvoice" data-id="${inv.id}">✓ Émettre</button>` : ''}
+        </td>
+       </tr>`;
+      }).join('') || '<tr><td colspan="11" class="empty">Aucune facture enregistrée dans cet historique pour ces critères de recherche.</td></tr>'}
+     </tbody>
+    </table>
+   </div>
+  </section>`;
 }
 
-/* ===================== Actions & Modales Facturation ===================== */
+/* ===================== Vue Recouvrement ===================== */
+function vRecouvrement() {
+ const cS = curSite(), sObj = curSiteObj();
+ normalizeInvoicesCategory();
+ const allInvoices = siteInvoices(cS);
+ const allPayments = sitePayments(cS);
+ const allRelances = siteRelances(cS);
+
+ // Sous-onglets Recouvrement : 'transit' | 'entrepot' | 'transport' | 'vue_globale'
+ if(!['transit', 'entrepot', 'transport', 'vue_globale'].includes(recSub)) recSub = 'transit';
+
+ const totalFactureTTC = allInvoices.reduce((a, i) => a + (+i.ttc || 0), 0);
+ const totalEncaisse = allInvoices.reduce((a, i) => a + (+i.paid || 0), 0);
+ const totalRestant = allInvoices.reduce((a, i) => a + (+i.balance || 0), 0);
+ const tauxGlobal = totalFactureTTC ? Math.round((totalEncaisse / totalFactureTTC) * 100) : 100;
+
+ let domainInvoices = allInvoices;
+ let domainTitle = 'Vue Consolidée (Tous Métiers)';
+ if(recSub === 'transit'){
+  domainInvoices = allInvoices.filter(i => i.category === 'transit' || (!i.category && !i.transportId && !i.reparationId));
+  domainTitle = 'Recouvrement Transit Maritime';
+ } else if(recSub === 'entrepot'){
+  domainInvoices = allInvoices.filter(i => i.category === 'entrepot');
+  domainTitle = 'Recouvrement Entrepôt (Door Swap & Soudure)';
+ } else if(recSub === 'transport'){
+  domainInvoices = allInvoices.filter(i => i.category === 'transport');
+  domainTitle = 'Recouvrement Transport & Livraisons';
+ }
+
+ const dTotTTC = domainInvoices.reduce((a, i) => a + (+i.ttc || 0), 0);
+ const dTotPaid = domainInvoices.reduce((a, i) => a + (+i.paid || 0), 0);
+ const dTotBal = domainInvoices.reduce((a, i) => a + (+i.balance || 0), 0);
+ const dTaux = dTotTTC ? Math.round((dTotPaid / dTotTTC) * 100) : 100;
+
+ // Détachement En cours vs Soldées/Recouvrées
+ const unpaidInvoices = domainInvoices.filter(i => i.balance > 0);
+ const paidInvoices = domainInvoices.filter(i => i.balance <= 0 || i.status === 'Payée');
+
+ const qRecHist = (recHistQ || '').toLowerCase().trim();
+ const filteredPaid = paidInvoices.filter(i => {
+  return !qRecHist || [i.id, i.num, i.dossier, i.client, i.obs].join(' ').toLowerCase().includes(qRecHist);
+ });
+
+ let subContent = '';
+ if(recSub === 'vue_globale'){
+  // Balance âgée
+  const nonEchues = allInvoices.filter(i => i.balance > 0 && (!i.due || i.due >= TODAY_ISO));
+  const echues1_30 = allInvoices.filter(i => i.balance > 0 && i.due && i.due < TODAY_ISO && days(TODAY_ISO, i.due) <= 30);
+  const echues31_60 = allInvoices.filter(i => i.balance > 0 && i.due && i.due < TODAY_ISO && days(TODAY_ISO, i.due) > 30 && days(TODAY_ISO, i.due) <= 60);
+  const echues60Plus = allInvoices.filter(i => i.balance > 0 && i.due && i.due < TODAY_ISO && days(TODAY_ISO, i.due) > 60);
+
+  const sumNonEchues = nonEchues.reduce((a, i) => a + i.balance, 0);
+  const sum1_30 = echues1_30.reduce((a, i) => a + i.balance, 0);
+  const sum31_60 = echues31_60.reduce((a, i) => a + i.balance, 0);
+  const sum60Plus = echues60Plus.reduce((a, i) => a + i.balance, 0);
+
+  subContent = `
+   <section class="panel" style="margin-bottom:16px;border-top:3px solid var(--blue)">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+     <div>
+      <h3 style="margin:0;font-size:16px">Diagnostic Consolidé de la Balance Âgée des Créances (${sObj.name})</h3>
+      <small class="muted">Ventilation multi-métiers de toutes les factures impayées</small>
+     </div>
+     <span class="badge b-info">Total à recouvrer : <b>${fcfa(totalRestant)}</b></span>
+    </div>
+    <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-bottom:0">
+     <div class="kpi t-ok" style="cursor:default">
+      <span>Non échues (< 30j)</span>
+      <b>${fcfa(sumNonEchues)}</b>
+      <small class="muted">${nonEchues.length} facture${nonEchues.length > 1 ? 's' : ''}</small>
+     </div>
+     <div class="kpi t-warn" style="cursor:default">
+      <span>Échues 1 à 30 jours</span>
+      <b>${fcfa(sum1_30)}</b>
+      <small class="muted">${echues1_30.length} facture${echues1_30.length > 1 ? 's' : ''} · Rappels</small>
+     </div>
+     <div class="kpi" style="cursor:default;border-left:4px solid #EA580C">
+      <span style="color:#EA580C">Échues 31 à 60 jours</span>
+      <b style="color:#EA580C">${fcfa(sum31_60)}</b>
+      <small class="muted">${echues31_60.length} facture${echues31_60.length > 1 ? 's' : ''} · Mises en demeure</small>
+     </div>
+     <div class="kpi t-bad" style="cursor:default">
+      <span>En souffrance (> 60 jours)</span>
+      <b>${fcfa(sum60Plus)}</b>
+      <small class="muted">${echues60Plus.length} facture${echues60Plus.length > 1 ? 's' : ''} · Contentieux</small>
+     </div>
+    </div>
+   </section>
+  `;
+ } else {
+  // Vue Métier (Transit, Entrepôt, Transport)
+  subContent = `
+   <!-- RUBRIQUE 1 : CRÉANCES EN COURS DE RECOUVREMENT -->
+   <section class="panel" style="margin-bottom:20px;border-left:5px solid #EA580C;background:var(--surface)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+     <div>
+      <h3 style="margin:0;color:#C2410C;display:flex;align-items:center;gap:8px">
+       💳 1. Créances en cours de recouvrement · ${domainTitle} (${unpaidInvoices.length})
+      </h3>
+      <small class="muted">Factures dont le solde est en attente d'encaissement ou en retard. Cliquez sur « Encaisser » dès réception de paiement.</small>
+     </div>
+     <div style="display:flex;gap:8px">
+      <button class="btn" data-act="printRecouvrement">🖨️ Imprimer État</button>
+      <button class="btn primary${lockCls('recouvrement')}" data-act="newPayment">${plus()} Enregistrer encaissement</button>
+     </div>
+    </div>
+
+    <div class="tablewrap" style="margin:0">
+     <table>
+      <thead>
+       <tr>
+        <th>N° Facture</th>
+        <th>Réf. Opération</th>
+        <th>Client Débiteur</th>
+        <th>Échéance & Retard</th>
+        <th class="right">Total TTC</th>
+        <th class="right">Acomptes Réglés</th>
+        <th class="right">Solde Dû à Recouvrer</th>
+        <th>Dernière Relance</th>
+        <th>Actions</th>
+       </tr>
+      </thead>
+      <tbody>
+       ${unpaidInvoices.map(inv => {
+        const isLate = inv.due && inv.due < TODAY_ISO;
+        const lateDays = isLate ? days(TODAY_ISO, inv.due) : 0;
+        const lastRel = (S.relances||[]).filter(r => r.invoiceId === inv.id).slice(-1)[0];
+        return `<tr style="border-left:4px solid ${lateDays > 30 ? 'var(--bad)' : isLate ? 'var(--warn)' : 'var(--blue)'}">
+         <td><span class="ref">${esc(inv.num)}</span></td>
+         <td>
+          ${inv.category === 'transport' ? `<span class="badge b-info" style="font-size:11px">🚚 ${esc(inv.transportId || inv.dossier || 'Transport')}</span>` :
+            inv.category === 'entrepot' ? `<span class="badge b-warn" style="font-size:11px">🏭 ${esc(inv.reparationId || inv.dossier || 'Entrepôt')}</span>` :
+            `<button class="refchip" style="border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer;padding:0" data-dossier="${esc(inv.dossier)}">🚢 ${esc(inv.dossier)}</button>`}
+         </td>
+         <td><b>${esc(inv.client)}</b><br><small class="muted">${esc(inv.contact || inv.address || '—')}</small></td>
+         <td>
+          <b>${fmt(inv.due)}</b><br>
+          ${isLate ? `<span class="badge b-bad" style="font-size:11px;font-weight:700">En retard de ${lateDays} j</span>` : `<span class="badge b-ok" style="font-size:11px">Dans les délais (${days(inv.due, TODAY_ISO)} j)</span>`}
+         </td>
+         <td class="right num"><b>${n0(inv.ttc)}</b></td>
+         <td class="right num"><b style="color:var(--ok)">${n0(inv.paid)}</b></td>
+         <td class="right num"><b style="color:var(--bad);font-size:15px">${n0(inv.balance)} FCFA</b></td>
+         <td>${lastRel ? `<span class="badge b-info">${esc(lastRel.level)}</span><br><small class="muted">${fmt(lastRel.date)}</small>` : '<span class="muted">Aucune relance</span>'}</td>
+         <td style="white-space:nowrap;display:flex;gap:6px">
+          <button class="btn small primary${lockCls('recouvrement')}" data-act="newPayment" data-id="${inv.id}" title="Encaisser un règlement">💳 Encaisser</button>
+          <button class="btn small${lockCls('recouvrement')}" data-act="newRelance" data-id="${inv.id}" title="Enregistrer une relance">📢 Relancer</button>
+          <button class="btn small" data-act="viewInvoice" data-id="${inv.id}" title="Voir facture">👁️</button>
+         </td>
+        </tr>`;
+       }).join('') || '<tr><td colspan="9" class="empty">Toutes les créances de ce métier sont soldées ! Aucune facture en attente de recouvrement.</td></tr>'}
+      </tbody>
+     </table>
+    </div>
+   </section>
+
+   <!-- RUBRIQUE 2 : HISTORIQUE DES OPÉRATIONS RECOUVRÉES & SOLDÉES -->
+   <section class="panel" style="border:1px solid var(--line);border-top:4px solid var(--ok);background:var(--surface)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+     <div>
+      <h3 style="margin:0;color:var(--ok);display:flex;align-items:center;gap:8px">
+       ✓ 2. Historique des opérations soldées & recouvrées à 100% (${paidInvoices.length})
+      </h3>
+      <small class="muted">Traçabilité complète des encaissements finalisés. Utilisez la barre de recherche pour consulter un historique spécifique.</small>
+     </div>
+     <span class="badge b-ok" style="font-weight:700">Recouvrement Métier : ${dTaux}%</span>
+    </div>
+
+    <!-- Barre de recherche dédiée dans l'historique -->
+    <div style="margin-bottom:14px;max-width:520px">
+     <input type="search" class="field-inline grow" data-bind-search="recHistQ" placeholder="🔍 Rechercher dans cet historique soldé (N° facture, client, réf...)" value="${esc(recHistQ)}">
+    </div>
+
+    <div class="tablewrap" style="margin:0">
+     <table>
+      <thead>
+       <tr>
+        <th>N° Facture</th>
+        <th>Réf. Opération</th>
+        <th>Client & Destinataire</th>
+        <th>Montant Facturé TTC</th>
+        <th>Date d'Émission</th>
+        <th>Dernier Règlement</th>
+        <th>Statut de Recouvrement</th>
+        <th>Actions</th>
+       </tr>
+      </thead>
+      <tbody>
+       ${filteredPaid.map(inv => {
+        const pay = (S.payments||[]).filter(p => p.invoiceId === inv.id).slice(-1)[0];
+        return `<tr style="border-left:4px solid var(--ok)">
+         <td><span class="ref">${esc(inv.num)}</span></td>
+         <td>
+          ${inv.category === 'transport' ? `<span class="badge b-info" style="font-size:11px">🚚 ${esc(inv.transportId || inv.dossier || 'Transport')}</span>` :
+            inv.category === 'entrepot' ? `<span class="badge b-warn" style="font-size:11px">🏭 ${esc(inv.reparationId || inv.dossier || 'Entrepôt')}</span>` :
+            `<button class="refchip" style="border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer;padding:0" data-dossier="${esc(inv.dossier)}">🚢 ${esc(inv.dossier)}</button>`}
+         </td>
+         <td><b>${esc(inv.client)}</b></td>
+         <td class="num"><b style="color:var(--ok);font-size:14.5px">${n0(inv.ttc)} FCFA</b></td>
+         <td>${fmt(inv.date)}</td>
+         <td>
+          ${pay ? `<b>${fmt(pay.date)}</b><br><small class="muted">${esc(pay.mode)} (${esc(pay.bank||pay.ref||'—')})</small>` : '<span>Acquitté</span>'}
+         </td>
+         <td><span class="badge b-ok" style="font-weight:700">✓ Soldé / Payé à 100%</span></td>
+         <td>
+          <button class="btn small" data-act="viewInvoice" data-id="${inv.id}">👁️ Reçu & Facture</button>
+         </td>
+        </tr>`;
+       }).join('') || '<tr><td colspan="8" class="empty">Aucune facture soldée enregistrée dans cet historique pour ces critères de recherche.</td></tr>'}
+      </tbody>
+     </table>
+    </div>
+   </section>
+  `;
+ }
+
+ return siteBanner(`Recouvrement, encaissements et balance âgée · ${sObj.name}`) +
+ hero('money', `Recouvrement · ${sObj.icon} ${sObj.name}`, 'Suivi analytique des règlements par métier (Transit, Entrepôt, Transport) et traçabilité des créances soldées.',
+  `<div><b>${tauxGlobal}%</b>taux global d’encaissement</div><div><b>${fcfa(totalRestant)}</b>solde total à recouvrer</div><div><b>${allPayments.length}</b>règlements enregistrés</div>`) +
+ `
+  <!-- Sous-onglets Métier Recouvrement -->
+  <div class="seg" role="group" aria-label="Métiers Recouvrement" style="margin-bottom:16px">
+   <button data-recsub="transit" aria-pressed="${recSub==='transit'}">🚢 Transit (${allInvoices.filter(i=> (i.category==='transit'||(!i.category&&!i.transportId&&!i.reparationId)) && i.balance>0).length ? 'Créances actives' : 'Soldé'})</button>
+   <button data-recsub="entrepot" aria-pressed="${recSub==='entrepot'}">🏭 Entrepôt (${allInvoices.filter(i=> i.category==='entrepot' && i.balance>0).length ? 'Créances actives' : 'Soldé'})</button>
+   <button data-recsub="transport" aria-pressed="${recSub==='transport'}">🚚 Transport (${allInvoices.filter(i=> i.category==='transport' && i.balance>0).length ? 'Créances actives' : 'Soldé'})</button>
+   <button data-recsub="vue_globale" aria-pressed="${recSub==='vue_globale'}">📊 Vue Consolidée & Règlements</button>
+  </div>
+
+  <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr));margin-bottom:16px">
+   <div class="kpi" style="cursor:default;border-left:4px solid var(--blue)">
+    <span>Volume Facturé TTC (${recSub==='vue_globale'?'Global':domainTitle.split(' ')[1]})</span>
+    <b style="color:var(--blue)">${fcfa(dTotTTC)}</b>
+    <small class="muted">${domainInvoices.length} dossier${domainInvoices.length>1?'s':''} facturé${domainInvoices.length>1?'s':''}</small>
+   </div>
+   <div class="kpi t-ok" style="cursor:default">
+    <span>Montant Encaissé</span>
+    <b>${fcfa(dTotPaid)}</b>
+    <small class="muted">Taux de recouvrement : <b>${dTaux}%</b></small>
+   </div>
+   <div class="kpi t-warn" style="cursor:default">
+    <span>Créances en Cours</span>
+    <b>${n0(unpaidInvoices.length)}</b>
+    <small class="muted">En attente de paiement</small>
+   </div>
+   <div class="kpi t-bad" style="cursor:default">
+    <span>Solde Restant Dû</span>
+    <b>${fcfa(dTotBal)}</b>
+    <small class="muted">À recouvrer</small>
+   </div>
+  </div>
+
+  ${subContent}
+ `;
+}
+
+/* ===================== Modales d'émission spécifiques ===================== */
+
+function facturerDossierTransit(num){
+ newInvoice(num);
+}
+
+function facturerTransport(transId){
+ if(!guard('facturation')) return;
+ const cS = curSite();
+ const t = (S.transports||[]).find(x => x.id === transId) || (S.planifications||[]).find(x => x.id === transId || x.transport === transId);
+ if(!t){ toast('Transport introuvable.','bad'); return; }
+
+ const pln = (S.planifications||[]).find(p => p.transport === t.id);
+ const lv = (S.deliveries||[]).find(l => l.id === t.liv || l.transport === t.id);
+ const refItr = t.itr || pln?.itr || lv?.itr || '';
+ const refPo = t.po || pln?.po || lv?.po || '';
+ const destName = t.to || 'Client Transport';
+ const clientName = destName.split('·')[0].trim() || 'SKCI';
+
+ S.seq.FAC = (S.seq.FAC || 5) + 1;
+ const facId = cS === 'sanpedro' ? 'FAC-SP-2026-' + String(S.seq.FAC).padStart(2, '0') : 'FAC-2026-' + String(S.seq.FAC).padStart(3, '0');
+
+ const defTarif = destInfo(destName).tarif || 85000;
+
+ openModal(`Émettre la facture de transport · ${t.id}`,
+  fld('N° de Facture généré', 'num', 'text', { req: 1, value: facId, readonly: 1 }) +
+  fld('Réf. Transport concerné', 'transId', 'text', { req: 1, value: t.id, readonly: 1 }) +
+  fld('Numéro ITR / PO client', 'itr', 'text', { value: `ITR: ${refItr} · PO: ${refPo}`, readonly: 1 }) +
+  fld('Client facturé', 'client', 'text', { req: 1, value: clientName }) +
+  fld('Destination & Trajet', 'trajet', 'text', { full: 1, value: `${t.from} → ${destName}`, readonly: 1 }) +
+  fld('Date d’émission', 'date', 'date', { req: 1, value: TODAY_ISO }) +
+  fld('Date d’échéance de règlement (30j)', 'due', 'date', { req: 1, value: iso(30), min: TODAY_ISO }) +
+  `<div class="full" style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);margin:10px 0">
+    <b style="font-size:13.5px;color:var(--text)">Prestation de transport :</b>
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-top:8px">
+     <div><small class="muted">Prestation</small><input type="text" id="inv_tr_desc" value="Traction & Transport routier (${t.qty} palettes vers ${destName})" readonly style="font-size:12px"></div>
+     <div><small class="muted">Quantité</small><input type="number" id="inv_tr_q" value="1" min="1" readonly></div>
+     <div><small class="muted">Tarif HT (FCFA)</small><input type="number" id="inv_tr_p" value="${defTarif}" min="0"></div>
+    </div>
+   </div>` +
+  fld('Observations / Références chauffeur', 'obs', 'textarea', { full: 1, value: `Transport ${t.id} effectué par ${t.trans||'Transporteur'} · Chauffeur : ${t.driver||'—'} (${t.veh||'—'})` }),
+  'Émettre la facture de transport', (data) => {
+   const e = req(data, ['num', 'client', 'date', 'due']);
+   if (Object.keys(e).length) return e;
+
+   const ht = +($('#inv_tr_p')?.value || defTarif);
+   const tva = Math.round(ht * 0.18);
+   const ttc = ht + tva;
+
+   const lines = [
+    { desc: $('#inv_tr_desc')?.value || `Transport routier vers ${destName}`, qty: 1, unit: 'Trajet', price: ht, total: ht }
+   ];
+
+   save(`Facture de transport ${data.num} (${fcfa(ttc)}) émise avec succès.`, () => {
+    S.invoices.unshift({
+     id: data.num,
+     num: data.num,
+     site: curSite(),
+     category: 'transport',
+     transportId: t.id,
+     itr: refItr,
+     dossier: t.id,
+     date: data.date,
+     due: data.due,
+     client: data.client.trim(),
+     contact: 'Service Logistique & Facturation',
+     address: destName,
+     lines,
+     ht,
+     taxRate: 18,
+     tva,
+     ttc,
+     paid: 0,
+     balance: ttc,
+     status: 'Émise',
+     createdBy: S.me,
+     createdAt: nowISO(),
+     obs: data.obs?.trim() || ''
+    });
+    audit('Émission facture transport', data.num, `Transport ${t.id} · Total TTC : ${fcfa(ttc)}`);
+    closeModal();
+    render();
+    toast(`Facture ${data.num} générée et transmise au Recouvrement Transport !`, 'ok');
+    setTimeout(() => viewInvoice(data.num), 80);
+   }, submitBtn());
+  }, { wide: true });
+}
+
+function facturerEntrepot(repId){
+ if(!guard('facturation')) return;
+ const cS = curSite();
+ const r = (S.reparations||[]).find(x => x.id === repId);
+ if(!r){ toast('Opération entrepôt introuvable.','bad'); return; }
+
+ const isSwap = r.kind === 'DOOR SWAP';
+ const clientName = 'SKCI';
+
+ S.seq.FAC = (S.seq.FAC || 5) + 1;
+ const facId = cS === 'sanpedro' ? 'FAC-SP-2026-' + String(S.seq.FAC).padStart(2, '0') : 'FAC-2026-' + String(S.seq.FAC).padStart(3, '0');
+
+ const defP = isSwap ? 75000 : (r.qty * 2500);
+
+ openModal(`Émettre la facture Entrepôt · ${r.id} (${r.kind})`,
+  fld('N° de Facture généré', 'num', 'text', { req: 1, value: facId, readonly: 1 }) +
+  fld('Réf. Opération Entrepôt', 'repId', 'text', { req: 1, value: r.id, readonly: 1 }) +
+  fld('Lot & Type intervention', 'lot', 'text', { value: `${r.lot} · ${r.kind}`, readonly: 1 }) +
+  fld('Client facturé', 'client', 'text', { req: 1, value: clientName }) +
+  fld('Date d’émission', 'date', 'date', { req: 1, value: TODAY_ISO }) +
+  fld('Date d’échéance de règlement (30j)', 'due', 'date', { req: 1, value: iso(30), min: TODAY_ISO }) +
+  `<div class="full" style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);margin:10px 0">
+    <b style="font-size:13.5px;color:var(--text)">Prestation Entrepôt :</b>
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-top:8px">
+     <div><small class="muted">Prestation</small><input type="text" id="inv_ent_desc" value="${isSwap ? `Opération de DOOR SWAP (${r.qty} palettes sales vers Lavage)` : `Reconditionnement & Soudure de ${r.qty} palettes sales`}" readonly style="font-size:12px"></div>
+     <div><small class="muted">Palettes</small><input type="number" id="inv_ent_q" value="${r.qty}" min="1" readonly></div>
+     <div><small class="muted">Tarif HT (FCFA)</small><input type="number" id="inv_ent_p" value="${defP}" min="0"></div>
+    </div>
+   </div>` +
+  fld('Observations / Références', 'obs', 'textarea', { full: 1, value: `Prestation ${r.kind} (Lot ${r.lot}) réalisée à l’Entrepôt GoodPack · ${r.qty} palettes traitées.` }),
+  'Émettre la facture Entrepôt', (data) => {
+   const e = req(data, ['num', 'client', 'date', 'due']);
+   if (Object.keys(e).length) return e;
+
+   const ht = +($('#inv_ent_p')?.value || defP);
+   const tva = Math.round(ht * 0.18);
+   const ttc = ht + tva;
+
+   const lines = [
+    { desc: $('#inv_ent_desc')?.value || `Prestation Entrepôt ${r.kind}`, qty: r.qty, unit: 'Palettes', price: Math.round(ht/r.qty), total: ht }
+   ];
+
+   save(`Facture entrepôt ${data.num} (${fcfa(ttc)}) émise avec succès.`, () => {
+    S.invoices.unshift({
+     id: data.num,
+     num: data.num,
+     site: curSite(),
+     category: 'entrepot',
+     reparationId: r.id,
+     lot: r.lot,
+     dossier: r.lot || r.id,
+     date: data.date,
+     due: data.due,
+     client: data.client.trim(),
+     contact: 'Service Entrepôt & Maintenance',
+     address: 'Entrepôt Vridi GoodPack',
+     lines,
+     ht,
+     taxRate: 18,
+     tva,
+     ttc,
+     paid: 0,
+     balance: ttc,
+     status: 'Émise',
+     createdBy: S.me,
+     createdAt: nowISO(),
+     obs: data.obs?.trim() || ''
+    });
+    audit('Émission facture entrepôt', data.num, `Opération ${r.id} (${r.kind}) · Total TTC : ${fcfa(ttc)}`);
+    closeModal();
+    render();
+    toast(`Facture ${data.num} générée et transmise au Recouvrement Entrepôt !`, 'ok');
+    setTimeout(() => viewInvoice(data.num), 80);
+   }, submitBtn());
+  }, { wide: true });
+}
 
 function newInvoice(presetDossierId = null) {
  if (!guard('facturation')) return;
  const cS = curSite();
  const dossiers = siteDossiers(cS);
- const defDos = dossiers.find(d => d.id === presetDossierId) || dossiers[0];
+ const defDos = dossiers.find(d => d.num === presetDossierId || d.id === presetDossierId) || dossiers[0];
  const defDest = destinationsList(cS)[0];
  const clientName = defDos?.trans?.includes('SKCI') ? 'SKCI' : (defDest?.client || 'SKCI');
 
@@ -7057,7 +7536,7 @@ function newInvoice(presetDossierId = null) {
     </div>
    </div>` +
   fld('Observations / Références bon de commande', 'obs', 'textarea', { full: 1, ph: 'Mentions complémentaires sur la facture...' }),
-  'Émettre la facture', (data, f) => {
+  'Émettre la facture', (data) => {
    const e = req(data, ['num', 'dossier', 'client', 'date', 'due']);
    if (Object.keys(e).length) return e;
 
@@ -7082,6 +7561,7 @@ function newInvoice(presetDossierId = null) {
      id: data.num,
      num: data.num,
      site: curSite(),
+     category: 'transit',
      dossier: data.dossier,
      date: data.date,
      due: data.due,
@@ -7102,7 +7582,9 @@ function newInvoice(presetDossierId = null) {
     });
     audit('Émission de facture client', data.num, `${data.client} · Total TTC : ${fcfa(ttc)}`);
     closeModal();
-    setTimeout(() => viewInvoice(data.num), 60);
+    render();
+    toast(`Facture ${data.num} générée et transmise au Recouvrement Transit !`, 'ok');
+    setTimeout(() => viewInvoice(data.num), 80);
    }, submitBtn());
   }, { wide: true });
 }
@@ -7134,7 +7616,7 @@ function viewInvoice(id) {
       <div style="font-size:20px;font-weight:800;color:#1C6FB8">${esc(inv.num)}</div>
       <div style="font-size:12px;color:#64748B;margin-top:4px">Date d’émission : <b>${fmt(inv.date)}</b><br>Échéance : <b style="color:${isLate ? '#DC2626' : '#0F172A'}">${fmt(inv.due)}</b></div>
       <div style="margin-top:8px">
-       ${isPaid ? `<span class="badge b-ok" style="font-size:13px;padding:4px 12px">✓ ACQUITTÉE / PAYÉE</span>` : isLate ? `<span class="badge b-bad" style="font-size:13px;padding:4px 12px">⚠ ÉCHUE EN RETARD</span>` : `<span class="badge b-info" style="font-size:13px;padding:4px 12px">À RÉGLER</span>`}
+       ${isPaid ? `<span class="badge b-ok" style="font-size:13px;padding:4px 12px">✓ ACQUITTÉE / PAYÉE</span>` : isLate ? `<span class="badge b-bad" style="font-size:13px;padding:4px 12px">⚠️ ÉCHUE EN RETARD</span>` : `<span class="badge b-info" style="font-size:13px;padding:4px 12px">À RÉGLER</span>`}
       </div>
      </div>
     </div>
@@ -7148,8 +7630,8 @@ function viewInvoice(id) {
       <div class="muted">${esc(inv.address || 'Côte d’Ivoire')}</div>
      </div>
      <div>
-      <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748B">Références Dossier de Transit :</span>
-      <div style="font-size:15px;font-weight:700;color:#1C6FB8;margin:3px 0">Dossier : ${esc(inv.dossier)}</div>
+      <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748B">Prestation & Références :</span>
+      <div style="font-size:15px;font-weight:700;color:#1C6FB8;margin:3px 0">${inv.category==='transport'?'🚚 Transport':'Prestation'} : ${esc(inv.dossier || inv.id)}</div>
       ${dos ? `<div>N° Conteneur (TC) : <b class="num">${esc(dos.cont)}</b> · Armateur : <b>${esc(dos.lam)}</b></div><div>Bon de Livraison : <b class="num">${esc(dos.bl)}</b></div>` : ''}
       <div class="muted">Site d’exécution : <b>${esc(siteInfo.name)}</b></div>
      </div>
@@ -7214,86 +7696,14 @@ function viewInvoice(id) {
   'Fermer', () => { closeModal(); },
   { wide: true }
  );
-
- const actionsBar = $('#mform .actions');
- if (actionsBar) {
-  actionsBar.innerHTML = `
-   <button type="button" class="btn" data-act="printInvoice" data-id="${inv.id}">🖨️ Imprimer la facture</button>
-   ${inv.balance > 0 ? `<button type="button" class="btn primary${lockCls('recouvrement')}" data-act="newPayment" data-id="${inv.id}">💳 Encaisser un règlement (${fcfa(inv.balance)})</button>` : ''}
-   <button type="button" class="btn" data-act="closeModal">Fermer</button>
-  `;
- }
 }
-
-function printInvoice(id) {
- const inv = (S.invoices || []).find(i => i.id === id || i.num === id);
- if (!inv) return;
- const siteInfo = SITES_APP.find(s => s.id === (inv.site || siteOf(inv))) || curSiteObj();
- const dos = S.dossiers.find(d => d.num === inv.dossier);
- const isPaid = inv.status === 'Payée' || inv.balance <= 0;
-
- const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Facture ${inv.num} · GOOD PACK CI</title>
- <style>
-  *{box-sizing:border-box}body{font-family:'Segoe UI',Arial,sans-serif;margin:0;padding:28px;background:#fff;color:#102235}
-  .sheet{max-width:800px;margin:0 auto;border:2px solid #061B33;padding:24px;border-radius:8px}
-  .hdr{display:flex;justify-content:space-between;border-bottom:2px solid #061B33;padding-bottom:14px;margin-bottom:16px}
-  .logo{font-size:22px;font-weight:900;color:#061B33}
-  .sub{font-size:12px;color:#54677B;margin-top:3px}
-  .num{font-family:'Roboto Mono',Consolas,monospace}
-  table{width:100%;border-collapse:collapse;margin:18px 0;font-size:13px}
-  th,td{border:1px solid #D8E1EC;padding:8px 10px;text-align:left}
-  th{background:#EDF2F8;color:#061B33;font-weight:700}
-  .right{text-align:right}
-  .stamp{display:inline-block;padding:6px 16px;border:3px solid #059669;color:#059669;font-weight:900;border-radius:6px;transform:rotate(-3deg);font-size:16px}
- </style></head><body>
- <div class="sheet">
-  <div class="hdr">
-   <div><div class="logo">GOOD PACK CI · GOOD TRUCK</div><div class="sub">Hub Opérationnel : ${esc(siteInfo.hub)}<br>N° CC : 1802934 A · RCCM : CI-ABJ-2022-B-10944</div></div>
-   <div style="text-align:right"><h2 style="margin:0;color:#1C6FB8">${esc(inv.num)}</h2><div style="font-size:12px;margin-top:4px">Date : <b>${fmt(inv.date)}</b><br>Échéance : <b>${fmt(inv.due)}</b></div></div>
-  </div>
-  <div style="display:flex;justify-content:space-between;background:#F8FAFC;padding:12px;border:1px solid #D8E1EC;margin-bottom:16px;font-size:13px">
-   <div><b>Client :</b> ${esc(inv.client)}<br>${esc(inv.contact || '')}</div>
-   <div><b>Dossier Transit :</b> ${esc(inv.dossier)}<br>${dos ? `TC : ${esc(dos.cont)} · BL : ${esc(dos.bl)}` : ''}</div>
-  </div>
-  <table>
-   <thead><tr><th>Prestation</th><th style="text-align:center">Unité</th><th class="right">Qté</th><th class="right">Prix Unitaire</th><th class="right">Total HT (FCFA)</th></tr></thead>
-   <tbody>
-    ${inv.lines.map(l => `<tr><td><b>${esc(l.desc)}</b></td><td style="text-align:center">${esc(l.unit || 'U')}</td><td class="right">${n0(l.qty)}</td><td class="right">${n0(l.price)}</td><td class="right"><b>${n0(l.total)}</b></td></tr>`).join('')}
-   </tbody>
-  </table>
-  <div style="display:flex;justify-content:space-between;align-items:flex-start">
-   <div>${isPaid ? `<div class="stamp">ACQUITTÉE / PAYÉE</div>` : `<div style="font-size:12px;color:#54677B">Règlement sous 30 jours par virement bancaire.</div>`}</div>
-   <div style="min-width:240px;font-size:13.5px">
-    <div style="display:flex;justify-content:space-between;padding:3px 0"><span>Total HT :</span><b>${n0(inv.ht)} FCFA</b></div>
-    <div style="display:flex;justify-content:space-between;padding:3px 0"><span>TVA 18% :</span><b>${n0(inv.tva)} FCFA</b></div>
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:2px solid #061B33;font-size:16px;color:#061B33"><span>Net à Payer :</span><b>${n0(inv.ttc)} FCFA</b></div>
-    <div style="display:flex;justify-content:space-between;padding:3px 0;color:#059669"><span>Réglé :</span><b>${n0(inv.paid)} FCFA</b></div>
-    <div style="display:flex;justify-content:space-between;padding:3px 0;color:${inv.balance > 0 ? '#DC2626' : '#059669'};font-weight:700"><span>Reste Dû :</span><b>${n0(inv.balance)} FCFA</b></div>
-   </div>
-  </div>
- </div><script>window.print()<\/script></body></html>`;
- const w = window.open('', '_blank');
- if (w) { w.document.write(html); w.document.close(); }
-}
-
-function emitInvoice(id) {
- if (!guard('facturation')) return;
- const inv = (S.invoices || []).find(i => i.id === id);
- if (!inv) return;
- save(`Facture ${inv.num} émise avec succès.`, () => {
-  inv.status = 'Émise';
-  audit('Émission de facture', inv.num, `Passage de Brouillon à Émise pour ${inv.client}`);
- });
-}
-
-/* ===================== Actions & Modales Recouvrement ===================== */
 
 function newPayment(presetInvId = null) {
  if (!guard('recouvrement')) return;
  const cS = curSite();
  const invoices = siteInvoices(cS).filter(i => i.balance > 0);
  if (!invoices.length) {
-  toast('Aucune facture en attente de règlement sur ce site.', 'info');
+  toast('Aucune facture en attente de règlement.', 'info');
   return;
  }
  const defInv = invoices.find(i => i.id === presetInvId || i.num === presetInvId) || invoices[0];
@@ -7304,7 +7714,7 @@ function newPayment(presetInvId = null) {
   fld('Réf. Règlement généré', 'num', 'text', { req: 1, value: regId, readonly: 1 }) +
   fld('Facture concernée', 'invoiceId', 'select', {
    req: 1,
-   options: invoices.map(i => [i.id, `${i.num} · ${i.client} (Reste dû : ${fcfa(i.balance)}) · Dossier ${i.dossier}`]),
+   options: invoices.map(i => [i.id, `${i.num} · ${i.client} (Reste dû : ${fcfa(i.balance)}) · ${i.category || 'Transit'}`]),
    value: defInv.id
   }) +
   fld('Montant encaissé (FCFA)', 'amount', 'number', { req: 1, min: 1, value: defInv.balance, full: 1 }) +
@@ -7314,40 +7724,43 @@ function newPayment(presetInvId = null) {
    options: [['Virement bancaire', 'Virement bancaire'], ['Chèque', 'Chèque bancaire'], ['Traite', 'Traite / Billet à ordre'], ['Espèces', 'Versement espèces']],
    value: 'Virement bancaire'
   }) +
-  fld('Banque de domiciliation', 'bank', 'text', { ph: 'Ex. SGBCI, NSIA Banque, Ecobank, BACI, SIB...' }) +
-  fld('N° de pièce / Virement / Chèque', 'ref', 'text', { ph: 'Ex. VIR-884102 ou CHQ-0041289' }) +
-  fld('Commentaire / Observations', 'obs', 'textarea', { full: 1, ph: 'Observations relatives à l’encaissement...' }),
-  'Valider l’encaissement', data => {
+  fld('Banque émettrice / Réf. Pièce', 'bank', 'text', { ph: 'Ex. SGBCI, NSIA, Ecobank · N° Chèque ou Virement' }) +
+  fld('Observations / Note de rapprochement', 'obs', 'textarea', { full: 1, ph: 'Notes d’encaissement...' }),
+  'Valider l’encaissement', (data) => {
    const e = req(data, ['num', 'invoiceId', 'amount', 'date', 'mode']);
-   const amt = +data.amount;
-   if (!Number.isInteger(amt) || amt <= 0) e.amount = 'Saisissez un montant valide supérieur à 0.';
-   const inv = (S.invoices || []).find(i => i.id === data.invoiceId);
-   if (inv && amt > inv.balance) e.amount = `Le montant saisi (${fcfa(amt)}) dépasse le solde restant dû (${fcfa(inv.balance)}).`;
    if (Object.keys(e).length) return e;
 
-   save(`Encaissement de ${fcfa(amt)} enregistré pour la facture ${inv.num}.`, () => {
-    inv.paid = (inv.paid || 0) + amt;
+   const amount = +data.amount;
+   const inv = (S.invoices || []).find(i => i.id === data.invoiceId);
+   if (!inv) return { invoiceId: 'Facture introuvable.' };
+   if (amount <= 0) return { amount: 'Montant invalide.' };
+
+   save(`Règlement ${data.num} de ${fcfa(amount)} enregistré pour ${inv.client}.`, () => {
+    inv.paid = (inv.paid || 0) + amount;
     inv.balance = Math.max(0, inv.ttc - inv.paid);
-    inv.status = inv.balance === 0 ? 'Payée' : 'Partiellement payée';
+    if (inv.balance === 0) inv.status = 'Payée';
+    else inv.status = 'Partiellement payée';
 
     S.payments.unshift({
      id: data.num,
      site: curSite(),
      invoiceId: inv.id,
-     dossier: inv.dossier,
+     category: inv.category || 'transit',
+     dossier: inv.dossier || inv.id,
      client: inv.client,
      date: data.date,
-     amount: amt,
+     amount,
      mode: data.mode,
-     bank: data.bank?.trim() || '—',
-     ref: data.ref?.trim() || '—',
+     bank: data.bank?.trim() || '',
+     ref: data.bank?.trim() || data.num,
      by: S.me,
-     obs: data.obs?.trim() || `Encaissement sur facture ${inv.num}`
+     obs: data.obs?.trim() || ''
     });
 
-    audit('Encaissement client enregistré', data.num, `${inv.client} : ${fcfa(amt)} réglés sur ${inv.num}`);
+    audit('Encaissement règlement', data.num, `${inv.client} · ${fcfa(amount)} affecté à la facture ${inv.num} (Solde restant : ${fcfa(inv.balance)})`);
     closeModal();
-    if (tab === 'facturation' || tab === 'recouvrement') render();
+    render();
+    toast(`Encaissement de ${fcfa(amount)} enregistré avec succès ! Facture ${inv.balance===0?'soldée à 100%':'mise à jour'}.`, 'ok');
    }, submitBtn());
   }
  );
@@ -7377,24 +7790,25 @@ function newRelance(presetInvId = null) {
    options: [
     ['Niveau 1 (Rappel aimable)', 'Niveau 1 : Rappel aimable (téléphone / email)'],
     ['Niveau 2 (Mise en demeure)', 'Niveau 2 : Mise en demeure officielle'],
-    ['Niveau 3 (Contentieux)', 'Niveau 3 : Contentieux & suspension des dépotages'],
+    ['Niveau 3 (Contentieux)', 'Niveau 3 : Contentieux & suspension des prestations'],
     ['Relance préventive', 'Relance préventive avant échéance']
    ],
    value: 'Niveau 1 (Rappel aimable)'
   }) +
-  fld('Canal de communication', 'channel', 'select', {
+  fld('Canal utilisé', 'channel', 'select', {
    req: 1,
-   options: [['Téléphone', 'Appel téléphonique'], ['Email', 'Email officiel'], ['Téléphone & Email', 'Téléphone & Email'], ['Courrier officiel', 'Courrier avec accusé de réception'], ['Visite sur site', 'Visite sur site client']],
-   value: 'Téléphone & Email'
+   options: [['Email officiel', 'Email officiel'], ['Téléphone', 'Appel téléphonique direct'], ['Courrier physique', 'Courrier avec accusé de réception'], ['Visite sur site', 'Visite en entreprise']],
+   value: 'Email officiel'
   }) +
-  fld('Interlocuteur contacté', 'contact', 'text', { req: 1, value: defInv.contact || 'Comptabilité fournisseurs' }) +
-  fld('Téléphone interlocuteur', 'phone', 'text', { ph: '+225 07 ...' }) +
-  fld('Date de promesse de règlement (si convenue)', 'promiseDate', 'date', { min: TODAY_ISO }) +
-  fld('Montant promis (FCFA)', 'promiseAmount', 'number', { value: defInv.balance, min: 1 }) +
-  fld('Compte-rendu de l’échange', 'notes', 'textarea', { req: 1, full: 1, ph: 'Synthèse des engagements pris par le client lors de la relance...' }),
-  'Enregistrer la relance', data => {
+  fld('Interlocuteur contacté', 'contact', 'text', { req: 1, value: defInv.contact || 'Comptabilité Fournisseurs' }) +
+  fld('Téléphone / Email contacté', 'phone', 'text', { value: '' }) +
+  fld('Date promesse de règlement', 'promiseDate', 'date', { min: TODAY_ISO }) +
+  fld('Montant promis (FCFA)', 'promiseAmount', 'number', { min: 0, value: defInv.balance }) +
+  fld('Compte-rendu & Engagements pris', 'notes', 'textarea', { req: 1, full: 1, ph: 'Synthèse de l’échange et engagement du client...' }),
+  'Enregistrer la relance', (data) => {
    const e = req(data, ['num', 'invoiceId', 'level', 'channel', 'contact', 'notes']);
    if (Object.keys(e).length) return e;
+
    const inv = (S.invoices || []).find(i => i.id === data.invoiceId);
 
    save(`Action de relance enregistrée pour ${inv.client}.`, () => {
@@ -7402,6 +7816,7 @@ function newRelance(presetInvId = null) {
      id: data.num,
      site: curSite(),
      invoiceId: inv.id,
+     category: inv.category || 'transit',
      dossier: inv.dossier,
      client: inv.client,
      date: TODAY_ISO,
@@ -7417,7 +7832,7 @@ function newRelance(presetInvId = null) {
 
     audit('Relance client enregistrée', data.num, `${data.level} adressé à ${inv.client} (${inv.num})`);
     closeModal();
-    if (tab === 'recouvrement') render();
+    render();
    }, submitBtn());
   }
  );
@@ -7444,29 +7859,37 @@ function printRecouvrement() {
    <div style="text-align:right"><div style="font-size:12px;color:#64748B">Total créances à recouvrer :</div><div style="font-size:20px;font-weight:800;color:#DC2626">${fcfa(totalDû)}</div></div>
   </div>
   <table>
-   <thead><tr><th>Facture</th><th>Dossier</th><th>Client</th><th>Échéance</th><th>Retard</th><th class="right">Total TTC</th><th class="right">Encaissé</th><th class="right">Solde Dû (FCFA)</th></tr></thead>
+   <thead><tr><th>Facture</th><th>Métier</th><th>Réf. Opération</th><th>Client</th><th>Échéance</th><th>Retard</th><th class="right">Total TTC</th><th class="right">Encaissé</th><th class="right">Solde Dû (FCFA)</th></tr></thead>
    <tbody>
     ${invoices.map(i => {
      const isLate = i.due && i.due < TODAY_ISO;
      const lateD = isLate ? days(TODAY_ISO, i.due) : 0;
      return `<tr>
       <td><b>${esc(i.num)}</b></td>
-      <td>${esc(i.dossier)}</td>
-      <td><b>${esc(i.client)}</b></td>
+      <td>${esc(i.category || 'Transit')}</td>
+      <td>${esc(i.dossier || i.transportId || i.reparationId || '—')}</td>
+      <td>${esc(i.client)}</td>
       <td>${fmt(i.due)}</td>
-      <td style="color:${isLate ? '#DC2626' : '#059669'};font-weight:${isLate ? '700' : 'normal'}">${isLate ? `+${lateD} j retard` : 'Dans les délais'}</td>
+      <td style="color:${isLate ? '#DC2626' : '#059669'};font-weight:700">${isLate ? `+${lateD} j` : 'Dans délais'}</td>
       <td class="right">${n0(i.ttc)}</td>
-      <td class="right" style="color:#059669">${n0(i.paid)}</td>
-      <td class="right"><b style="color:#DC2626">${n0(i.balance)}</b></td>
+      <td class="right">${n0(i.paid)}</td>
+      <td class="right" style="font-weight:700;color:#DC2626">${n0(i.balance)}</td>
      </tr>`;
-    }).join('') || '<tr><td colspan="8">Aucune créance en souffrance.</td></tr>'}
+    }).join('') || '<tr><td colspan="9" style="text-align:center;padding:20px;color:#64748B">Aucune créance impayée.</td></tr>'}
    </tbody>
   </table>
- </div><script>window.print()<\/script></body></html>`;
+  <div style="display:flex;justify-content:space-between;margin-top:20px;font-size:12px;color:#64748B">
+   <span>Document comptable officiel émis par GoodPack CI</span>
+   <span>Imprimé par ${esc(me().name)}</span>
+  </div>
+ </div>
+ <script>window.onload=()=>{window.print();}<\/script>
+ </body></html>`;
+
  const w = window.open('', '_blank');
  if (w) { w.document.write(html); w.document.close(); }
+ else { toast('Autorisez les popups pour imprimer.', 'warn'); }
 }
-
 
 /* ===================== Opérateurs (Armateurs & Transporteurs) ===================== */
 function opBadge(type){
@@ -7830,6 +8253,9 @@ document.addEventListener('click',e=>{
  const ff=e.target.closest('[data-ff]');if(ff){fFilter=ff.dataset.ff;render();return}
  const tf=e.target.closest('[data-tf]');if(tf){trFilter=tf.dataset.tf;render();return}
  const ts=e.target.closest('[data-trsub]');if(ts){trSub=ts.dataset.trsub;render();return}
+ const fsb=e.target.closest('[data-facsub]');if(fsb){facSub=fsb.dataset.facsub;render();return}
+ const rsb=e.target.closest('[data-recsub]');if(rsb){recSub=rsb.dataset.recsub;render();return}
+ const fcf=e.target.closest('[data-facfilter]');if(fcf){facFilter=fcf.dataset.facfilter;render();return}
   const drf=e.target.closest('[data-drf]');if(drf){drvFilter=drf.dataset.drf;render();return}
  const ls=e.target.closest('[data-lvsub]');if(ls){lvSub=ls.dataset.lvsub;render();return}
  const pf=e.target.closest('[data-plnf]');if(pf){plnFilter=pf.dataset.plnf;render();return}
@@ -7858,6 +8284,7 @@ document.addEventListener('click',e=>{
   finishReparation:()=>finishReparation(id),
   commentMove:()=>commentMove(id),
   newTransport,newDemandeTransport,newDestination,newLivraison,newOperateur,newConv,newUser,newDriver,
+  facturerDossierTransit:()=>facturerDossierTransit(id),facturerTransport:()=>facturerTransport(id),facturerEntrepot:()=>facturerEntrepot(id),newInvoice:()=>newInvoice(id),viewInvoice:()=>viewInvoice(id),newPayment:()=>newPayment(id),newRelance:()=>newRelance(id),printRecouvrement,
   validerStockPlanif:()=>validerStockPlanif(id),
   confirmerCamionPlanif:()=>confirmerCamionPlanif(id),
   goSuiviTransports:()=>{lvSub='suivi';goTab('livraisons')},
