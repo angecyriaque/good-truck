@@ -1803,7 +1803,7 @@ function newTransfertInterSite(presetFrom=curSite()){
    if(driverName === '__autre__') driverName = (data.driverCustom || '').trim();
    const e=req({ ...data, driver: driverName },['fromSite','toSite','cat','qty','trans','veh','driver','driverPhone','itr','po','dateDep','dateArrP']);
    if(!driverName) e.driver = 'Veuillez sélectionner ou saisir un chauffeur.';
-   if(data.fromSite===data.toSite)e.toSite='Le site de destination doit être distinct du site de départ.';
+   if(data.fromSite===data.toSite) data.toSite = otherSite(data.fromSite);
    const q=+data.qty;
    if(!q||q<=0)e.qty='Quantité invalide.';
    const stockDisp=(stock(data.fromSite)[data.cat])||0;
@@ -1851,6 +1851,43 @@ function newTransfertInterSite(presetFrom=curSite()){
   }
  );
  bindDriverSelector($('#mform'), { currentDriver: 'Jean-Marc Aka' });
+  const mf = $('#mform');
+  const fromSel = mf?.querySelector('[name="fromSite"]');
+  const toSel = mf?.querySelector('[name="toSite"]');
+  const catSel = mf?.querySelector('[name="cat"]');
+  const routeBanner = mf?.querySelector('.route-banner');
+
+  const updateRoute = (originChanged) => {
+   if(!fromSel || !toSel) return;
+   if(originChanged === 'from'){
+    toSel.value = otherSite(fromSel.value);
+   } else if(originChanged === 'to'){
+    fromSel.value = otherSite(toSel.value);
+   }
+   const fS = fromSel.value;
+   const tS = toSel.value;
+   if(routeBanner){
+    routeBanner.innerHTML = `
+     <div style="text-align:center">
+      <div style="font-size:24px">${siteIcon(fS)}</div>
+      <b style="font-size:15px">${siteName(fS)}</b><br><small class="muted">Site d’expédition (Départ)</small>
+     </div>
+     <div style="font-size:26px;color:var(--blue);font-weight:700">➔</div>
+     <div style="text-align:center">
+      <div style="font-size:24px">${siteIcon(tS)}</div>
+      <b style="font-size:15px">${siteName(tS)}</b><br><small class="muted">Site destinataire (Arrivée)</small>
+     </div>`;
+   }
+   if(catSel){
+    const sFrom = stock(fS);
+    const prevCat = catSel.value;
+    catSel.innerHTML = CATS.map(c=>`<option value="${c.k}">${c.label} (Stock dispo : ${n0(sFrom[c.k]||0)})</option>`).join('');
+    catSel.value = prevCat;
+   }
+  };
+
+  fromSel?.addEventListener('change', () => updateRoute('from'));
+  toSel?.addEventListener('change', () => updateRoute('to'));
 }
 
 /* Modale de validation de la réception d'un transfert */
@@ -3883,13 +3920,13 @@ function vEntrepot(){
       suiviHtml = `<span class="badge b-mute" style="color:var(--muted);font-weight:600">Arrivée en attente</span>`;
       actionBtnHtml = `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
        <button class="btn small primary${lockCls('entrepot')}" data-act="confirmerReceptionTC" data-id="${r.id}" style="background:#2563EB;border-color:#1D4ED8;color:#FFF;font-weight:700" title="Confirmer l’arrivée effective du conteneur au quai de l’entrepôt">📥 Confirmer réception TC</button>
-       <button class="btn small${lockCls('entrepot')}" data-act="startDepotage" data-id="${r.id}" title="Démarrer directement le dépotage">Dépoter</button>
+       <button class="btn small${lockCls('entrepot')}" data-act="startDepotage" data-id="${r.id}" style="background:#EA580C;border-color:#C2410C;color:#FFF;font-weight:700" title="Démarrer directement le dépotage">Dépoter</button>
       </div>`;
      } else if(step === 2){
       stepBadge = `<span class="badge" style="background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;font-weight:700">2. Dépotage</span><br><small style="color:var(--text);font-weight:600">${st === 'En cours' ? '⏱️ En cours' : (st === 'En pause' ? '⏸️ En pause' : 'Non démarré')}</small>`;
       suiviHtml = depotTimerHtml(r);
       if(!r.depotStartAt){
-       actionBtnHtml = `<button class="btn small primary${lockCls('entrepot')}" data-act="startDepotage" data-id="${r.id}">Dépoter</button>`;
+       actionBtnHtml = `<button class="btn small${lockCls('entrepot')}" data-act="startDepotage" data-id="${r.id}" style="background:#EA580C;border-color:#C2410C;color:#FFF;font-weight:700">Dépoter</button>`;
       } else if(st === 'En pause'){
        actionBtnHtml = `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <button class="btn small ok${lockCls('entrepot')}" data-act="resumeDepotage" data-id="${r.id}" style="background:#10B981;border-color:#059669;color:#FFF;font-weight:700" title="Reprendre immédiatement le minuteur">▶️ Reprendre</button>
@@ -3965,7 +4002,7 @@ function vEntrepot(){
     <td>${depotTimerHtml(r)}</td>
     <td style="white-space:nowrap">
      ${!r.depotStartAt ? `
-      <button class="btn small primary${lockCls('entrepot')}" data-act="startDepotage" data-id="${r.id}">Dépoter</button>
+      <button class="btn small${lockCls('entrepot')}" data-act="startDepotage" data-id="${r.id}" style="background:#EA580C;border-color:#C2410C;color:#FFF;font-weight:700">Dépoter</button>
      ` : (st === 'En pause' ? `
       <button class="btn small ok${lockCls('entrepot')}" data-act="resumeDepotage" data-id="${r.id}" style="background:#10B981;border-color:#059669;color:#FFF;font-weight:700" title="Reprendre immédiatement le minuteur sans ouvrir de formulaire">▶️ Reprendre</button>
       <button class="btn small${lockCls('entrepot')}" data-act="validerReceptionDepotage" data-id="${r.id}" style="background:#DC2626;border-color:#B91C1C;color:#FFF;font-weight:700">Valider</button>
