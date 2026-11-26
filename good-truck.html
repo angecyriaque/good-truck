@@ -3867,7 +3867,6 @@ function vEntrepot(){
      <th>Catégorie de palettes</th>
      <th class="right">Quantité</th>
      <th>Transporteur</th>
-     <th>Camion · Chauffeur</th>
      <th>Date départ</th>
      <th>Arrivée</th>
      <th>Statut</th>
@@ -3884,7 +3883,6 @@ function vEntrepot(){
       <td><b style="color:${catCol}">${catL(t.cat)}</b> <span class="badge b-info">${esc(t.model||'MB5')}</span></td>
       <td class="right num"><b style="font-size:16px;color:var(--blue)">${n0(t.qty)}</b></td>
       <td><b title="Camion : ${esc(t.veh||'—')} · Chauffeur : ${esc(t.driver||'—')}">${esc(t.trans)}</b></td>
-      <td><span class="num" style="font-weight:700;color:var(--navy)">${esc(t.veh)}</span><br><small>${esc(t.driver)} (${esc(t.driverPhone)})</small></td>
       <td><b>${fmt(t.dateDep)}</b></td>
       <td><b>${fmt(t.dateArrP)}</b> <small class="muted">(prévue)</small></td>
       <td><span class="badge b-warn pulse-badge">🚚 En transit</span></td>
@@ -6071,7 +6069,6 @@ function vTransport(){
        <th>Catégorie de palettes</th>
        <th class="right">Quantité</th>
        <th>Transporteur</th>
-       <th>Camion · Chauffeur</th>
        <th>Date départ</th>
        <th>Arrivée</th>
        <th>Statut</th>
@@ -6090,7 +6087,6 @@ function vTransport(){
          <td><b style="color:${catCol}">${catL(t.cat)}</b> <span class="badge b-info">${esc(t.model||'MB5')}</span></td>
          <td class="right num"><b style="font-size:16px;color:var(--blue)">${n0(t.qty)}</b></td>
          <td><b title="Camion : ${esc(t.veh||'—')} · Chauffeur : ${esc(t.driver||'—')}">${esc(t.trans)}</b></td>
-         <td><span class="num" style="font-weight:700;color:var(--navy)">${esc(t.veh)}</span><br><small>${esc(t.driver)} (${esc(t.driverPhone)})</small></td>
          <td><b>${fmt(t.dateDep)}</b></td>
          <td><b>${fmt(t.dateArrP)}</b> <small class="muted">(prévue)</small></td>
          <td><span class="badge b-warn pulse-badge">🚚 En transit</span></td>
