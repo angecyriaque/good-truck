@@ -256,6 +256,8 @@ td .ref{font-weight:700;color:var(--blue)}
 .seg{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:3px;margin-bottom:14px;overflow-x:auto;max-width:100%}
 .seg button{border:0;background:none;padding:7px 14px;border-radius:7px;cursor:pointer;font-weight:600;color:var(--muted);white-space:nowrap}
 .seg button[aria-pressed="true"]{background:var(--sel);color:var(--sel-ink)}
+.seg button[aria-pressed="true"] b,
+.seg button[aria-pressed="true"] span{color:var(--sel-ink)!important;font-weight:700}
 .cats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:16px}
 .cat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;position:relative;overflow:hidden}
 .cat.cat-skci{background:var(--skci-bg);border:2px solid var(--skci);border-top:6px solid var(--skci);box-shadow:0 4px 14px rgba(109,40,217,.12)}
@@ -6920,9 +6922,9 @@ function vFacturation() {
   `
    <!-- Sous-onglets Métier Facturation -->
    <div class="seg" role="group" aria-label="Métiers Facturation" style="margin-bottom:16px">
-    <button data-facsub="transit" aria-pressed="${facSub==='transit'}">🚢 Transit (${transitPending.length ? `<b style="color:#DC2626">${transitPending.length} à facturer</b>` : 'À jour'})</button>
-    <button data-facsub="entrepot" aria-pressed="${facSub==='entrepot'}">🏭 Entrepôt · Door Swap & Soudure (${entrepotPending.length ? `<b style="color:#DC2626">${entrepotPending.length} à facturer</b>` : 'À jour'})</button>
-    <button data-facsub="transport" aria-pressed="${facSub==='transport'}">🚚 Transport (${transportPending.length ? `<b style="color:#DC2626">${transportPending.length} à facturer</b>` : 'À jour'})</button>
+    <button data-facsub="transit" aria-pressed="${facSub==='transit'}">🚢 Transit (${transitPending.length ? `<b style="color:${facSub==='transit' ? '#FFFFFF' : '#DC2626'};font-weight:700">${transitPending.length} à facturer</b>` : 'À jour'})</button>
+    <button data-facsub="entrepot" aria-pressed="${facSub==='entrepot'}">🏭 Entrepôt · Door Swap & Soudure (${entrepotPending.length ? `<b style="color:${facSub==='entrepot' ? '#FFFFFF' : '#DC2626'};font-weight:700">${entrepotPending.length} à facturer</b>` : 'À jour'})</button>
+    <button data-facsub="transport" aria-pressed="${facSub==='transport'}">🚚 Transport (${transportPending.length ? `<b style="color:${facSub==='transport' ? '#FFFFFF' : '#DC2626'};font-weight:700">${transportPending.length} à facturer</b>` : 'À jour'})</button>
    </div>
 
    <!-- KPIs Métriques de Performance & Délais -->
@@ -7173,9 +7175,9 @@ function vRecouvrement() {
   `
    <!-- Sous-onglets Recouvrement -->
    <div class="seg" role="group" aria-label="Sous-onglets Recouvrement" style="margin-bottom:16px">
-    <button data-recsub="transit" aria-pressed="${recSub==='transit'}">🚢 Transit (${allInvoices.filter(i => (i.category==='transit'||!i.category)&&i.recStatus!=='Recouvré').length ? `<b style="color:#DC2626">${allInvoices.filter(i => (i.category==='transit'||!i.category)&&i.recStatus!=='Recouvré').length} en attente</b>` : '✓ À jour'})</button>
-    <button data-recsub="entrepot" aria-pressed="${recSub==='entrepot'}">🏭 Entrepôt (${allInvoices.filter(i => i.category==='entrepot'&&i.recStatus!=='Recouvré').length ? `<b style="color:#DC2626">${allInvoices.filter(i => i.category==='entrepot'&&i.recStatus!=='Recouvré').length} en attente</b>` : '✓ À jour'})</button>
-    <button data-recsub="transport" aria-pressed="${recSub==='transport'}">🚚 Transport (${allInvoices.filter(i => i.category==='transport'&&i.recStatus!=='Recouvré').length ? `<b style="color:#DC2626">${allInvoices.filter(i => i.category==='transport'&&i.recStatus!=='Recouvré').length} en attente</b>` : '✓ À jour'})</button>
+    <button data-recsub="transit" aria-pressed="${recSub==='transit'}">🚢 Transit (${allInvoices.filter(i => (i.category==='transit'||!i.category)&&i.recStatus!=='Recouvré').length ? `<b style="color:${recSub==='transit' ? '#FFFFFF' : '#DC2626'};font-weight:700">${allInvoices.filter(i => (i.category==='transit'||!i.category)&&i.recStatus!=='Recouvré').length} en attente</b>` : '✓ À jour'})</button>
+    <button data-recsub="entrepot" aria-pressed="${recSub==='entrepot'}">🏭 Entrepôt (${allInvoices.filter(i => i.category==='entrepot'&&i.recStatus!=='Recouvré').length ? `<b style="color:${recSub==='entrepot' ? '#FFFFFF' : '#DC2626'};font-weight:700">${allInvoices.filter(i => i.category==='entrepot'&&i.recStatus!=='Recouvré').length} en attente</b>` : '✓ À jour'})</button>
+    <button data-recsub="transport" aria-pressed="${recSub==='transport'}">🚚 Transport (${allInvoices.filter(i => i.category==='transport'&&i.recStatus!=='Recouvré').length ? `<b style="color:${recSub==='transport' ? '#FFFFFF' : '#DC2626'};font-weight:700">${allInvoices.filter(i => i.category==='transport'&&i.recStatus!=='Recouvré').length} en attente</b>` : '✓ À jour'})</button>
     <button data-recsub="vue_globale" aria-pressed="${recSub==='vue_globale'}">🌐 Vue Consolidée (${allInvoices.filter(i => i.recStatus!=='Recouvré').length} créance${allInvoices.filter(i => i.recStatus!=='Recouvré').length>1?'s':''})</button>
    </div>
 
