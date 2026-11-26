@@ -3840,7 +3840,7 @@ function vEntrepot(){
     <div style="display:flex;align-items:center;gap:12px">
      <span style="background:#92400E;color:#FFF;padding:4px 10px;border-radius:7px;font-size:11.5px;font-weight:800;letter-spacing:0.6px;box-shadow:0 2px 4px rgba(146,64,14,0.4)">RUBRIQUE 1</span>
      <div>
-      <h3 style="margin:0;font-size:15.5px;color:#78350F;font-weight:800">1. Demandes de transport (Planifications à valider par le Dépôt)</h3>
+      <h3 style="margin:0;font-size:15.5px;color:#78350F;font-weight:800">1. Demandes de transport</h3>
       <small style="color:#92400E;font-size:12.5px;font-weight:600">Validez la réservation du stock demandée pour autoriser le Transport à programmer le camion, chauffeur et transporteur.</small>
      </div>
     </div>
@@ -3855,7 +3855,7 @@ function vEntrepot(){
       <td><b class="num" style="color:var(--blue)">${esc(p.itr||'—')}</b></td>
       <td><b class="num">${esc(p.po||'—')}</b></td>
       <td><b style="color:var(--text);font-size:13.5px">${esc(p.to)}</b></td>
-      <td>${poolBadge(pool)}<br><small class="muted">Dispo : <b class="num" style="color:${enough?'var(--ok)':'var(--warn)'}">${n0(disp)}</b></small>${!enough ? `<br><span class="badge b-warn" style="font-size:10.5px;font-weight:700">🧼 Déclenche lavage (+${n0(p.qty - Math.max(0, disp))})</span>` : ''}</td>
+      <td>${poolBadge(pool)}${!enough ? `<br><span class="badge b-warn" style="font-size:10.5px;font-weight:700">🧼 Déclenche lavage (+${n0(p.qty - Math.max(0, disp))})</span>` : ''}</td>
       <td class="right num"><b style="font-size:16px">${n0(p.qty)}</b></td>
       <td><b>${fmt(p.depP)}</b> → ${fmt(p.arrP)}</td>
       <td style="white-space:nowrap"><button class="btn small primary${lockCls('entrepot')}" data-act="validerStockPlanif" data-id="${p.id}">Valider</button></td>
