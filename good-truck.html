@@ -1895,7 +1895,7 @@ function confirmReceptionTransfert(trfId){
   fld('Quantité conforme reçue et intégrée en stock','qtyRec','number',{req:1,value:trf.qty,min:1,max:trf.qty})+
   fld('Palettes endommagées / écart constatées','damaged','number',{value:0,min:0})+
   fld('Observations & PV de conformité à l’arrivée','obsRec','textarea',{full:1,ph:'État du chargement, intégrité des palettes, réserves éventuelles...'}),
-  'Confirmer la réception dans le stock',data=>{
+  'Réceptionner dans le stock',data=>{
    const e=req(data,['dateArrR','qtyRec']);
    const qRec=+data.qtyRec;
    if(!qRec||qRec<=0)e.qtyRec='Quantité reçue invalide.';
@@ -1962,7 +1962,7 @@ function viewTransfertBon(trfId){
       Statut : <b>${t.status==='Réceptionné'?`<span class="badge b-ok">✓ Réceptionné le ${fmt(t.dateArrR)} par ${user(t.recBy).name}</span>`:`<span class="badge b-warn pulse-badge">🚚 En transit (Arrivée estimée le ${fmt(t.dateArrP)})</span>`}</b>
       ${t.obs?`<br><small class="muted">${esc(t.obs)}</small>`:''}
      </div>
-     ${t.status==='En transit'?`<button type="button" class="btn small primary" data-act="confirmReceptionTransfert" data-id="${t.id}">Confirmer la réception</button>`:''}
+     ${t.status==='En transit'?`<button type="button" class="btn small primary" data-act="confirmReceptionTransfert" data-id="${t.id}">Réceptionner</button>`:''}
     </div>
    </div>`,
   'Fermer',()=>closeModal(),{wide:true}
@@ -3869,7 +3869,7 @@ function vEntrepot(){
      <th>Transporteur</th>
      <th>Camion · Chauffeur</th>
      <th>Date départ</th>
-     <th>Arrivée prévue</th>
+     <th>Arrivée</th>
      <th>Statut</th>
      <th>Action</th>
     </tr></thead><tbody>
@@ -3889,8 +3889,8 @@ function vEntrepot(){
       <td><b>${fmt(t.dateArrP)}</b> <small class="muted">(prévue)</small></td>
       <td><span class="badge b-warn pulse-badge">🚚 En transit</span></td>
       <td style="white-space:nowrap;display:flex;gap:6px">
-       <button class="btn small primary${lockCls('entrepot')}" data-act="confirmReceptionTransfert" data-id="${t.id}" style="background:#15803D;border-color:#166534;color:#FFF;font-weight:700" title="Valider la réception de ce transfert dans le stock de ${toName}">✓ Confirmer réception</button>
-       <button class="btn small" data-act="viewTransfertBon" data-id="${t.id}" title="Afficher le bon de transfert">Bon de transfert</button>
+       <button class="btn small primary${lockCls('entrepot')}" data-act="confirmReceptionTransfert" data-id="${t.id}" style="background:#15803D;border-color:#166534;color:#FFF;font-weight:700" title="Valider la réception de ce transfert dans le stock de ${toName}">Réceptionner</button>
+       <button class="btn small" data-act="viewTransfertBon" data-id="${t.id}" title="Afficher le bon de transfert">Détails</button>
       </td>
      </tr>`;
     }).join('')}
@@ -4230,7 +4230,7 @@ function vEntrepot(){
    <th class="right">Quantité</th>
    <th>Transporteur</th>
    <th>Date départ</th>
-   <th>Arrivée (Prévue / Réelle)</th>
+   <th>Arrivée</th>
    <th>Statut</th>
    <th>Actions</th>
   </tr></thead><tbody>
@@ -4250,8 +4250,8 @@ function vEntrepot(){
     <td>${isTransit?`<b>${fmt(t.dateArrP)}</b> <small class="muted">(prévue)</small>`:`<b>${fmt(t.dateArrR)}</b> <span class="badge b-ok" style="font-size:10px">Reçu</span>`}</td>
     <td>${isTransit?`<span class="badge b-warn pulse-badge">🚚 En transit</span>`:`<span class="badge b-ok">✓ Réceptionné</span>`}</td>
     <td style="white-space:nowrap;display:flex;gap:6px">
-     ${isTransit?`<button class="btn small primary${lockCls('entrepot')}" data-act="confirmReceptionTransfert" data-id="${t.id}" title="Valider la réception de ce transfert dans le stock de ${toName}">Confirmer la réception</button>`:''}
-     <button class="btn small" data-act="viewTransfertBon" data-id="${t.id}" title="Afficher le bon de transfert">Bon de transfert</button>
+     ${isTransit?`<button class="btn small primary${lockCls('entrepot')}" data-act="confirmReceptionTransfert" data-id="${t.id}" title="Valider la réception de ce transfert dans le stock de ${toName}">Réceptionner</button>`:''}
+     <button class="btn small" data-act="viewTransfertBon" data-id="${t.id}" title="Afficher le bon de transfert">Détails</button>
     </td>
    </tr>`;
   }).join('')||'<tr><td colspan="10" class="empty">Aucun transfert inter-sites enregistré.</td></tr>'}
@@ -6073,7 +6073,7 @@ function vTransport(){
        <th>Transporteur</th>
        <th>Camion · Chauffeur</th>
        <th>Date départ</th>
-       <th>Arrivée prévue</th>
+       <th>Arrivée</th>
        <th>Statut</th>
        <th>Action</th>
       </tr>
@@ -6095,8 +6095,8 @@ function vTransport(){
          <td><b>${fmt(t.dateArrP)}</b> <small class="muted">(prévue)</small></td>
          <td><span class="badge b-warn pulse-badge">🚚 En transit</span></td>
          <td style="white-space:nowrap;display:flex;gap:6px">
-          <button class="btn small primary${lockCls('entrepot')}" data-act="confirmReceptionTransfert" data-id="${t.id}" style="background:#15803D;border-color:#166534;color:#FFF;font-weight:700" title="Confirmer la réception de ce transport et entrer les palettes dans le stock de ${toName}">✓ Confirmer réception</button>
-          <button class="btn small" data-act="viewTransfertBon" data-id="${t.id}" title="Afficher le bon de transfert">Bon de transfert</button>
+          <button class="btn small primary${lockCls('entrepot')}" data-act="confirmReceptionTransfert" data-id="${t.id}" style="background:#15803D;border-color:#166534;color:#FFF;font-weight:700" title="Confirmer la réception de ce transport et entrer les palettes dans le stock de ${toName}">Réceptionner</button>
+          <button class="btn small" data-act="viewTransfertBon" data-id="${t.id}" title="Afficher le bon de transfert">Détails</button>
          </td>
         </tr>`;
       }).join('')}
@@ -6157,8 +6157,8 @@ function transferCard(t){
    <div>ITR / PO : <b>${esc(t.itr)} · ${esc(t.po)}</b></div>
   </div>
   <div class="acts" style="margin-top:12px">
-   <button class="btn small primary${lockCls('entrepot')}" data-act="confirmReceptionTransfert" data-id="${t.id}" style="background:#15803D;border-color:#166534;color:#FFF;font-weight:700" title="Confirmer la réception de ce transfert et mettre à jour le stock">✓ Confirmer réception</button>
-   <button class="btn small" data-act="viewTransfertBon" data-id="${t.id}">Bon de transfert</button>
+   <button class="btn small primary${lockCls('entrepot')}" data-act="confirmReceptionTransfert" data-id="${t.id}" style="background:#15803D;border-color:#166534;color:#FFF;font-weight:700" title="Confirmer la réception de ce transfert et mettre à jour le stock">Réceptionner</button>
+   <button class="btn small" data-act="viewTransfertBon" data-id="${t.id}">Détails</button>
   </div>
  </article>`;
 }
