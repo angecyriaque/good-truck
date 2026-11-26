@@ -4130,7 +4130,7 @@ function vEntrepot(){
     ${badge('ok',`${validRecs.length} dépotage${validRecs.length>1?'s':''} validé${validRecs.length>1?'s':''}`,'✓')}
    </div>
   </div>
-  <div class="tablewrap"><table><thead><tr><th style="cursor:pointer" data-act="toggleRecValSort" title="Cliquer pour inverser le tri">Validation ${recValSort==='desc'?'↓':'↑'}</th><th>Réception</th><th>N° Conteneur (TC) / Dossier</th><th>Date dépotage</th><th>Opérateur</th><th class="right">Quantité émise</th><th class="right">Quantité reçue</th><th>Affectation (Catégorie de stock)</th><th>Statut</th></tr></thead><tbody>
+  <div class="tablewrap"><table><thead><tr><th style="cursor:pointer" data-act="toggleRecValSort" title="Cliquer pour inverser le tri">Validation ${recValSort==='desc'?'↓':'↑'}</th><th>Réception</th><th>N° Conteneur (TC) / Dossier</th><th>Date dépotage</th><th>Opérateur</th><th class="right">Quantité reçue</th><th>Affectation (Catégorie de stock)</th><th>Statut</th></tr></thead><tbody>
   ${validRecs.map(r=>{
    const qEm=r.qtyEmise??r.total;
    const qRec=r.qtyRecue!=null?r.qtyRecue:r.total;
@@ -4145,8 +4145,16 @@ function vEntrepot(){
     <td><b class="num" style="font-size:14px;color:#1E1B4B;letter-spacing:0.6px">${esc(r.cont)}</b><br><button class="refchip" style="border:0;background:none;color:var(--blue);font-size:12px;cursor:pointer;padding:0" data-dossier="${r.dossier}">Dossier : ${esc(r.dossier)}</button></td>
     <td>${fmt(r.date)}</td>
     <td><small>Émis : <b>${esc(user(r.by).name)}</b><br>Validé : <b>${r.valBy?esc(user(r.valBy).name):'—'}</b></small></td>
-    <td class="right num"><b>${n0(qEm)}</b></td>
-    <td class="right num"><b style="color:var(--ink);font-size:15px;${qDiff?'border:2px solid var(--bad);background:var(--bad-bg);padding:2px 8px;border-radius:6px;display:inline-block':''}" title="${qDiff?`Écart de quantité : ${n0(qRec)} reçues pour ${n0(qEm)} émises`:''}">${n0(qRec)}</b></td>
+    <td class="right num">
+          ${qDiff ? (() => {
+            const diff = +qRec - +qEm;
+            const diffSign = diff > 0 ? '+' : '';
+            return `<span style="background:#FFF7ED;border:1.5px solid #EA580C;padding:3px 8px;border-radius:6px;display:inline-flex;align-items:center;gap:5px;box-shadow:0 1px 3px rgba(234,88,12,0.12);vertical-align:middle" title="Écart de dépotage : ${n0(qRec)} reçues pour ${n0(qEm)} émises (${diffSign}${n0(diff)})">
+              <b style="color:#DC2626;font-size:14.5px">${n0(qRec)}</b>
+              <span style="color:#DC2626;font-size:12px;font-weight:700">(${diffSign}${n0(diff)})</span>
+            </span>`;
+          })() : `<b style="color:var(--ink);font-size:14.5px">${n0(qRec)}</b>`}
+        </td>
     <td>${depCatBadge(catKey,r.model||'MB5')}${r.obs?`<br><small class="muted">${esc(r.obs)}</small>`:''}</td>
     ${(()=>{
     const dos = S.dossiers.find(d => d.num === r.dossier);
