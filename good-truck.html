@@ -992,7 +992,7 @@ function seed(){
  ];
  const receptions=[
   {id:'REC-001',dossier:'GT-2026-101',cont:'MSCU4821930',date:iso(-30),model:'MB5',typeRec:'sale',cat:'sale',qtyEmise:140,qtyRecue:140,total:140,status:'Validée',by:'u3',valBy:'u4',valAt:ago(-30,14),depotStartAt:ago(-30,11,15),depotEndAt:ago(-30,12,8),obs:'Lot de palettes sales MB5 orienté vers le lavage.'},
-  {id:'REC-002',dossier:'GT-2026-102',cont:'CMAU0073415',date:iso(-20),model:'MB5',typeRec:'lavee',cat:'propre_global',qtyEmise:130,qtyRecue:130,total:130,status:'Validée',by:'u3',valBy:'u4',valAt:ago(-20,15),depotStartAt:ago(-20,13,0),depotEndAt:ago(-20,13,46),obs:'Palettes lavées MB5 contrôlées et rangées en Stock Classique.'},
+  {id:'REC-002',dossier:'GT-2026-102',cont:'CMAU0073415',date:iso(-20),model:'MB5',typeRec:'lavee',cat:'propre_global',qtyEmise:130,qtyRecue:130,total:130,status:'Validée',by:'u3',valBy:'u4',valAt:ago(-20,15),depotStartAt:ago(-20,13,0),depotEndAt:ago(-20,13,46),obs:''},
   {id:'REC-003',dossier:'GT-2026-103',cont:'MSKU7702158',date:'',model:'MB5',typeRec:'',cat:'',qtyEmise:140,qtyRecue:null,total:140,status:'En attente',by:'u3',valBy:'',valAt:'',depotStartAt:'',depotEndAt:'',obs:''},
   {id:'REC-004',dossier:'GT-2026-105',cont:'MSCU5530087',date:iso(-38),model:'MB5',typeRec:'sale',cat:'quarantaine',qtyEmise:140,qtyRecue:140,total:140,status:'Validée',by:'u3',valBy:'u4',valAt:ago(-38,14),depotStartAt:ago(-38,10,30),depotEndAt:ago(-38,11,21),obs:'Lot reçu avec traces de rouille — isolé en quarantaine.'},
   {id:'REC-005',dossier:'GT-2026-106',cont:'CMAU0901176',date:iso(-24),model:'MB5',typeRec:'sale',cat:'reparation',qtyEmise:130,qtyRecue:130,total:130,status:'Validée',by:'u3',valBy:'u4',valAt:ago(-24,14),depotStartAt:ago(-24,9,45),depotEndAt:ago(-24,10,34),obs:'Palettes venues pour soudure (intervention requise).'},
@@ -1115,6 +1115,7 @@ S.transports = S.transports || [];
 S.deliveries = S.deliveries || [];
 S.planifications = S.planifications || [];
 S.receptions = S.receptions || [];
+(S.receptions||[]).forEach(r => { if(r.obs === 'Palettes lavées MB5 contrôlées et rangées en Stock Classique.') r.obs = ''; });
 S.lavages = S.lavages || [];
 S.reparations = S.reparations || [];
 S.movements = S.movements || [];
