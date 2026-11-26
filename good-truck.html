@@ -5492,13 +5492,13 @@ function openTransportDetails(id){
  const acts = isCancelled
   ? '<span class="badge b-bad" style="padding:6px 12px;font-size:12px">⚠️ Demande annulée & exportée dans l’historique</span>'
   : (isClosed
-     ? '<span class="badge b-ok" style="padding:6px 14px;font-size:12.5px;font-weight:700">✓ Dossier clôturé · Non annulable</span>'
+     ? '<span class="badge b-ok" style="padding:6px 14px;font-size:12.5px;font-weight:700">✓ Dossier clôturé</span>'
      : (isPendingTr
         ? (!pln?.stockValAt
-           ? `<button class="btn small" disabled style="opacity:0.6;cursor:not-allowed" title="Le dépôt doit d’abord valider la réservation du stock">⏳ Attente validation Dépôt</button> <button class="btn danger small" onclick="closeModal();cancelPlanif('${target.id}')">Annuler la demande</button>`
-           : `<button class="btn primary small" onclick="closeModal();programmerTransportPlanif('${target.id}')">Programmer le transport & Valider</button> <button class="btn danger small" onclick="closeModal();cancelPlanif('${target.id}')">Annuler la demande</button>`
+           ? `<button class="btn small" disabled style="opacity:0.6;cursor:not-allowed" title="Le dépôt doit d’abord valider la réservation du stock">⏳ Attente validation Dépôt</button>`
+           : `<button class="btn primary small" onclick="closeModal();programmerTransportPlanif('${target.id}')">Programmer le transport & Valider</button>`
           )
-        : `<button class="btn danger small" onclick="closeModal();cancelPlanif('${target.id}')">Annuler la programmation</button>`));
+        : ''));
 
  openModal(`Détail Intégral du Transport · ${target.id}`,
   `<div class="full" style="display:flex;flex-direction:column;gap:14px;font-size:13.5px">
