@@ -4521,9 +4521,8 @@ function validerReceptionDepotage(id){
   `<div class="full" style="margin-top:12px;padding:12px 14px;background:#F5F3FF;border:1.5px solid #DDD6FE;border-radius:10px">
     <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:700;color:#5B21B6;font-size:13.5px">
      <input type="checkbox" name="sendMailRecup" checked style="width:18px;height:18px">
-     <span>📧 Valider et envoyer le mail de récupération du conteneur vide dès aujourd’hui (${fmt(TODAY_ISO)})</span>
+     <span>N'oubliez pas d'envoyer le mail de récupération</span>
     </label>
-    <small style="display:block;margin-top:5px;color:#6D28D9;font-size:12px">Transmet immédiatement l’avis de mise à disposition du conteneur vide à l’Armateur et au Transporteur.</small>
    </div>`,
   'Valider & Ranger en stock',data=>{
    const q=+(data.qtyRecue??0);const e={};
