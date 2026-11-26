@@ -1057,14 +1057,15 @@ function seed(){
   {id:'LV-0041',itr:'1000000012',po:'2000088102',dateP:iso(-15),from:'Entrepôt Vridi',to:'SKCI · Usine Yopougon',pool:'SKCI',cat:'propre_skci',qty:300,qtyShip:300,qtyRec:298,damaged:2,transport:'TR-0021',resp:'u4',status:'Clôturée',comments:'2 palettes endommagées au déchargement, réserve notée.'},
   {id:'LV-0042',itr:'1000000015',po:'2000088118',dateP:iso(-2),from:'Entrepôt Vridi',to:'SAPH · Usine de Toupah',pool:'Global',cat:'propre_global',qty:200,qtyShip:200,qtyRec:null,damaged:0,transport:'TR-0022',resp:'u4',status:'Expédiée',comments:''},
   {id:'LV-0043',itr:'1000000019',po:'2000088125',dateP:iso(2),from:'Entrepôt Vridi',to:'SKCI · Dépôt San-Pedro',pool:'SKCI',cat:'propre_skci',qty:150,qtyShip:null,qtyRec:null,damaged:0,transport:'TR-0023',resp:'u4',status:'Réservée',comments:'Stock SKCI réservé théoriquement par le transport TR-0023.'},
-  {id:'LV-0044',itr:'1000000022',po:'2000088130',dateP:iso(5),from:'Entrepôt Vridi',to:'SOGB · Usine de Grand-Béréby',pool:'Global',cat:'propre_global',qty:120,qtyShip:null,qtyRec:null,damaged:0,transport:'',resp:'u4',status:'Brouillon',comments:'En attente de réservation transport sur Stock Classique.'}];
+  {id:'LV-0044',itr:'1000000022',po:'2000088130',dateP:iso(5),from:'Entrepôt Vridi',to:'SOGB · Usine de Grand-Béréby',pool:'Global',cat:'propre_global',qty:120,qtyShip:null,qtyRec:null,damaged:0,transport:'',resp:'u4',status:'En attente validation Stock Dépôt',comments:'En attente de réservation transport sur Stock Classique.'},
+  {id:'LV-0045',itr:'1000000024',po:'2000088134',dateP:iso(1),from:'Entrepôt Vridi',to:'SKCI · Plateforme Vridi',pool:'SKCI',cat:'propre_skci',qty:80,qtyShip:null,qtyRec:null,damaged:0,transport:'',resp:'u5',status:'Stock validé (En attente Transport)',stockValBy:'u4',stockValAt:ago(0,8,30),comments:'Stock SKCI disponible et réservé par l’Entrepôt — en attente des infos camion & chauffeur.'}];
  const transports=[
   {id:'TR-0021',liv:'LV-0041',itr:'1000000012',po:'2000088102',trans:TRANSPORTEURS[0],veh:'AB-4521-CI',driver:'Moussa Koné',from:'Entrepôt Vridi',to:'SKCI · Usine Yopougon',pool:'SKCI',depP:iso(-15),arrP:iso(-15),depR:iso(-15),arrR:iso(-15),qty:300,shipped:true,status:'Clôturé',loadStartAt:ago(-15,7,45),loadEndAt:ago(-15,8,28),incidents:[]},
   {id:'TR-0022',liv:'LV-0042',itr:'1000000015',po:'2000088118',trans:TRANSPORTEURS[3],veh:'AC-1187-CI',driver:'Ibrahim Ouattara',from:'Entrepôt Vridi',to:'SAPH · Usine de Toupah',pool:'Global',depP:iso(-3),arrP:iso(-1),depR:iso(-3),arrR:'',qty:200,shipped:true,status:'En cours',loadStartAt:ago(-3,8,35),loadEndAt:ago(-3,9,12),incidents:['Crevaison sur l’autoroute du Nord, reprise prévue ce jour.']},
   {id:'TR-0023',liv:'LV-0043',itr:'1000000019',po:'2000088125',trans:TRANSPORTEURS[2],veh:'AA-9034-CI',driver:'Jean-Marc Aka',from:'Entrepôt Vridi',to:'SKCI · Dépôt San-Pedro',pool:'SKCI',depP:iso(2),arrP:iso(3),depR:'',arrR:'',qty:150,shipped:false,status:'Planifié',loadStartAt:'',loadEndAt:'',incidents:[]}];
  const planifications=[
   {id:'PLN-0001',liv:'LV-0044',transport:'',itr:'1000000022',po:'2000088130',from:'Entrepôt Vridi',to:'SOGB · Usine de Grand-Béréby',pool:'Global',qty:120,depP:iso(4),arrP:iso(5),status:'En attente Entrepôt',createdBy:'u5',createdAt:ago(-1,10),stockValBy:'',stockValAt:'',camionValBy:'',camionValAt:'',trans:'',veh:'',driver:'',driverPhone:'',obs:'Demande de chargement de 120 palettes propres Classique pour SOGB.'},
-  {id:'PLN-0002',liv:'',transport:'',itr:'1000000024',po:'2000088134',from:'Entrepôt Vridi',to:'SKCI · Plateforme Vridi',pool:'SKCI',qty:80,depP:iso(1),arrP:iso(1),status:'Stock confirmé',createdBy:'u5',createdAt:ago(-1,14),stockValBy:'u4',stockValAt:ago(0,8,30),camionValBy:'',camionValAt:'',trans:'',veh:'',driver:'',driverPhone:'',obs:'Stock SKCI disponible et réservé par l’Entrepôt — en attente des infos camion & chauffeur.'},
+  {id:'PLN-0002',liv:'LV-0045',transport:'',itr:'1000000024',po:'2000088134',from:'Entrepôt Vridi',to:'SKCI · Plateforme Vridi',pool:'SKCI',qty:80,depP:iso(1),arrP:iso(1),status:'Stock confirmé',createdBy:'u5',createdAt:ago(-1,14),stockValBy:'u4',stockValAt:ago(0,8,30),camionValBy:'',camionValAt:'',trans:'',veh:'',driver:'',driverPhone:'',obs:'Stock SKCI disponible et réservé par l’Entrepôt — en attente des infos camion & chauffeur.'},
   {id:'PLN-0003',liv:'LV-0043',transport:'TR-0023',itr:'1000000019',po:'2000088125',from:'Entrepôt Vridi',to:'SKCI · Dépôt San-Pedro',pool:'SKCI',qty:150,depP:iso(2),arrP:iso(3),status:'Camion confirmé',createdBy:'u5',createdAt:ago(-2,9),stockValBy:'u4',stockValAt:ago(-2,11),camionValBy:'u5',camionValAt:ago(-1,16),trans:TRANSPORTEURS[2],veh:'AA-9034-CI',driver:'Jean-Marc Aka',driverPhone:'+225 07 49 11 05 77',obs:'Camion confirmé pour le chargement vers San-Pedro.'}
  ];
  const Mx=(a,n,h,m,t,ref)=>({id:'m'+Math.random().toString(36).slice(2,9),author:a,t:ago(n,h,m),text:t,ref:ref||''});
@@ -6476,18 +6477,39 @@ function tIncident(id){if(!guard('transport'))return;const t=S.transports.find(x
 /* ===================== Livraisons ===================== */
 function vLivraisons(){
  const cS=curSite();
- const sts=['Tous',...LSTEPS,'Annulée'];
+ // Règle : Les opérations déjà planifiées (avec transport affecté ou déjà en cours / expédiées / clôturées) ne doivent pas figurer dans le PLANNING
+ const isPlanifie = l => Boolean(
+  l.transport ||
+  (S.transports||[]).some(t => (l.id && t.liv === l.id) || (l.itr && t.itr === l.itr)) ||
+  ['Transport programmé','Planifié','Expédiée','Livrée','Clôturée'].includes(l.status)
+ );
  const allSiteDeliveries=siteDeliveries(cS);
- const activeDeliveries=allSiteDeliveries.filter(l=>l.status!=='Annulée');
+ const aPlanifierDeliveries=allSiteDeliveries.filter(l=>l.status!=='Annulée'&&!isPlanifie(l));
  const cancelledDeliveries=allSiteDeliveries.filter(l=>l.status==='Annulée');
- const list=(lvFilter==='Tous'?activeDeliveries:(lvFilter==='Annulée'?cancelledDeliveries:allSiteDeliveries.filter(l=>l.status===lvFilter))).slice().reverse();
+
+ const sts=['Tous','En attente validation Dépôt','Stock validé'];
+ if(cancelledDeliveries.length) sts.push('Annulées');
+ if(!sts.includes(lvFilter)) lvFilter='Tous';
+
+ let list = aPlanifierDeliveries;
+ if(lvFilter==='En attente validation Dépôt'){
+  list = aPlanifierDeliveries.filter(l=>!l.stockValAt && ['Brouillon','En attente validation Stock Dépôt'].includes(l.status));
+ } else if(lvFilter==='Stock validé'){
+  list = aPlanifierDeliveries.filter(l=>l.stockValAt || l.status==='Stock validé (En attente Transport)');
+ } else if(lvFilter==='Annulées'){
+  list = cancelledDeliveries;
+ }
+ list = list.slice().reverse();
+
  const act=l=>({'Brouillon':`<button class="btn small primary${lockCls('livraisons')}" data-act="lReserve" data-id="${l.id}">Réserver stock</button>`,
   'Réservée':`<button class="btn small primary${lockCls('livraisons')}" data-act="lShip" data-id="${l.id}">Expédier</button>`,
   'Expédiée':`<button class="btn small${lockCls('livraisons')}" style="background:#86EFAC;border-color:#22C55E;color:#064E3B;font-weight:700" data-act="lReceive" data-id="${l.id}">Confirmer la livraison</button>`,
   'Livrée':`<button class="btn small primary${lockCls('livraisons')}" data-act="lClose" data-id="${l.id}">Clôturer</button>`})[l.status]||'';
  const kind=s=>({'Brouillon':'mute','En attente validation Stock Dépôt':'warn','Stock validé (En attente Transport)':'info','Transport programmé':'ok','Réservée':'warn','Expédiée':'info','Livrée':'ok','Clôturée':'mute','Annulée':'bad'})[s]||'info';
- return hero('delivery','Planning','Suivi du planning de livraison client : réservation théorique sur le Stock SKCI (sites SKCI) ou Classique (autres clients), expédition et rapprochement des quantités reçues.',
-  `<div><b>${n0(siteDeliveries(cS).filter(l=>['Brouillon','Réservée'].includes(l.status)).length)}</b>en attente</div><div><b>${siteDeliveries(cS).filter(l=>l.status==='Expédiée').length}</b>en acheminement</div><div><b>${siteDeliveries(cS).filter(l=>['Livrée','Clôturée'].includes(l.status)).length}</b>livrées / clôturées</div>`)+
+ return hero('delivery','Planning','Suivi des demandes de transport à planifier : contrôle de disponibilité stock, réservation et programmation vers les destinations clients.',
+  `<div><b>${n0(aPlanifierDeliveries.filter(l=>!l.stockValAt && ['Brouillon','En attente validation Stock Dépôt'].includes(l.status)).length)}</b>en attente validation Dépôt</div>`+
+  `<div><b>${n0(aPlanifierDeliveries.filter(l=>l.stockValAt || l.status === 'Stock validé (En attente Transport)').length)}</b>stock validé (prêt à programmer)</div>`+
+  `<div><b>${n0(aPlanifierDeliveries.length)}</b>demande${aPlanifierDeliveries.length>1?'s':''} à planifier</div>`)+
  `<div class="toolbar"><div class="chips grow">${sts.map(s=>`<button class="chip" data-lf="${s}" aria-pressed="${lvFilter===s}">${s}</button>`).join('')}</div><button class="btn primary${lockCls('livraisons')}" data-act="newLivraison">${plus()}Programmer un transport</button></div>
  <div class="tablewrap"><table><thead><tr><th>Réf. Planning</th><th>Numéro ITR</th><th>Purchase Order (PO)</th><th>Date planification</th><th>Destination</th><th class="right">Quantité</th><th class="right">Expédiée</th><th class="right">Reçue</th><th>Transport</th><th>Statut</th><th>Action</th></tr></thead><tbody>
  ${list.map(l=>{const pl=l.pool||destPool(l.to);return `<tr><td><span class="ref">${l.id}</span></td><td><b class="num" style="color:var(--blue)">${esc(l.itr||'—')}</b></td><td><b class="num">${esc(l.po||'—')}</b></td><td><b>${fmt(l.dateP)}</b>${lvLate(l)?'<br>'+badge('warn','En retard','◷'):''}</td><td><b style="color:var(--text);font-size:13.5px">${esc(l.to)}</b></td>
@@ -6507,7 +6529,7 @@ function vLivraisons(){
     }
     return `<button class="btn small primary${lockCls('transport')}" data-act="programmerTransportPlanif" data-id="${l.id}">Programmer Transport</button> <button class="btn small danger${lockCls('livraisons')}" data-act="cancelPlanif" data-id="${l.id}" title="Annuler la demande (motif obligatoire)">Annuler</button>`;
    })()}
-  </td></tr>`}).join('')||'<tr><td colspan="11" class="empty">Aucun planning enregistré.</td></tr>'}</tbody></table></div>
+  </td></tr>`}).join('')||'<tr><td colspan="11" class="empty">Aucune opération en attente de planification pour ce filtre.</td></tr>'}</tbody></table></div>
  ${(lvFilter==='Tous'||lvFilter==='Annulée') && cancelledDeliveries.length ? `
  <div style="margin-top:24px;border:1px solid #FECDD3;border-left:5px solid var(--bad);border-radius:12px;background:#FFF;padding:16px 18px;box-shadow:0 2px 8px rgba(239,68,68,0.06)">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
