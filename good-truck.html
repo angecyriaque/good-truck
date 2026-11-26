@@ -896,6 +896,9 @@ const curSiteObj=()=>SITES_APP.find(s=>s.id===curSite())||SITES_APP[0];
 const otherSite=s=>s==='abidjan'?'sanpedro':'abidjan';
 const siteName=s=>SITES_APP.find(x=>x.id===s)?.name||(s==='sanpedro'?'San Pedro':'Abidjan');
 const siteIcon=s=>SITES_APP.find(x=>x.id===s)?.icon||(s==='sanpedro'?'🌴':'🏢');
+const destSiteBadge=s=>s==='sanpedro'
+ ?`<span class="badge" style="background:#FFF7ED;border:1.5px solid #EA580C;color:#C2410C;font-weight:800;padding:4px 10px;border-radius:6px;font-size:12px;letter-spacing:0.3px" title="Destination : San Pedro">🌴 SAN PEDRO</span>`
+ :`<span class="badge" style="background:#EFF6FF;border:1.5px solid #2563EB;color:#1D4ED8;font-weight:800;padding:4px 10px;border-radius:6px;font-size:12px;letter-spacing:0.3px" title="Destination : Abidjan">🏢 ABIDJAN</span>`;
 function setCurSite(s){
  S.curSite=s;
  document.documentElement.setAttribute('data-site', s);
@@ -3877,13 +3880,7 @@ function vEntrepot(){
      return `<tr>
       <td><span class="ref">${esc(t.id)}</span></td>
       <td><b class="num" style="color:var(--blue)">${esc(t.itr)}</b><br><small class="muted">${esc(t.po)}</small></td>
-      <td style="white-space:nowrap">
-       <div style="display:flex;align-items:center;gap:6px">
-        <span class="badge" style="background:var(--surface-2);border:1px solid var(--line);font-weight:700">${fromIc} ${fromName}</span>
-        <b style="color:var(--blue);font-size:14px">➔</b>
-        <span class="badge" style="background:#DCFCE7;border:1px solid #86EFAC;color:#166534;font-weight:700">${toIc} ${toName}</span>
-       </div>
-      </td>
+      <td style="white-space:nowrap">${destSiteBadge(t.toSite)}</td>
       <td><b style="color:${catCol}">${catL(t.cat)}</b> <span class="badge b-info">${esc(t.model||'MB5')}</span></td>
       <td class="right num"><b style="font-size:16px;color:var(--blue)">${n0(t.qty)}</b></td>
       <td><b title="Camion : ${esc(t.veh||'—')} · Chauffeur : ${esc(t.driver||'—')}">${esc(t.trans)}</b></td>
@@ -4245,13 +4242,7 @@ function vEntrepot(){
    return `<tr>
     <td><span class="ref">${esc(t.id)}</span></td>
     <td><span class="num" style="font-weight:700">${esc(t.itr)}</span><br><small class="muted">${esc(t.po)}</small></td>
-    <td style="white-space:nowrap">
-     <div style="display:flex;align-items:center;gap:6px">
-      <span class="badge" style="background:var(--surface-2);border:1px solid var(--line);font-weight:700">${fromIc} ${fromName}</span>
-      <b style="color:var(--blue);font-size:14px">➔</b>
-      <span class="badge" style="background:var(--surface-2);border:1px solid var(--line);font-weight:700">${toIc} ${toName}</span>
-     </div>
-    </td>
+    <td style="white-space:nowrap">${destSiteBadge(t.toSite)}</td>
     <td><b style="color:${catCol}">${catL(t.cat)}</b> <span class="badge b-info">${esc(t.model||'MB5')}</span></td>
     <td class="right num"><b style="font-size:16px;color:var(--blue)">${n0(t.qty)}</b></td>
     <td><b title="Camion : ${esc(t.veh||'—')} · Chauffeur : ${esc(t.driver||'—')}">${esc(t.trans)}</b></td>
@@ -6076,7 +6067,7 @@ function vTransport(){
       <tr>
        <th>N° Transfert</th>
        <th>N° ITR / PO</th>
-       <th>Provenance & Trajet</th>
+       <th>Trajet & Sites</th>
        <th>Catégorie de palettes</th>
        <th class="right">Quantité</th>
        <th>Transporteur</th>
@@ -6095,13 +6086,7 @@ function vTransport(){
         return `<tr>
          <td><span class="ref">${esc(t.id)}</span></td>
          <td><b class="num" style="color:var(--blue)">${esc(t.itr)}</b><br><small class="muted">${esc(t.po)}</small></td>
-         <td style="white-space:nowrap">
-          <div style="display:flex;align-items:center;gap:6px">
-           <span class="badge" style="background:var(--surface-2);border:1px solid var(--line);font-weight:700">${fromIc} ${fromName}</span>
-           <b style="color:var(--blue);font-size:14px">➔</b>
-           <span class="badge" style="background:#DCFCE7;border:1px solid #86EFAC;color:#166534;font-weight:700">${toIc} ${toName}</span>
-          </div>
-         </td>
+         <td style="white-space:nowrap">${destSiteBadge(t.toSite)}</td>
          <td><b style="color:${catCol}">${catL(t.cat)}</b> <span class="badge b-info">${esc(t.model||'MB5')}</span></td>
          <td class="right num"><b style="font-size:16px;color:var(--blue)">${n0(t.qty)}</b></td>
          <td><b title="Camion : ${esc(t.veh||'—')} · Chauffeur : ${esc(t.driver||'—')}">${esc(t.trans)}</b></td>
@@ -6154,9 +6139,7 @@ function transferCard(t){
    </div>
    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
     <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">
-     <span class="badge" style="background:var(--surface-2);border:1px solid var(--line);font-weight:700">${siteIcon(t.fromSite)} ${siteName(t.fromSite)}</span>
-     <b style="color:var(--blue)">➔</b>
-     <span class="badge" style="background:#DCFCE7;border:1px solid #86EFAC;color:#166534;font-weight:700">${siteIcon(t.toSite)} ${siteName(t.toSite)}</span>
+     ${destSiteBadge(t.toSite)}
     </div>
     <span class="badge b-warn pulse-badge">🚚 En transit</span>
    </div>
