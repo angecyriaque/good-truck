@@ -3448,7 +3448,7 @@ const fld=(label,name,type='text',o={})=>{const req=o.req?' <span class="req" ar
  return `<div class="f ${o.full?'full':''}" data-f="${name}"><label for="f-${name}">${label}${req}</label>${input}<div class="err" id="e-${name}"></div></div>`};
 function openModal(title,body,submit,onSubmit,opts={}){
  $('#modal').innerHTML=`<div class="mscrim" data-act="closeModal"></div><div class="box${opts.wide?' wide':''}" style="position:relative;z-index:1"><header><h2>${title}</h2><button class="close" data-act="closeModal" aria-label="Fermer">×</button></header>
- <form id="mform" novalidate>${body}<div class="actions"><button type="button" class="btn" data-act="closeModal">Annuler</button><button type="submit" class="btn primary">${submit}</button></div></form></div>`;
+ <form id="mform" novalidate>${body}<div class="actions"><button type="button" class="btn" data-act="closeModal">${opts.closeText||'Annuler'}</button>${submit&&!opts.noSubmit?`<button type="submit" class="btn primary">${submit}</button>`:''}</div></form></div>`;
  $('#modal').classList.add('open');
  const f=$('#mform');setTimeout(()=>f.querySelector('input,select,textarea')?.focus(),50);
  f.onsubmit=e=>{e.preventDefault();$$('.f',f).forEach(x=>x.classList.remove('invalid'));
@@ -4375,7 +4375,7 @@ function openAutresPalettes(selectedId=null){
     closeModal();
     setTimeout(()=>openAutresPalettes(id),60);
    },submitBtn());
-  },{wide:true});
+  },{wide:true,noSubmit:true,closeText:'Fermer'});
 
  const mf=$('#mform');
  const modSel=mf?.querySelector('[name="model"]'),newModIn=mf?.querySelector('[name="newModel"]');
