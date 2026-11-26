@@ -2929,6 +2929,7 @@ function startDepotage(id){
   }
   if(d){
    if(!d.depotage) d.depotage = {};
+   if(!d.D5) d.D5 = TODAY_ISO;
    d.depotage.depotStartAt = now;
    d.depotage.depotStatus = 'En cours';
    d.depotage.depotPauseMs = 0;
@@ -3243,6 +3244,7 @@ function validerMiseEnLivraison(id){
    save(`Mise en livraison validée au ${fmt(data.D4)} avec le transporteur ${data.trans}.`,()=>{
     d.D4=data.D4;
     d.trans=data.trans.trim();
+    if(!d.depotage) ensureDepotageTransmis(d);
     d.updatedAt=nowISO();d.updatedBy=S.me;
     audit('Validation Mise en livraison & Transporteur',d.num,`Date: ${fmt(data.D4)} · Transporteur: ${d.trans}`);
     closeModal();
@@ -3340,11 +3342,11 @@ function openDossier(id,edit=false){
      if(s.type==='select'){
       ctrl=`<select name="trans" ${prevOk&&!val?'':'disabled'} aria-label="${s.label}" style="border:1px solid var(--line);border-radius:6px;padding:6px 8px;background:var(--surface-2);width:100%"><option value="">— Choisir un transporteur —</option>${transporteursList().map(t=>`<option value="${esc(t)}" ${t===val?'selected':''}>${esc(t)}</option>`).join('')}</select>`;
      }else{
-      const isEntStep = s.k==='D6'||s.k==='D7';
+      const isEntStep = s.k==='D5'||s.k==='D6'||s.k==='D7';
       ctrl=`<div style="display:flex;align-items:center;gap:8px;margin-top:2px">
        <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;cursor:${isEntStep?'not-allowed':'pointer'}">
         <input type="checkbox" data-chk="${s.k}" ${val?'checked disabled':(prevOk&&!isEntStep)?'':'disabled'} style="width:16px;height:16px">
-        <span>${val?`Validé le ${fmt(val)}`:(isEntStep?`À envoyer par l’Entrepôt`:'Valider cette étape')}</span>
+        <span>${val?`Validé le ${fmt(val)}`:(isEntStep?(s.k==='D5'?'À valider par l’Entrepôt':s.k==='D7'?'À envoyer par l’Entrepôt':'Exécuté par l’Entrepôt'):'Valider cette étape')}</span>
        </label>
        <input type="hidden" name="${s.k}" value="${esc(val)}" ${val||!prevOk||isEntStep?'disabled':''}>
       </div>`;
@@ -3366,12 +3368,14 @@ function openDossier(id,edit=false){
      const disp=s.type==='select'?(val?`<b>${esc(val)}</b>`:''):(val?`<b>${fmt(val)}</b>`:'');
      let actBtn='';
      if(prevOk&&!val&&!clos){
-      if(s.k==='D6'||s.k==='D7'){ actBtn=''; }
+      if(s.k==='D5'||s.k==='D6'||s.k==='D7'){ actBtn=''; }
       else if(s.k==='D4'||s.type==='select')actBtn=`<button type="button" class="btn small primary${lockCls('transit')}" data-act="validerMiseEnLivraison" data-id="${d.id}">Mise en livraison & Transporteur</button>`;
       else if(s.k==='D8')actBtn=`<button type="button" class="btn small primary${lockCls('transit')}" data-act="validerStepJour" data-id="${d.id}" data-step="${s.k}" style="background:#059669;border-color:#047857">Valider récupération & Clôturer</button>`;
       else actBtn=`<button type="button" class="btn small primary${lockCls('transit')}" data-act="validerStepJour" data-id="${d.id}" data-step="${s.k}">Valider ce jour</button>`;
      }
-     if(s.k==='D6'&&!val){
+     if(s.k==='D5'&&!val){
+      ctrl = disp || (d.D4 ? `<span class="badge b-warn" style="font-weight:600">⏳ En attente de validation par l’Entrepôt</span>` : `<span class="badge b-bad" style="font-weight:600">🔒 En attente de mise en livraison</span>`);
+     }else if(s.k==='D6'&&!val){
       if(!d.depotage&&d.D5) ensureDepotageTransmis(d);
       ctrl = disp || `<span class="badge b-warn" style="font-weight:600">⏳ Transmis au Dépôt</span>`;
      }else if(s.k==='D7'&&!val){
@@ -4556,6 +4560,7 @@ function validerReceptionDepotage(id){
     r.typeRec=data.typeRec;r.model=model;r.cat=targetCat;r.qtyEmise=r.qtyEmise??r.total;r.qtyRecue=q;r.total=q;r.status='Validée';r.valBy=S.me;r.valAt=nowVal;r.obs=data.obs?.trim()||'';
     const dos=S.dossiers.find(d=>d.num===r.dossier);
     if(dos){
+     if(!dos.D5) dos.D5 = finishDate;
      dos.D6 = finishDate;
      if(data.sendMailRecup){
       dos.D7 = finishDate;
@@ -7491,7 +7496,8 @@ document.addEventListener('click',e=>{
   validerStepJour:()=>{if(!guard('transit'))return;const d=S.dossiers.find(x=>x.id===id);if(!d||!d.D3)return;
    const sk=a.dataset.step,st=SEQ_STEPS.find(x=>x.k===sk);if(!st||d[sk])return;
    if(sk==='D4'||sk==='trans'){validerMiseEnLivraison(id);return;}
-   if(sk==='D6'){toast('Le dépotage est uniquement confirmé et exécuté au niveau de l’Entrepôt.','bad');return}
+   if(sk==='D5'){toast('La date de réception doit être validée par l’Entrepôt.','bad');return}
+    if(sk==='D6'){toast('Le dépotage est uniquement confirmé et exécuté au niveau de l’Entrepôt.','bad');return}
    if(sk==='D7'){toast('La validation du mail de récupération est à envoyer uniquement par les Entrepôts.','bad');return}
    if(!d[st.prev]){toast(`Validez d’abord « ${st.prevLabel} ».`,'bad');return}
    const isRecovery=sk==='D8';
@@ -7519,6 +7525,7 @@ document.addEventListener('click',e=>{
     const chk=f.querySelector(`[data-chk="${s.k}"]`);
     const raw=s.type==='date'?(chk?.checked?TODAY_ISO:(vals[s.k]||'')):(vals[s.k]||'');
     if(!prevOk&&raw){toast(`Ordre séquentiel non respecté : validez d’abord « ${s.prevLabel} » avant « ${s.label} ».`,'bad');return}
+    if(s.k==='D5'&&raw&&!d.D5){toast('La date de réception doit être validée par l’Entrepôt.','bad');return}
     if(s.k==='D6'&&raw&&!d.D6){toast('Le dépotage est uniquement confirmé et exécuté au niveau de l’Entrepôt.','bad');return}
     if(s.k==='D7'&&raw&&!d.D7){toast('La validation du mail de récupération est à envoyer uniquement par les Entrepôts.','bad');return}
     if(s.k==='D4'&&raw&&!vals.trans&&!d.trans){toast('Lors de la mise en livraison, veuillez sélectionner le transporteur.','bad');return}
