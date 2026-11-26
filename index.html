@@ -8461,65 +8461,613 @@ function toggleOperateur(id){
  });
 }
 
-/* ===================== Chat ===================== */
-const convIcon=c=>c.type==='direct'?`<span class="cav" style="background:${user(c.with).c}">${initials(user(c.with).name)}</span>`:
- c.type==='dossier'?`<span class="cav" style="background:var(--accent)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="7" width="18" height="11" rx="1"/><path d="M8 7v11M13 7v11M3 4h18"/></svg></span>`:
- `<span class="cav" style="background:var(--blue)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><path d="M9 4L7 20M17 4l-2 16M4 9h16M3 15h16"/></svg></span>`;
-function visibleConvs(){return (S.convs||[]).map(c=>({...c,messages:c.messages||[],members:c.members||[]}));}
-function vChat(){
- const q=chatQ.toLowerCase();
- const list=visibleConvs().filter(c=>(chatF==='tous'||c.type===chatF)&&(!q||(c.title+' '+c.topic+' '+(c.messages||[]).map(m=>m.text||'').join(' ')).toLowerCase().includes(q)));
- if(!curConv||!visibleConvs().some(c=>c.id===curConv))curConv=list[0]?.id||null;
- const groups=[['canal','Canaux d’équipe'],['dossier','Discussions par dossier'],['direct','Messages directs']];
- const c=(S.convs||[]).find(x=>x.id===curConv);
- return hero('chat','Chat interne','Échanges par sujet : canaux d’équipe, discussions rattachées à un dossier et messages directs.','',true)+
- `<div class="chat${window._reading?' reading':''}" id="chatbox">
-  <div class="convs"><div class="top2"><input class="field-inline" id="cq" type="search" placeholder="Rechercher une conversation" value="${esc(chatQ)}" aria-label="Rechercher dans le chat">
-   <div class="chips">${[['tous','Tous'],['canal','Équipes'],['dossier','Dossiers'],['direct','Directs']].map(([k,l])=>`<button class="chip" data-cf="${k}" aria-pressed="${chatF===k}">${l}</button>`).join('')}</div>
-   <button class="btn small" data-act="newConv">${plus()}Nouvelle discussion</button></div>
-   <div class="list">${groups.map(([k,l])=>{const g=list.filter(c=>c.type===k);return g.length?`<div class="group-t">${l}</div>`+g.map(c=>{const last=(c.messages||[])[c.messages.length-1];
-    return `<button class="conv${c.id===curConv?' active':''}" data-conv="${c.id}">${convIcon(c)}<span class="txt"><b>${esc(c.title)}</b><small>${last?esc((last.author===S.me?'Vous : ':user(last.author).name.split(' ')[0]+' : ')+last.text):esc(c.topic)}</small></span>${c.unread?`<span class="unread">${c.unread}</span>`:''}</button>`}).join(''):''}).join('')||'<p class="empty">Aucune conversation.</p>'}</div></div>
-  <div class="thread">${c?`<header><button class="close back" data-act="chatBack" aria-label="Retour aux conversations">‹</button>${convIcon(c)}<div class="grow"><b>${esc(c.title)}</b><small>${esc(c.topic)} · ${(c.members||[]).length} participants</small></div>
-    ${c.dossier?`<button class="btn small" data-dossier="${c.dossier}">Ouvrir la fiche</button>`:''}</header>
-   <div class="msgs" id="msgs">${msgsHtml(c)}<div class="typing" id="typing" aria-label="Quelqu’un écrit"><i></i><i></i><i></i></div></div>
-   <div class="composer"><select id="refSel" aria-label="Joindre une référence"><option value="">+ Référence</option>${S.dossiers.map(d=>`<option>${d.num}</option>`).join('')}${S.transports.map(t=>`<option>${t.id}</option>`).join('')}${S.deliveries.map(l=>`<option>${l.id}</option>`).join('')}</select>
-    <textarea id="msgIn" rows="1" placeholder="Écrire dans ${esc(c.title)}" aria-label="Message"></textarea><button class="btn primary" data-act="send" aria-label="Envoyer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l16-8-6 16-2-7z"/></svg>Envoyer</button></div>
-   <div class="disclaim">Un message ne vaut pas validation d’un mouvement de stock ou d’une livraison : confirmez-les dans le module concerné.</div>`:'<p class="empty">Choisissez une conversation.</p>'}</div></div>`;
+/* ===================== Chat Interne & Analyse Opérationnelle (Transit, Entrepôt, Transport) ===================== */
+
+function convActivity(c){
+  if(c.activity) return c.activity;
+  const d = c.dossier || c.id || '';
+  if(c.type === 'direct') return 'direct';
+  if(d.startsWith('GT-') || c.title?.toLowerCase().includes('transit')) return 'transit';
+  if(d.startsWith('TR-') || d.startsWith('LV-') || d.startsWith('PLN-') || c.title?.toLowerCase().includes('transport')) return 'transport';
+  if(d.startsWith('LOT-') || d.startsWith('REC-') || d.startsWith('REP-') || d.startsWith('LAV-') || c.title?.toLowerCase().includes('entrepôt') || c.title?.toLowerCase().includes('stock')) return 'entrepot';
+  if(c.type === 'canal') return 'canal';
+  return 'transit';
 }
+
+const convIcon = c => {
+  if (c.type === 'direct') return `<span class="cav" style="background:${user(c.with).c}">${initials(user(c.with).name)}</span>`;
+  const act = convActivity(c);
+  if (act === 'transit') return `<span class="cav" style="background:#0284C7" title="Activité Transit Maritime">🚢</span>`;
+  if (act === 'entrepot') return `<span class="cav" style="background:#D97706" title="Activité Entrepôt & Stock">🏭</span>`;
+  if (act === 'transport') return `<span class="cav" style="background:#16A34A" title="Activité Transport Routier">🚚</span>`;
+  return `<span class="cav" style="background:var(--blue)" title="Canal d’équipe">#</span>`;
+};
+
+function ensureMultiActivityConvs(){
+  if(!S.convs) S.convs = [];
+  
+  // 1. Entrepôt discussion si inexistante
+  if(!S.convs.some(c => c.id === 'c-ent-REP-002' || c.dossier === 'REP-002')){
+    S.convs.push({
+      id: 'c-ent-REP-002',
+      type: 'dossier',
+      activity: 'entrepot',
+      dossier: 'REP-002',
+      title: 'Entrepôt · Door Swap REP-002',
+      topic: 'Échange 15 palettes sales et transfert vers lavage',
+      members: ['u1','u2','u4'],
+      unread: 1,
+      messages: [
+        {id:'m-e1',author:'u4',t:nowISO(-1),text:'Opération DOOR SWAP REP-002 exécutée à 14h00. 15 palettes sales orientées vers lavage.','ref':'REP-002'},
+        {id:'m-e2',author:'u2',t:nowISO(-1),text:'Bien reçu Souleymane. Dès que le lot de lavage est prêt, intégrez-le au stock propre SKCI.'}
+      ]
+    });
+  }
+
+  // 2. Transport discussion si inexistante
+  if(!S.convs.some(c => c.id === 'c-tr-TR-0022' || c.dossier === 'TR-0022')){
+    S.convs.push({
+      id: 'c-tr-TR-0022',
+      type: 'dossier',
+      activity: 'transport',
+      dossier: 'TR-0022',
+      title: 'Transport TR-0022 · Mission Bonoua',
+      topic: 'Suivi traction Comoé Transport vers Usine Bonoua',
+      members: ['u1','u3','u5'],
+      unread: 1,
+      messages: [
+        {id:'m-t1',author:'u5',t:nowISO(-1),text:'TR-0022 : crevaison sur l’autoroute du Nord, le chauffeur repart ce matin.','ref':'TR-0022'},
+        {id:'m-t2',author:'u1',t:nowISO(-1),text:'Bien noté. Prévenez le client de Bonoua du nouveau créneau d’arrivée.'}
+      ]
+    });
+  }
+}
+
+function visibleConvs(){
+  ensureMultiActivityConvs();
+  return (S.convs||[]).map(c=>({...c,messages:c.messages||[],members:c.members||[]}));
+}
+
+function renderChatOpAnalysis(c){
+  if(!c || !c.dossier) return '';
+  const ref = c.dossier;
+  const act = convActivity(c);
+
+  if(act === 'transit' || ref.startsWith('GT-')){
+    const d = (S.dossiers||[]).find(x => x.id === ref || x.num === ref);
+    if(!d) return '';
+    const dDate = d.D6 || d.depotage?.date || d.D5 || d.D3 || TODAY_ISO;
+    const qDep = d.depotage?.total || d.qty || 140;
+    const cl = delay(d);
+    return `
+      <div style="background:#F8FAFC;border:1px solid #CBD5E1;border-left:5px solid #0284C7;border-radius:10px;padding:12px 16px;margin:12px 14px 16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:18px">🚢</span>
+            <b style="font-size:14px;color:#0F172A">Analyse Opérationnelle · Dossier Transit ${esc(d.num)}</b>
+            <span class="badge ${d.status==='Clôturé'?'b-ok':'b-info'}">${d.status==='Clôturé'?'✓ Clôturé':'⏳ En cours'}</span>
+          </div>
+          <button class="btn small" data-dossier="${esc(d.num)}">👁️ Fiche Complète Dossier</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;font-size:12px">
+          <div><span class="muted">Conteneur (TC) :</span><br><b class="num" style="color:#1E1B4B">${esc(d.cont)}</b></div>
+          <div><span class="muted">Armateur / BL :</span><br><b>${esc(d.lam||'—')}</b> <span class="muted">(${esc(d.bl||'—')})</span></div>
+          <div><span class="muted">Franchise (21j) :</span><br><span class="badge ${cl.app==='Danger'?'b-bad':'b-ok'}">${cl.jCourus} j courus</span></div>
+          <div><span class="muted">Dépotage :</span><br><b>${d.D6 ? fmt(d.D6) : 'En cours'}</b> (${n0(qDep)} pal.)</div>
+          <div><span class="muted">Client :</span><br><b>${esc(d.client || 'SKCI')}</b></div>
+        </div>
+      </div>
+    `;
+  }
+
+  if(act === 'entrepot' || ref.startsWith('REP-') || ref.startsWith('LAV-') || ref.startsWith('REC-') || ref.startsWith('LOT-')){
+    const r = (S.reparations||[]).find(x => x.id === ref || x.lot === ref) ||
+              (S.lavages||[]).find(x => x.id === ref || x.lot === ref) ||
+              (S.receptions||[]).find(x => x.id === ref);
+    if(!r) return '';
+    const kind = r.kind || r.type || (ref.startsWith('LAV-')?'Lavage':ref.startsWith('REC-')?'Réception':'Entrepôt');
+    const qty = r.qty || r.total || r.qtyRecue || 0;
+    const dt = r.dateOp || r.date || TODAY_ISO;
+    return `
+      <div style="background:#F8FAFC;border:1px solid #CBD5E1;border-left:5px solid #D97706;border-radius:10px;padding:12px 16px;margin:12px 14px 16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:18px">🏭</span>
+            <b style="font-size:14px;color:#0F172A">Analyse Opérationnelle · Entrepôt ${esc(ref)}</b>
+            <span class="badge b-warn">${esc(kind)}</span>
+          </div>
+          <button class="btn small" data-act="goTabEntrepot">📦 Voir dans Entrepôt</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;font-size:12px">
+          <div><span class="muted">Type d’opération :</span><br><b>${esc(kind)}</b></div>
+          <div><span class="muted">Lot / Réf :</span><br><b class="num">${esc(r.lot || ref)}</b></div>
+          <div><span class="muted">Volume traité :</span><br><b style="color:#059669">${n0(qty)} palettes</b></div>
+          <div><span class="muted">Date exécution :</span><br><b>${fmt(dt)}</b></div>
+          <div><span class="muted">Statut :</span><br><span class="badge b-ok">✓ ${esc(r.status || 'Validé')}</span></div>
+        </div>
+      </div>
+    `;
+  }
+
+  if(act === 'transport' || ref.startsWith('TR-') || ref.startsWith('LV-') || ref.startsWith('PLN-')){
+    const t = (S.transports||[]).find(x => x.id === ref) ||
+              (S.planifications||[]).find(x => x.id === ref || x.transport === ref) ||
+              (S.deliveries||[]).find(x => x.id === ref || x.transport === ref);
+    if(!t) return '';
+    return `
+      <div style="background:#F8FAFC;border:1px solid #CBD5E1;border-left:5px solid #16A34A;border-radius:10px;padding:12px 16px;margin:12px 14px 16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:18px">🚚</span>
+            <b style="font-size:14px;color:#0F172A">Analyse Opérationnelle · Transport ${esc(ref)}</b>
+            <span class="badge b-ok">${esc(t.status || 'Effectué')}</span>
+          </div>
+          <button class="btn small" data-act="goSuiviTransports">🚛 Voir dans Transport</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;font-size:12px">
+          <div><span class="muted">Trajet :</span><br><b>${esc(t.from)} → ${esc(t.to)}</b></div>
+          <div><span class="muted">ITR / PO :</span><br><b class="num">${esc(t.itr || '—')}</b> <span class="muted">/ ${esc(t.po || '—')}</span></div>
+          <div><span class="muted">Chauffeur & Véhicule :</span><br><b>${esc(t.driver || '—')}</b> (${esc(t.veh || '—')})</div>
+          <div><span class="muted">Palettes livrées :</span><br><b style="color:#059669">${n0(t.qty)} palettes</b></div>
+          <div><span class="muted">Transporteur :</span><br><b>${esc(t.trans || 'Traction')}</b></div>
+        </div>
+      </div>
+    `;
+  }
+
+  return '';
+}
+
+function vChat(){
+  const q = chatQ.toLowerCase().trim();
+  const all = visibleConvs();
+
+  const list = all.filter(c => {
+    const act = convActivity(c);
+    const matchFilter = chatF === 'tous' ||
+      (chatF === 'transit' ? act === 'transit' :
+       chatF === 'entrepot' ? act === 'entrepot' :
+       chatF === 'transport' ? act === 'transport' :
+       chatF === 'canal' ? c.type === 'canal' && act === 'canal' :
+       chatF === 'direct' ? c.type === 'direct' : true);
+
+    const txt = (c.title + ' ' + c.topic + ' ' + (c.dossier||'') + ' ' + (c.messages||[]).map(m=>m.text||'').join(' ')).toLowerCase();
+    const matchQ = !q || txt.includes(q);
+    return matchFilter && matchQ;
+  });
+
+  if(!curConv || !all.some(c => c.id === curConv)){
+    curConv = list[0]?.id || all[0]?.id || null;
+  }
+
+  const groups = [
+    ['transit', '🚢 Discussions Transit Maritime'],
+    ['entrepot', '🏭 Discussions Entrepôt & Stock'],
+    ['transport', '🚚 Discussions Transport & Livraisons'],
+    ['canal', 'Canaux d’équipe'],
+    ['direct', 'Messages directs']
+  ];
+
+  const c = (S.convs||[]).find(x => x.id === curConv);
+
+  const chips = [
+    ['tous', 'Tous'],
+    ['transit', '🚢 Transit'],
+    ['entrepot', '🏭 Entrepôt'],
+    ['transport', '🚚 Transport'],
+    ['canal', 'Équipes'],
+    ['direct', 'Directs']
+  ];
+
+  return hero('chat', 'Discussions & Analyse des Activités', 'Échanges collaboratifs et analyse opérationnelle par activité : Transit (dossiers & TC), Entrepôt (stocks, lavage, soudures) et Transport (missions de traction), avec recherche ciblée de dossiers.', '', true) +
+  `<div class="chat${window._reading ? ' reading' : ''}" id="chatbox">
+    
+    <!-- Colonne latérale des conversations -->
+    <div class="convs">
+      <div class="top2">
+        <input class="field-inline" id="cq" type="search" placeholder="🔍 Rechercher discussion, dossier, TC..." value="${esc(chatQ)}" aria-label="Rechercher dans le chat">
+        
+        <!-- Bouton de sélection / recherche d'un dossier parmi toutes les activités -->
+        <button class="btn small primary" data-act="selectDossierChat" style="width:100%;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:6px;font-weight:700">
+          🎯 Sélectionner un dossier / opération
+        </button>
+
+        <!-- Filtres par Activités Opérationnelles -->
+        <div class="chips" style="margin-top:6px;gap:4px">
+          ${chips.map(([k,l]) => `<button class="chip" data-cf="${k}" aria-pressed="${chatF===k}">${l}</button>`).join('')}
+        </div>
+
+        <button class="btn small" data-act="newConv" style="margin-top:6px;width:100%">${plus()}Nouvelle discussion</button>
+      </div>
+
+      <div class="list">
+        ${groups.map(([k, l]) => {
+          const g = list.filter(cv => {
+            const act = convActivity(cv);
+            if (k === 'transit') return act === 'transit';
+            if (k === 'entrepot') return act === 'entrepot';
+            if (k === 'transport') return act === 'transport';
+            if (k === 'canal') return cv.type === 'canal' && act === 'canal';
+            if (k === 'direct') return cv.type === 'direct';
+            return false;
+          });
+          if (!g.length) return '';
+          return `<div class="group-t">${l}</div>` + g.map(cv => {
+            const last = (cv.messages||[])[cv.messages.length - 1];
+            return `<button class="conv${cv.id === curConv ? ' active' : ''}" data-conv="${cv.id}">
+              ${convIcon(cv)}
+              <span class="txt">
+                <b>${esc(cv.title)}</b>
+                <small>${last ? esc((last.author === S.me ? 'Vous : ' : user(last.author).name.split(' ')[0] + ' : ') + last.text) : esc(cv.topic)}</small>
+              </span>
+              ${cv.unread ? `<span class="unread">${cv.unread}</span>` : ''}
+            </button>`;
+          }).join('');
+        }).join('') || '<p class="empty">Aucune conversation ne correspond à ce filtre.</p>'}
+      </div>
+    </div>
+
+    <!-- Fil de discussion actif -->
+    <div class="thread">
+      ${c ? `
+        <header>
+          <button class="close back" data-act="chatBack" aria-label="Retour aux conversations">‹</button>
+          ${convIcon(c)}
+          <div class="grow">
+            <div style="display:flex;align-items:center;gap:8px">
+              <b>${esc(c.title)}</b>
+              <span class="badge ${convActivity(c)==='transit'?'b-info':convActivity(c)==='entrepot'?'b-warn':convActivity(c)==='transport'?'b-ok':'b-mute'}" style="font-size:11px">
+                ${convActivity(c)==='transit'?'🚢 Transit':convActivity(c)==='entrepot'?'🏭 Entrepôt':convActivity(c)==='transport'?'🚚 Transport':'Général'}
+              </span>
+            </div>
+            <small>${esc(c.topic)} · ${(c.members||[]).length} participants</small>
+          </div>
+          ${c.dossier && c.dossier.startsWith('GT-') ? `<button class="btn small" data-dossier="${esc(c.dossier)}">Fiche dossier</button>` : ''}
+          ${c.dossier && (c.dossier.startsWith('TR-')||c.dossier.startsWith('LV-')) ? `<button class="btn small" data-act="goSuiviTransports">Fiche transport</button>` : ''}
+          ${c.dossier && (c.dossier.startsWith('REP-')||c.dossier.startsWith('LAV-')) ? `<button class="btn small" data-act="goTabEntrepot">Fiche entrepôt</button>` : ''}
+        </header>
+
+        <!-- Fiche d'Analyse Opérationnelle en tête de discussion -->
+        ${renderChatOpAnalysis(c)}
+
+        <div class="msgs" id="msgs">
+          ${msgsHtml(c)}
+          <div class="typing" id="typing" aria-label="Quelqu’un écrit"><i></i><i></i><i></i></div>
+        </div>
+
+        <div class="composer">
+          <select id="refSel" aria-label="Joindre une référence">
+            <option value="">+ Joindre référence opération</option>
+            <optgroup label="🚢 Transit (Dossiers)">
+              ${(S.dossiers||[]).map(d => `<option value="${esc(d.num)}">${esc(d.num)} (TC ${esc(d.cont)})</option>`).join('')}
+            </optgroup>
+            <optgroup label="🏭 Entrepôt (Lots & Dépotages)">
+              ${(S.reparations||[]).map(r => `<option value="${esc(r.id)}">${esc(r.id)} (${esc(r.kind)} Lot ${esc(r.lot)})</option>`).join('')}
+              ${(S.lavages||[]).map(l => `<option value="${esc(l.id)}">${esc(l.id)} (Lavage Lot ${esc(l.lot)})</option>`).join('')}
+            </optgroup>
+            <optgroup label="🚚 Transport (Missions)">
+              ${(S.transports||[]).map(t => `<option value="${esc(t.id)}">${esc(t.id)} (${esc(t.to)})</option>`).join('')}
+            </optgroup>
+          </select>
+          <textarea id="msgIn" rows="1" placeholder="Écrire dans ${esc(c.title)}..." aria-label="Message"></textarea>
+          <button class="btn primary" data-act="send" aria-label="Envoyer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l16-8-6 16-2-7z"/></svg>Envoyer
+          </button>
+        </div>
+        <div class="disclaim">Toutes les discussions sont tracées et rattachées aux données opérationnelles de GoodPack CI.</div>
+      ` : '<p class="empty">Choisissez ou sélectionnez une conversation.</p>'}
+    </div>
+  </div>`;
+}
+
+function selectDossierChat(){
+  const cS = curSite();
+  const allDoss = siteDossiers(cS);
+  const allTrs = siteTransports(cS);
+  const allReps = siteReparations(cS);
+  const allLavs = siteLavages(cS);
+  const allRecs = siteReceptions(cS);
+
+  let selTab = 'tous';
+  let selQ = '';
+
+  const renderList = () => {
+    const q = selQ.toLowerCase().trim();
+    let items = [];
+
+    // 1. Transit
+    if (selTab === 'tous' || selTab === 'transit') {
+      allDoss.forEach(d => {
+        const text = [d.num, d.cont, d.bl, d.lam, d.trans, d.client].join(' ').toLowerCase();
+        if (!q || text.includes(q)) {
+          items.push({
+            id: d.num,
+            act: 'transit',
+            badge: '🚢 Transit',
+            badgeCls: 'b-info',
+            title: `${d.num} · TC ${d.cont}`,
+            sub: `${d.lam || 'Armateur'} · BL ${d.bl || '—'} · ${d.qty || 140} pal. · Client : ${d.client || 'SKCI'}`,
+            statut: d.status
+          });
+        }
+      });
+    }
+
+    // 2. Entrepôt
+    if (selTab === 'tous' || selTab === 'entrepot') {
+      allReps.forEach(r => {
+        const text = [r.id, r.lot, r.kind, 'reparation', 'soudure', 'door swap'].join(' ').toLowerCase();
+        if (!q || text.includes(q)) {
+          items.push({
+            id: r.id,
+            act: 'entrepot',
+            badge: r.kind === 'DOOR SWAP' ? '⇄ Door Swap' : '🔧 Soudure',
+            badgeCls: 'b-warn',
+            title: `${r.id} · Lot ${r.lot}`,
+            sub: `${r.kind} · ${r.qty} palettes · Date : ${fmt(r.dateOp || r.date)}`,
+            statut: r.status || 'Terminé'
+          });
+        }
+      });
+      allLavs.forEach(l => {
+        const text = [l.id, l.lot, 'lavage'].join(' ').toLowerCase();
+        if (!q || text.includes(q)) {
+          items.push({
+            id: l.id,
+            act: 'entrepot',
+            badge: '🧼 Lavage',
+            badgeCls: 'b-ok',
+            title: `${l.id} · Lot ${l.lot}`,
+            sub: `Lavage palettes · ${l.qty} palettes · Date : ${fmt(l.date)}`,
+            statut: l.status || 'Terminé'
+          });
+        }
+      });
+      allRecs.forEach(rc => {
+        const text = [rc.id, rc.dossier, rc.cont, 'reception', 'depotage'].join(' ').toLowerCase();
+        if (!q || text.includes(q)) {
+          items.push({
+            id: rc.id,
+            act: 'entrepot',
+            badge: '📥 Réception',
+            badgeCls: 'b-info',
+            title: `${rc.id} · TC ${rc.cont}`,
+            sub: `Dossier ${rc.dossier} · ${rc.qtyRecue || rc.total} pal. ${rc.model} · ${fmt(rc.date)}`,
+            statut: rc.status
+          });
+        }
+      });
+    }
+
+    // 3. Transport
+    if (selTab === 'tous' || selTab === 'transport') {
+      allTrs.forEach(t => {
+        const text = [t.id, t.itr, t.po, t.to, t.from, t.driver, t.trans].join(' ').toLowerCase();
+        if (!q || text.includes(q)) {
+          items.push({
+            id: t.id,
+            act: 'transport',
+            badge: '🚚 Transport',
+            badgeCls: 'b-ok',
+            title: `${t.id} · ${t.to}`,
+            sub: `ITR : ${t.itr || '—'} · PO : ${t.po || '—'} · Chauffeur : ${t.driver || '—'} (${t.qty} pal.)`,
+            statut: t.status
+          });
+        }
+      });
+    }
+
+    return items.map(it => `
+      <div class="panel" style="margin-bottom:8px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;border-left:4px solid var(--blue);background:var(--surface);transition:background .15s" data-act="openChatOp" data-op="${esc(it.id)}" data-acttype="${esc(it.act)}">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="badge ${it.badgeCls}" style="font-weight:700">${it.badge}</span>
+            <b style="font-size:14px;color:var(--text)">${esc(it.title)}</b>
+          </div>
+          <div class="muted" style="font-size:12px;margin-top:3px">${esc(it.sub)}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="badge b-info">${esc(it.statut || 'En cours')}</span>
+          <button type="button" class="btn small primary">Analyser & Discuter →</button>
+        </div>
+      </div>
+    `).join('') || '<p class="empty" style="padding:24px">Aucune opération trouvée pour cette recherche.</p>';
+  };
+
+  openModal('🎯 Sélectionner un Dossier / Opération à Analyser',
+    `<div style="margin-bottom:12px">
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <button type="button" class="chip" id="sel_chip_tous" style="font-weight:700;border-color:var(--blue)">Tous</button>
+        <button type="button" class="chip" id="sel_chip_transit">🚢 Transit</button>
+        <button type="button" class="chip" id="sel_chip_entrepot">🏭 Entrepôt</button>
+        <button type="button" class="chip" id="sel_chip_transport">🚚 Transport</button>
+      </div>
+      <input type="search" id="sel_op_q" class="field-inline" placeholder="🔍 Rechercher par N° dossier, TC, ITR, PO, lot, client..." style="width:100%;font-size:14px;padding:9px 12px">
+    </div>
+    <div id="sel_op_results" style="max-height:380px;overflow-y:auto;padding-right:4px">
+      ${renderList()}
+    </div>`,
+    null,
+    () => {},
+    { wide: true, closeText: 'Fermer', noSubmit: true }
+  );
+
+  setTimeout(() => {
+    const inp = $('#sel_op_q');
+    const res = $('#sel_op_results');
+    const update = () => {
+      if (res) res.innerHTML = renderList();
+    };
+
+    if (inp) {
+      inp.focus();
+      inp.addEventListener('input', () => {
+        selQ = inp.value;
+        update();
+      });
+    }
+
+    ['tous', 'transit', 'entrepot', 'transport'].forEach(k => {
+      const btn = $(`#sel_chip_${k}`);
+      if (btn) {
+        btn.addEventListener('click', () => {
+          selTab = k;
+          $$('#modal .chip').forEach(c => {
+            c.style.fontWeight = 'normal';
+            c.style.borderColor = 'var(--line)';
+          });
+          btn.style.fontWeight = '700';
+          btn.style.borderColor = 'var(--blue)';
+          update();
+        });
+      }
+    });
+  }, 80);
+}
+
+function openConvFor(opId, activity = 'transit'){
+  let c = S.convs.find(x => x.dossier === opId || x.id === 'c-' + opId);
+  if (!c) {
+    let title = opId;
+    let topic = 'Discussion opérationnelle';
+    let act = activity;
+
+    if (opId.startsWith('GT-')) {
+      act = 'transit';
+      const d = (S.dossiers || []).find(x => x.id === opId || x.num === opId);
+      title = 'Dossier ' + opId;
+      topic = d ? `Conteneur ${d.cont} · ${d.lam || 'Armateur'} (${d.client || 'Client'})` : 'Dossier Transit';
+    } else if (opId.startsWith('TR-') || opId.startsWith('PLN-') || opId.startsWith('LV-')) {
+      act = 'transport';
+      const t = (S.transports || []).find(x => x.id === opId);
+      title = 'Transport ' + opId;
+      topic = t ? `Mission ${t.from} → ${t.to} · ${t.qty} pal. (${t.driver || 'Chauffeur'})` : 'Mission Transport';
+    } else {
+      act = 'entrepot';
+      const r = (S.reparations || []).find(x => x.id === opId || x.lot === opId) ||
+                (S.lavages || []).find(x => x.id === opId || x.lot === opId) ||
+                (S.receptions || []).find(x => x.id === opId);
+      title = 'Entrepôt ' + opId;
+      topic = r ? `Opération ${r.kind || r.type || 'Stock'} · Lot ${r.lot || opId}` : 'Opération Entrepôt';
+    }
+
+    c = {
+      id: 'c-' + opId,
+      type: 'dossier',
+      activity: act,
+      dossier: opId,
+      title,
+      topic,
+      members: [...new Set([S.me, 'u1', 'u2', 'u3', 'u4', 'u5'])],
+      unread: 0,
+      messages: []
+    };
+    S.convs.push(c);
+    persist();
+  }
+
+  if (!c.members.includes(S.me)) c.members.push(S.me);
+  curConv = c.id;
+  chatF = 'tous';
+  chatQ = '';
+  window._reading = true;
+  goTab('chat');
+}
+
+function newConv(){
+  const cS = curSite();
+  const allDoss = siteDossiers(cS);
+  const allTrs = siteTransports(cS);
+  const allReps = siteReparations(cS);
+
+  openModal('Nouvelle discussion',
+    fld('Sujet de la discussion','type','select',{
+      req:1,
+      full:1,
+      options:[
+        ['dossier_transit','🚢 Rattachée à un dossier de Transit'],
+        ['dossier_entrepot','🏭 Rattachée à une opération d’Entrepôt (Door Swap, Soudure, Lavage)'],
+        ['dossier_transport','🚚 Rattachée à une mission de Transport'],
+        ['canal','👥 Groupe ou canal d’équipe'],
+        ['direct','💬 Message direct']
+      ],
+      value: 'dossier_transit'
+    })+
+    fld('Dossier Transit lié','dossier_tr','select',{
+      options: allDoss.map(d=>[d.num, `${d.num} · TC ${d.cont} (${d.lam||'Armateur'})`])
+    })+
+    fld('Opération Entrepôt liée','dossier_ent','select',{
+      options: allReps.map(r=>[r.id, `${r.id} · ${r.kind} (Lot ${r.lot})`])
+    })+
+    fld('Mission Transport liée','dossier_tp','select',{
+      options: allTrs.map(t=>[t.id, `${t.id} · vers ${t.to} (${t.driver||'Chauffeur'})`])
+    })+
+    fld('Nom du groupe','title','text',{ph:'Ex. Point opérationnel hebdomadaire'})+
+    fld('Destinataire / Participant','who','select',{
+      options:S.users.filter(u=>u.id!==S.me&&u.active).map(u=>[u.id,`${u.name} · ${u.role}`])
+    })+
+    `<p class="note">Choisissez l'activité opérationnelle (Transit, Entrepôt, Transport) pour analyser et discuter du dossier spécifique.</p>`,
+    'Créer la discussion',
+    data => {
+      if(data.type === 'dossier_transit'){
+        closeModal();
+        openConvFor(data.dossier_tr, 'transit');
+        return;
+      }
+      if(data.type === 'dossier_entrepot'){
+        closeModal();
+        openConvFor(data.dossier_ent, 'entrepot');
+        return;
+      }
+      if(data.type === 'dossier_transport'){
+        closeModal();
+        openConvFor(data.dossier_tp, 'transport');
+        return;
+      }
+      if(data.type === 'canal' && !data.title?.trim()) return { title: 'Donnez un nom au groupe.' };
+
+      let c;
+      if(data.type === 'direct'){
+        c = S.convs.find(x => x.type === 'direct' && x.members.includes(S.me) && x.members.includes(data.who) && x.members.length === 2);
+        if(!c){
+          c = { id: 'dm-' + Date.now(), type: 'direct', with: data.who, title: user(data.who).name, topic: 'Message direct', members: [S.me, data.who], unread: 0, messages: [] };
+          S.convs.push(c);
+        }
+      } else {
+        c = { id: 'g-' + Date.now(), type: 'canal', title: data.title.trim(), topic: 'Groupe de travail', members: [S.me, data.who], unread: 0, messages: [] };
+        S.convs.push(c);
+      }
+      persist();
+      closeModal();
+      curConv = c.id;
+      window._reading = true;
+      render();
+    }
+  );
+}
+
 function msgsHtml(c){
- if(!c||!c.messages||!c.messages.length)return '<p class="empty" style="padding:24px">Aucun message dans cette discussion.</p>';
- let last='',h='';(c.messages||[]).forEach(m=>{const d=(m.t||'').slice(0,10);if(d&&d!==last){last=d;const n=days(TODAY_ISO,d);h+=`<div class="daysep">${n===0?'Aujourd’hui':n===1?'Hier':fmt(d)}</div>`}
- const mine=m.author===S.me,u=user(m.author);
- h+=`<div class="msg${mine?' mine':''}"><span class="avatar" style="width:28px;height:28px;font-size:11px;background:${u.c}">${initials(u.name)}</span><div class="bubble"><div class="who">${mine?'Vous':esc(u.name)} · ${hm(m.t||'')}</div>${esc(m.text||'')}${m.ref?`<br><button class="refchip" data-ref="${esc(m.ref)}">${esc(m.ref)}</button>`:''}${mine?`<div class="st">${m.read?'Lu':'Envoyé'}</div>`:''}</div></div>`});return h}
+  if(!c||!c.messages||!c.messages.length)return '<p class="empty" style="padding:24px">Aucun message dans cette discussion.</p>';
+  let last='',h='';(c.messages||[]).forEach(m=>{const d=(m.t||'').slice(0,10);if(d&&d!==last){last=d;const n=days(TODAY_ISO,d);h+=`<div class="daysep">${n===0?'Aujourd’hui':n===1?'Hier':fmt(d)}</div>`}
+  const mine=m.author===S.me,u=user(m.author);
+  h+=`<div class="msg${mine?' mine':''}"><span class="avatar" style="width:28px;height:28px;font-size:11px;background:${u.c}">${initials(u.name)}</span><div class="bubble"><div class="who">${mine?'Vous':esc(u.name)} · ${hm(m.t||'')}</div>${esc(m.text||'')}${m.ref?`<br><button class="refchip" data-ref="${esc(m.ref)}">${esc(m.ref)}</button>`:''}${mine?`<div class="st">${m.read?'Lu':'Envoyé'}</div>`:''}</div></div>`});return h}
+
 function afterChat(){const c=S.convs.find(x=>x.id===curConv);if(c&&c.unread){c.unread=0;persist();renderTabs()}const m=$('#msgs');if(m)m.scrollTop=m.scrollHeight}
 const REPLIES={canal:['Bien reçu, je m’en occupe.','Merci pour l’info, je mets à jour la fiche.','Je vérifie et je reviens vers vous dans la matinée.'],dossier:['Noté. J’ajoute un commentaire officiel dans la fiche du dossier.','D’accord, je relance le transporteur.','Merci, je documente l’action corrective.'],direct:['Parfait, merci !','Je regarde ça tout de suite.','Ok, on en parle à la réunion.']};
+
 function sendMsg(){
- const c=S.convs.find(x=>x.id===curConv),inp=$('#msgIn');if(!c||!inp.value.trim())return;
- // Offline allowed for local demo and intranet
- const msg={id:'m'+Date.now(),author:S.me,t:nowISO(),text:inp.value.trim(),ref:$('#refSel').value||(c.dossier&&/GT-\d/.test(inp.value)?'':'')};
- c.messages.push(msg);inp.value='';persist();
- $('#msgs').innerHTML=msgsHtml(c)+'<div class="typing" id="typing"><i></i><i></i><i></i></div>';$('#msgs').scrollTop=1e6;
- const other=c.members.find(x=>x!==S.me&&user(x).active);if(!other)return;
- setTimeout(()=>{$('#typing')?.classList.add('show');$('#msgs')&&($('#msgs').scrollTop=1e6)},700);
- setTimeout(()=>{msg.read=true;const r=REPLIES[c.type];c.messages.push({id:'m'+Date.now(),author:other,t:nowISO(),text:r[Math.floor(Math.random()*r.length)],ref:''});
-  if(tab==='chat'&&curConv===c.id){$('#msgs').innerHTML=msgsHtml(c)+'<div class="typing" id="typing"><i></i><i></i><i></i></div>';$('#msgs').scrollTop=1e6}else{c.unread=(c.unread||0)+1}
-  persist();renderTabs();const l=$(`.conv[data-conv="${c.id}"] small`);if(l)l.textContent=user(other).name.split(' ')[0]+' : '+c.messages[c.messages.length-1].text},2400);
+  const c=S.convs.find(x=>x.id===curConv),inp=$('#msgIn');if(!c||!inp.value.trim())return;
+  const msg={id:'m'+Date.now(),author:S.me,t:nowISO(),text:inp.value.trim(),ref:$('#refSel').value||''};
+  c.messages.push(msg);inp.value='';persist();
+  $('#msgs').innerHTML=msgsHtml(c)+'<div class="typing" id="typing"><i></i><i></i><i></i></div>';$('#msgs').scrollTop=1e6;
+  const other=c.members.find(x=>x!==S.me&&user(x).active);if(!other)return;
+  setTimeout(()=>{$('#typing')?.classList.add('show');$('#msgs')&&($('#msgs').scrollTop=1e6)},700);
+  setTimeout(()=>{msg.read=true;const r=REPLIES[c.type]||REPLIES.dossier;c.messages.push({id:'m'+Date.now(),author:other,t:nowISO(),text:r[Math.floor(Math.random()*r.length)],ref:''});
+   if(tab==='chat'&&curConv===c.id){$('#msgs').innerHTML=msgsHtml(c)+'<div class="typing" id="typing"><i></i><i></i><i></i></div>';$('#msgs').scrollTop=1e6}else{c.unread=(c.unread||0)+1}
+   persist();renderTabs();const l=$(`.conv[data-conv="${c.id}"] small`);if(l)l.textContent=user(other).name.split(' ')[0]+' : '+c.messages[c.messages.length-1].text},2400);
 }
-function openConvFor(dossierId){let c=S.convs.find(x=>x.dossier===dossierId);
- if(!c){const d=S.dossiers.find(x=>x.id===dossierId);c={id:'c-'+dossierId,type:'dossier',dossier:dossierId,title:'Dossier '+dossierId,topic:`Conteneur ${d.cont} · ${d.trans}`,members:[...new Set([S.me,'u2','u3'])],unread:0,messages:[]};S.convs.push(c);persist()}
- if(!c.members.includes(S.me))c.members.push(S.me);
- curConv=c.id;chatF='tous';chatQ='';window._reading=true;goTab('chat')}
-function newConv(){
- openModal('Nouvelle discussion',fld('Sujet de la discussion','type','select',{req:1,full:1,options:[['dossier','Rattachée à un dossier de transit'],['canal','Groupe ou équipe'],['direct','Message direct']]})+
-  fld('Dossier','dossier','select',{options:S.dossiers.map(d=>d.num)})+fld('Nom du groupe','title','text',{ph:'Ex. Inventaire de fin de mois'})+
-  fld('Participants','who','select',{options:S.users.filter(u=>u.id!==S.me&&u.active).map(u=>[u.id,`${u.name} · ${u.role}`])})+`<p class="note">Le dossier sert aux discussions rattachées, le nom aux groupes, le participant aux messages directs et groupes.</p>`,'Créer la discussion',data=>{
-  if(data.type==='dossier'){closeModal();openConvFor(data.dossier);return}
-  if(data.type==='canal'&&!data.title?.trim())return{title:'Donnez un nom au groupe.'};
-  let c;if(data.type==='direct'){c=S.convs.find(x=>x.type==='direct'&&x.members.includes(S.me)&&x.members.includes(data.who)&&x.members.length===2);
-   if(!c){c={id:'dm-'+Date.now(),type:'direct',with:data.who,title:user(data.who).name,topic:'Message direct',members:[S.me,data.who],unread:0,messages:[]};S.convs.push(c)}}
-  else{c={id:'g-'+Date.now(),type:'canal',title:data.title.trim(),topic:'Groupe de travail',members:[S.me,data.who],unread:0,messages:[]};S.convs.push(c)}
-  persist();closeModal();curConv=c.id;window._reading=true;render()});
-}
+
+
 
 /* ===================== Utilisateurs ===================== */
 function vUsers(){
@@ -8747,7 +9295,7 @@ document.addEventListener('click',e=>{
    openOpProvenance:()=>{if(e.target.closest("td:last-child")||e.target.closest("button"))return;openOpProvenance(a.dataset.kind,id)},
   finishReparation:()=>finishReparation(id),
   commentMove:()=>commentMove(id),
-  newTransport,newDemandeTransport,newDestination,newLivraison,newOperateur,newConv,newUser,newDriver,
+  newTransport,newDemandeTransport,newDestination,newLivraison,newOperateur,newConv,selectDossierChat:()=>selectDossierChat(),openChatOp:()=>{closeModal();openConvFor(a.dataset.op, a.dataset.acttype);},goTabEntrepot:()=>{ent='stock';goTab('entrepot');},goTransportTab:()=>{lvSub='suivi';goTab('transport');},newUser,newDriver,
   facturerDossierTransit:()=>facturerDossierTransit(id),facturerTransport:()=>facturerTransport(id),facturerEntrepot:()=>facturerEntrepot(id),validerRecouvrement:()=>validerRecouvrement(id),goRecouvrementSub:()=>{recSub=a.dataset.sub||'transit';goTab('recouvrement')},newInvoice:()=>newInvoice(id),viewInvoice:()=>viewInvoice(id),newPayment:()=>newPayment(id),newRelance:()=>newRelance(id),printRecouvrement,
   validerStockPlanif:()=>validerStockPlanif(id),
   confirmerCamionPlanif:()=>confirmerCamionPlanif(id),
