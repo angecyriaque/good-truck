@@ -6765,484 +6765,312 @@ function facStatusBadge(status, due) {
  return `<span class="badge" style="background:${m.bg};color:${m.col};border:1px solid ${m.col};font-weight:700">${m.ic} ${esc(m.label)}</span>`;
 }
 
+/* ===================== Durées et Pipelines Facturation / Recouvrement ===================== */
+
+function calcDelaiFacture(d1, d2) {
+  if (!d1 || !d2) return null;
+  const s1 = String(d1).slice(0, 10);
+  const s2 = String(d2).slice(0, 10);
+  const t1 = new Date(s1).getTime();
+  const t2 = new Date(s2).getTime();
+  if (isNaN(t1) || isNaN(t2)) return null;
+  return Math.max(0, Math.round((t2 - t1) / (1000 * 60 * 60 * 24)));
+}
+
 function normalizeInvoicesCategory(){
- (S.invoices||[]).forEach(i => {
-  if(!i.category){
-   if(i.transportId || (i.dossier && i.dossier.startsWith('TR-')) || (i.lines && i.lines.some(l => l.desc.toLowerCase().includes('traction') || l.desc.toLowerCase().includes('transport vers')))) {
-    i.category = 'transport';
-   } else if(i.reparationId || (i.dossier && (i.dossier.startsWith('REP-') || i.dossier.startsWith('SOUD-'))) || (i.lines && i.lines.some(l => l.desc.toLowerCase().includes('soudure') || l.desc.toLowerCase().includes('door swap')))) {
-    i.category = 'entrepot';
-   } else {
-    i.category = 'transit';
-   }
-  }
- });
+  (S.invoices||[]).forEach(i => {
+    if(!i.category){
+      if(i.transportId || (i.dossier && i.dossier.startsWith('TR-')) || (i.lines && i.lines.some(l => l.desc.toLowerCase().includes('traction') || l.desc.toLowerCase().includes('transport vers')))) {
+        i.category = 'transport';
+      } else if(i.reparationId || (i.dossier && (i.dossier.startsWith('REP-') || i.dossier.startsWith('SOUD-'))) || (i.lines && i.lines.some(l => l.desc.toLowerCase().includes('soudure') || l.desc.toLowerCase().includes('door swap')))) {
+        i.category = 'entrepot';
+      } else {
+        i.category = 'transit';
+      }
+    }
+    // Date opération d'origine
+    if (!i.opDate) {
+      if (i.category === 'transit') {
+        const d = (S.dossiers || []).find(x => x.num === i.dossier);
+        i.opDate = d ? (d.D6 || d.depotage?.date || d.D5 || d.D3) : null;
+      } else if (i.category === 'transport') {
+        const t = (S.transports || []).find(x => x.id === (i.transportId || i.dossier));
+        i.opDate = t ? (t.arrR || t.arrP) : null;
+      } else if (i.category === 'entrepot') {
+        const r = (S.reparations || []).find(x => x.id === (i.reparationId || i.dossier));
+        i.opDate = r ? (r.dateOp || r.date?.slice(0, 10)) : null;
+      }
+    }
+    // Calcul automatique de la durée mise pour facturer
+    if (i.delaiFacture == null && i.opDate && i.date) {
+      i.delaiFacture = calcDelaiFacture(i.opDate, i.date);
+    }
+    // Suivi Recouvrement
+    if (!i.recStatus) {
+      if (i.status === 'Payée' || (i.balance != null && i.balance <= 0)) {
+        i.recStatus = 'Recouvré';
+        if (!i.recDate) i.recDate = i.date;
+        if (i.delaiRecouvrement == null) i.delaiRecouvrement = calcDelaiFacture(i.date, i.recDate) || 5;
+      } else {
+        i.recStatus = 'En attente';
+      }
+    }
+  });
 }
 
 function getInvoiceForDossier(dNum){
- normalizeInvoicesCategory();
- return (S.invoices||[]).find(i => (i.category==='transit' || !i.category) && i.dossier === dNum);
+  normalizeInvoicesCategory();
+  return (S.invoices||[]).find(i => (i.category==='transit' || !i.category) && i.dossier === dNum);
 }
 
 function getInvoiceForTransport(tId, itr){
- normalizeInvoicesCategory();
- return (S.invoices||[]).find(i => 
-  i.category === 'transport' && (
-   i.transportId === tId ||
-   (tId && i.dossier === tId) ||
-   (itr && i.itr === itr) ||
-   (tId && i.lines?.some(l => l.desc.includes(tId))) ||
-   (itr && i.lines?.some(l => l.desc.includes(itr)))
-  )
- );
+  normalizeInvoicesCategory();
+  return (S.invoices||[]).find(i => 
+    i.category === 'transport' && (
+      i.transportId === tId ||
+      (tId && i.dossier === tId) ||
+      (itr && i.itr === itr) ||
+      (tId && i.lines?.some(l => l.desc.includes(tId))) ||
+      (itr && i.lines?.some(l => l.desc.includes(itr)))
+    )
+  );
 }
 
 function getInvoiceForReparation(rId, lot){
- normalizeInvoicesCategory();
- return (S.invoices||[]).find(i => 
-  i.category === 'entrepot' && (
-   i.reparationId === rId ||
-   (rId && i.dossier === rId) ||
-   (lot && i.lot === lot) ||
-   (rId && i.lines?.some(l => l.desc.includes(rId))) ||
-   (lot && i.lines?.some(l => l.desc.includes(lot)))
-  )
- );
+  normalizeInvoicesCategory();
+  return (S.invoices||[]).find(i => 
+    i.category === 'entrepot' && (
+      i.reparationId === rId ||
+      (rId && i.dossier === rId) ||
+      (lot && i.lot === lot) ||
+      (rId && i.lines?.some(l => l.desc.includes(rId))) ||
+      (lot && i.lines?.some(l => l.desc.includes(lot)))
+    )
+  );
 }
 
-/* ===================== Vue Facturation ===================== */
+/* ===================== Vue Facturation (Pilotage & Traçabilité des Délais) ===================== */
 function vFacturation() {
- const cS = curSite(), sObj = curSiteObj();
- normalizeInvoicesCategory();
- const allInvoices = siteInvoices(cS);
+  const cS = curSite(), sObj = curSiteObj();
+  normalizeInvoicesCategory();
+  const allInvoices = siteInvoices(cS);
 
- // Sous-onglets : 'transit' | 'entrepot' | 'transport'
- if(!['transit', 'entrepot', 'transport'].includes(facSub)) facSub = 'transit';
+  if(!['transit', 'entrepot', 'transport'].includes(facSub)) facSub = 'transit';
 
- // 1. Transit pipeline
- const allSiteDoss = siteDossiers(cS);
- const transitCompleted = allSiteDoss.filter(d => Boolean(d.D6 || d.status === 'Clôturé' || d.depotage));
- const transitPending = transitCompleted.filter(d => !getInvoiceForDossier(d.num));
- const transitInvoiced = allInvoices.filter(i => (i.category === 'transit' || (!i.category && !i.transportId && !i.reparationId)));
+  // 1. Transit pipeline
+  const allSiteDoss = siteDossiers(cS);
+  const transitCompleted = allSiteDoss.filter(d => Boolean(d.D6 || d.status === 'Clôturé' || d.depotage));
+  const transitPending = transitCompleted.filter(d => !getInvoiceForDossier(d.num));
+  const transitInvoiced = allInvoices.filter(i => (i.category === 'transit' || (!i.category && !i.transportId && !i.reparationId)));
 
- // 2. Entrepôt pipeline (Door Swap & Soudure)
- const allSiteReps = siteReparations(cS).filter(r => r.kind === 'DOOR SWAP' || r.kind === 'Soudure');
- const entrepotCompleted = allSiteReps; // Réalisées/enregistrées
- const entrepotPending = entrepotCompleted.filter(r => !getInvoiceForReparation(r.id, r.lot));
- const entrepotInvoiced = allInvoices.filter(i => i.category === 'entrepot');
+  // 2. Entrepôt pipeline
+  const allSiteReps = siteReparations(cS).filter(r => r.kind === 'DOOR SWAP' || r.kind === 'Soudure');
+  const entrepotCompleted = allSiteReps;
+  const entrepotPending = entrepotCompleted.filter(r => !getInvoiceForReparation(r.id, r.lot));
+  const entrepotInvoiced = allInvoices.filter(i => i.category === 'entrepot');
 
- // 3. Transport pipeline (Livraisons effectuées)
- const allSiteTrs = siteTransports(cS);
- const allSiteLvs = siteDeliveries(cS);
- const transportCompleted = allSiteTrs.filter(t => Boolean(t.arrR || ['Livré', 'Clôturé'].includes(t.status) || t.shipped));
- const transportPending = transportCompleted.filter(t => !getInvoiceForTransport(t.id, t.itr));
- const transportInvoiced = allInvoices.filter(i => i.category === 'transport');
+  // 3. Transport pipeline
+  const allSiteTrs = siteTransports(cS);
+  const transportCompleted = allSiteTrs.filter(t => Boolean(t.arrR || ['Livré', 'Clôturé'].includes(t.status) || t.shipped));
+  const transportPending = transportCompleted.filter(t => !getInvoiceForTransport(t.id, t.itr));
+  const transportInvoiced = allInvoices.filter(i => i.category === 'transport');
 
- // Métier actif
- let labelMetier = 'Transit Maritime';
- let pendingList = transitPending;
- let invoicedList = transitInvoiced;
- if(facSub === 'entrepot'){
-  labelMetier = 'Entrepôt (Door Swap & Soudure)';
-  pendingList = entrepotPending;
-  invoicedList = entrepotInvoiced;
- } else if(facSub === 'transport'){
-  labelMetier = 'Transport & Livraisons';
-  pendingList = transportPending;
-  invoicedList = transportInvoiced;
- }
+  let labelMetier = 'Transit Maritime';
+  let pendingList = transitPending;
+  let invoicedList = transitInvoiced;
+  if(facSub === 'entrepot'){
+    labelMetier = 'Entrepôt (Door Swap & Soudure)';
+    pendingList = entrepotPending;
+    invoicedList = entrepotInvoiced;
+  } else if(facSub === 'transport'){
+    labelMetier = 'Transport & Livraisons';
+    pendingList = transportPending;
+    invoicedList = transportInvoiced;
+  }
 
- const qHist = (facHistQ || '').toLowerCase().trim();
- const filteredInvoiced = invoicedList.filter(inv => {
-  const isLate = !['Payée', 'Brouillon'].includes(inv.status) && inv.due && inv.due < TODAY_ISO;
-  const matchFilter = facFilter === 'Tous' || (facFilter === 'En retard' ? isLate : inv.status === facFilter);
-  const matchQ = !qHist || [inv.id, inv.num, inv.dossier, inv.client, inv.contact, inv.obs].join(' ').toLowerCase().includes(qHist);
-  return matchFilter && matchQ;
- });
+  // Filtrage recherche en direct
+  const qHist = (facHistQ || '').toLowerCase().trim();
+  const filteredInvoiced = invoicedList.filter(inv => {
+    const isRapid = inv.delaiFacture != null && inv.delaiFacture <= 3;
+    const isLong = inv.delaiFacture != null && inv.delaiFacture > 3;
+    const matchFilter = facFilter === 'Tous' ||
+      (facFilter === '≤ 3 jours' ? isRapid :
+       facFilter === '> 3 jours' ? isLong :
+       facFilter === 'En attente' ? inv.recStatus === 'En attente' :
+       facFilter === 'Recouvrés' ? inv.recStatus === 'Recouvré' : true);
+    const matchQ = !qHist || [inv.id, inv.num, inv.dossier, inv.client, inv.contact, inv.obs].join(' ').toLowerCase().includes(qHist);
+    return matchFilter && matchQ;
+  });
 
- const totFactureTTC = invoicedList.reduce((a, i) => a + (+i.ttc || 0), 0);
- const totEncaisse = invoicedList.reduce((a, i) => a + (+i.paid || 0), 0);
- const totRestant = invoicedList.reduce((a, i) => a + (+i.balance || 0), 0);
- const countEnRetard = invoicedList.filter(i => i.status !== 'Payée' && i.due && i.due < TODAY_ISO).length;
+  // Calcul des métriques de temps de facturation
+  const countInvoiced = invoicedList.length;
+  const delaisValides = invoicedList.map(i => i.delaiFacture).filter(d => d != null);
+  const avgDelai = delaisValides.length ? (delaisValides.reduce((a, b) => a + b, 0) / delaisValides.length).toFixed(1) : '—';
+  const countMoins3j = invoicedList.filter(i => i.delaiFacture != null && i.delaiFacture <= 3).length;
+  const pctMoins3j = countInvoiced ? Math.round((countMoins3j / countInvoiced) * 100) : 0;
+  const countRecouvres = invoicedList.filter(i => i.recStatus === 'Recouvré').length;
 
- const filterChips = ['Tous', 'Émise', 'Partiellement payée', 'Payée', 'En retard', 'Brouillon'];
+  const filterChips = ['Tous', '≤ 3 jours', '> 3 jours', 'En attente', 'Recouvrés'];
 
- return siteBanner(`Facturation opérationnelle par métier · ${sObj.name}`) +
- hero('finance', `Facturation · ${sObj.icon} ${sObj.name}`, 'Facturation automatisée selon l’avancement opérationnel : déversement dès dépotage (Transit), livraison (Transport) et fin de travaux (Door Swap & Soudure).',
-  `<div><b>${n0(pendingList.length)}</b>opération${pendingList.length>1?'s':''} en attente de facture</div>`+
-  `<div><b>${fcfa(totFactureTTC)}</b>facturé TTC (${labelMetier.split(' ')[0]})</div>`+
-  `<div><b>${fcfa(totRestant)}</b>solde à recouvrer</div>`) +
- `
-  <!-- Sous-onglets Métier Facturation -->
-  <div class="seg" role="group" aria-label="Métiers Facturation" style="margin-bottom:16px">
-   <button data-facsub="transit" aria-pressed="${facSub==='transit'}">🚢 Transit (${transitPending.length ? `<b style="color:#DC2626">${transitPending.length} à facturer</b>` : 'À jour'})</button>
-   <button data-facsub="entrepot" aria-pressed="${facSub==='entrepot'}">🏭 Entrepôt · Door Swap & Soudure (${entrepotPending.length ? `<b style="color:#DC2626">${entrepotPending.length} à facturer</b>` : 'À jour'})</button>
-   <button data-facsub="transport" aria-pressed="${facSub==='transport'}">🚚 Transport (${transportPending.length ? `<b style="color:#DC2626">${transportPending.length} à facturer</b>` : 'À jour'})</button>
-  </div>
-
-  <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr));margin-bottom:16px">
-   <div class="kpi" style="cursor:default;border-left:4px solid var(--warn)">
-    <span>Opérations en Attente de Facturation</span>
-    <b style="color:var(--warn)">${n0(pendingList.length)}</b>
-    <small class="muted">${labelMetier} achevées non facturées</small>
+  return siteBanner(`Pilotage Facturation & Délais d’Exécution · ${sObj.name}`) +
+  hero('finance', `Facturation · ${sObj.icon} ${sObj.name}`, 'Suivi opérationnel de la facturation : attribution de la date et du numéro de facture dès réalisation, sans saisie de montants, avec mesure du délai de traitement et transmission automatique au recouvrement.',
+   `<div><b>${n0(pendingList.length)}</b>opération${pendingList.length>1?'s':''} en attente de facture</div>`+
+   `<div><b>${avgDelai} ${avgDelai !== '—' ? 'j' : ''}</b>délai moyen de facturation</div>`+
+   `<div><b>${n0(countInvoiced)}</b>dossier${countInvoiced>1?'s':''} facturé${countInvoiced>1?'s':''}</div>`) +
+  `
+   <!-- Sous-onglets Métier Facturation -->
+   <div class="seg" role="group" aria-label="Métiers Facturation" style="margin-bottom:16px">
+    <button data-facsub="transit" aria-pressed="${facSub==='transit'}">🚢 Transit (${transitPending.length ? `<b style="color:#DC2626">${transitPending.length} à facturer</b>` : 'À jour'})</button>
+    <button data-facsub="entrepot" aria-pressed="${facSub==='entrepot'}">🏭 Entrepôt · Door Swap & Soudure (${entrepotPending.length ? `<b style="color:#DC2626">${entrepotPending.length} à facturer</b>` : 'À jour'})</button>
+    <button data-facsub="transport" aria-pressed="${facSub==='transport'}">🚚 Transport (${transportPending.length ? `<b style="color:#DC2626">${transportPending.length} à facturer</b>` : 'À jour'})</button>
    </div>
-   <div class="kpi" style="cursor:default;border-left:4px solid var(--blue)">
-    <span>Volume Facturé TTC (${labelMetier.split(' ')[0]})</span>
-    <b style="color:var(--blue)">${fcfa(totFactureTTC)}</b>
-    <small class="muted">${invoicedList.length} facture${invoicedList.length>1?'s':''} émise${invoicedList.length>1?'s':''}</small>
-   </div>
-   <div class="kpi t-ok" style="cursor:default">
-    <span>Montant Déjà Encaissé</span>
-    <b>${fcfa(totEncaisse)}</b>
-    <small class="muted">Règlements reçus</small>
-   </div>
-   <div class="kpi t-bad" style="cursor:default">
-    <span>Créances Échues en Retard</span>
-    <b>${n0(countEnRetard)}</b>
-    <small class="muted">Solde restant : <b>${fcfa(totRestant)}</b></small>
-   </div>
-  </div>
 
-  <!-- ==================== RUBRIQUE 1 : OPÉRATIONS EN ATTENTE DE FACTURATION (EN COURS) ==================== -->
-  <section class="panel" style="margin-bottom:20px;border-left:5px solid var(--accent);background:var(--surface);box-shadow:0 2px 8px rgba(0,0,0,0.04)">
-   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
-    <div>
-     <h3 style="margin:0;color:#92400E;display:flex;align-items:center;gap:8px">
-      ⏳ 1. Opérations ${labelMetier}
-     </h3>
-     <small class="muted">
-      ${facSub==='transit'?'Dossiers dont le dépotage est clôturé et validé. Cliquez sur « Émettre facture » pour générer la facture client.':
-        facSub==='entrepot'?'Interventions de DOOR SWAP et Soudures enregistrées. Cliquez sur « Facturer prestation » pour émettre la facture.':
-        'Transports et livraisons dont le trajet est effectué. Cliquez sur « Facturer transport » pour facturer la traction.'}
-     </small>
+   <!-- KPIs Métriques de Performance & Délais -->
+   <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr));margin-bottom:16px">
+    <div class="kpi" style="cursor:default;border-left:4px solid ${pendingList.length ? '#EA580C' : 'var(--ok)'}">
+     <span>Opérations à Facturer</span>
+     <b style="color:${pendingList.length ? '#EA580C' : 'var(--ok)'}">${n0(pendingList.length)}</b>
+     <small class="muted">${labelMetier} achevées non facturées</small>
     </div>
-    ${pendingList.length ? `<span class="badge b-warn pulse-badge" style="font-weight:700">⚡ ${pendingList.length} opération${pendingList.length>1?'s':''} à facturer</span>` : `<span class="badge b-ok">✓ Aucune opération en attente</span>`}
-   </div>
-
-   <div class="tablewrap" style="margin:0">
-    <table>
-     <thead>
-      <tr>
-       ${facSub==='transit' ? '<th>N° Dossier</th><th>Conteneur (TC)</th><th>Armateur / B/L</th><th>Date Dépotage</th><th class="right">Palettes Dépotées</th><th>Client</th><th>Statut Transit</th><th>Action Facturation</th>' :
-         facSub==='entrepot' ? '<th>Réf. Intervention</th><th>Type d’Opération</th><th>Lot Entrepôt</th><th>Date Réalisation</th><th class="right">Palettes Traitées</th><th>Client Facturé</th><th>Statut Entrepôt</th><th>Action Facturation</th>' :
-         '<th>Réf. Transport</th><th>N° ITR / PO</th><th>Destination Client</th><th>Camion & Chauffeur</th><th class="right">Palettes Livrées</th><th>Date Livraison</th><th>Statut Transport</th><th>Action Facturation</th>'}
-      </tr>
-     </thead>
-     <tbody>
-      ${facSub==='transit' ? (
-        pendingList.map(d => {
-         const qDep = d.depotage?.total || 140;
-         const dDate = d.D6 || d.depotage?.date || d.D5 || d.D3;
-         const client = d.client || (d.trans?.includes('SKCI') ? 'SKCI' : 'Client Transit');
-         return `<tr>
-          <td><button class="refchip" style="border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer;padding:0" data-dossier="${esc(d.num)}">${esc(d.num)}</button></td>
-          <td><b class="num" style="color:#1E1B4B;font-size:14px">${esc(d.cont)}</b></td>
-          <td><b>${esc(d.lam||'—')}</b><br><small class="muted">${esc(d.bl||'—')}</small></td>
-          <td><b>${fmt(dDate)}</b></td>
-          <td class="right num"><b style="font-size:15px;color:var(--ink)">${n0(qDep)}</b></td>
-          <td><b>${esc(client)}</b></td>
-          <td><span class="badge b-ok">✓ Dépotage Effectué</span></td>
-          <td style="white-space:nowrap">
-           <button class="btn small primary${lockCls('facturation')}" data-act="facturerDossierTransit" data-id="${d.num}">📝 Émettre facture</button>
-          </td>
-         </tr>`;
-        }).join('') || '<tr><td colspan="8" class="empty">Tous les dossiers de transit clôturés ont été facturés !</td></tr>'
-      ) : facSub==='entrepot' ? (
-        pendingList.map(r => {
-         const isSwap = r.kind === 'DOOR SWAP';
-         return `<tr>
-          <td><span class="ref">${esc(r.id)}</span></td>
-          <td><span class="badge ${isSwap ? 'b-warn' : 'b-info'}" style="font-weight:700">${isSwap ? '⇄ DOOR SWAP' : '🔧 Soudure'}</span></td>
-          <td><b class="num">${esc(r.lot)}</b></td>
-          <td><b>${fmt(r.dateOp || r.date?.slice(0,10))}</b></td>
-          <td class="right num"><b style="font-size:15px;color:var(--ink)">${n0(r.qty)}</b></td>
-          <td><b>SKCI</b><br><small class="muted">Entrepôt GoodPack</small></td>
-          <td><span class="badge b-ok">✓ Prestation Réalisée</span></td>
-          <td style="white-space:nowrap">
-           <button class="btn small primary${lockCls('facturation')}" data-act="facturerEntrepot" data-id="${r.id}">📝 Facturer prestation</button>
-          </td>
-         </tr>`;
-        }).join('') || '<tr><td colspan="8" class="empty">Toutes les opérations de DOOR SWAP et Soudure ont été facturées !</td></tr>'
-      ) : (
-        pendingList.map(t => {
-         const destCl = t.to?.split('·')[0]?.trim() || 'Client Transport';
-         const pln = (S.planifications||[]).find(p => p.transport === t.id);
-         const lv = (S.deliveries||[]).find(l => l.id === t.liv || l.transport === t.id);
-         const refItr = t.itr || pln?.itr || lv?.itr || '—';
-         const refPo = t.po || pln?.po || lv?.po || '—';
-         return `<tr>
-          <td><span class="ref">${esc(t.id)}</span></td>
-          <td><b class="num" style="color:var(--blue)">${esc(refItr)}</b><br><small class="muted">PO: ${esc(refPo)}</small></td>
-          <td><b style="color:var(--text);font-size:13.5px">${esc(t.to)}</b></td>
-          <td><b>${esc(t.trans||'—')}</b><br><small class="muted num">${esc(t.veh||'—')} (${esc(t.driver||'—')})</small></td>
-          <td class="right num"><b style="font-size:15px;color:var(--ink)">${n0(t.qty)}</b></td>
-          <td><b>${fmt(t.arrR || t.arrP || TODAY_ISO)}</b></td>
-          <td><span class="badge b-ok">✓ Livraison Effectuée</span></td>
-          <td style="white-space:nowrap">
-           <button class="btn small primary${lockCls('facturation')}" data-act="facturerTransport" data-id="${t.id}">📝 Facturer transport</button>
-          </td>
-         </tr>`;
-        }).join('') || '<tr><td colspan="8" class="empty">Toutes les livraisons de transport effectuées ont été facturées !</td></tr>'
-      )}
-     </tbody>
-    </table>
-   </div>
-  </section>
-
-  <!-- ==================== RUBRIQUE 2 : HISTORIQUE DÉTACHÉ DES OPÉRATIONS FACTURÉES ==================== -->
-  <section class="panel" style="border:1px solid var(--line);border-top:4px solid var(--blue);background:var(--surface)">
-   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
-    <div>
-     <h3 style="margin:0;display:flex;align-items:center;gap:8px">
-      📜 2. Historique des factures émises · ${labelMetier} (${invoicedList.length})
-     </h3>
-     <small class="muted">Détachement chronologique des factures. Utilisez la recherche dédiée pour retrouver des éléments spécifiques.</small>
+    <div class="kpi" style="cursor:default;border-left:4px solid var(--blue)">
+     <span>Délai Moyen de Facturation</span>
+     <b style="color:var(--blue)">${avgDelai} ${avgDelai !== '—' ? 'jours' : ''}</b>
+     <small class="muted">Temps moyen entre fin d’opération et facture</small>
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-     <button class="btn" data-act="printRecouvrement">🖨️ Imprimer État</button>
-     <button class="btn primary${lockCls('facturation')}" data-act="newInvoice">${plus()} Nouvelle facture libre</button>
+    <div class="kpi t-ok" style="cursor:default">
+     <span>Facturées sous ≤ 3 jours</span>
+     <b>${pctMoins3j}%</b>
+     <small class="muted">${countMoins3j} sur ${countInvoiced} dossiers traités rapidement</small>
+    </div>
+    <div class="kpi" style="cursor:default;border-left:4px solid #10B981">
+     <span style="color:#10B981">Dossiers Facturés (Total)</span>
+     <b style="color:#10B981">${n0(countInvoiced)}</b>
+     <small class="muted">Dont ${countRecouvres} soldé${countRecouvres>1?'s':''} au recouvrement</small>
     </div>
    </div>
 
-   <!-- Barre de recherche dédiée dans l'historique -->
-   <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
-    <div style="display:flex;gap:8px;align-items:center;flex:1;max-width:520px">
-     <input type="search" class="field-inline grow" data-bind-search="facHistQ" placeholder="🔍 Rechercher dans cet historique (N° facture, dossier, ITR, client, observation...)" value="${esc(facHistQ)}">
-    </div>
-    <div class="chips" style="margin:0">
-     ${filterChips.map(f => `<button class="chip" data-facfilter="${f}" aria-pressed="${facFilter === f}">${f} <span class="c">${f === 'Tous' ? invoicedList.length : f === 'En retard' ? countEnRetard : invoicedList.filter(i => i.status === f).length}</span></button>`).join('')}
-    </div>
-   </div>
-
-   <div class="tablewrap" style="margin:0">
-    <table>
-     <thead>
-      <tr>
-       <th>N° Facture</th>
-       <th>Réf. Opération liée</th>
-       <th>Client Facturé</th>
-       <th>Émission / Échéance</th>
-       <th class="right">Montant HT</th>
-       <th class="right">Montant TTC</th>
-       <th class="right">Encaissé</th>
-       <th class="right">Reste Dû</th>
-       <th>Statut Facture</th>
-       <th>Statut Recouvrement</th>
-       <th>Actions</th>
-      </tr>
-     </thead>
-     <tbody>
-      ${filteredInvoiced.map(inv => {
-       const isLate = !['Payée', 'Brouillon'].includes(inv.status) && inv.due && inv.due < TODAY_ISO;
-       const daysLate = isLate ? days(TODAY_ISO, inv.due) : 0;
-       const isPaid = inv.balance <= 0 || inv.status === 'Payée';
-       return `<tr style="border-left:4px solid ${isPaid ? 'var(--ok)' : isLate ? 'var(--bad)' : 'var(--blue)'}">
-        <td><span class="ref" style="font-size:13.5px;font-weight:700">${esc(inv.num)}</span></td>
-        <td>
-         ${inv.category === 'transport' ? `<span class="badge b-info" style="font-size:11px">🚚 ${esc(inv.transportId || inv.dossier || 'Transport')}</span>` :
-           inv.category === 'entrepot' ? `<span class="badge b-warn" style="font-size:11px">🏭 ${esc(inv.reparationId || inv.dossier || 'Entrepôt')}</span>` :
-           `<button class="refchip" style="border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer;padding:0" data-dossier="${esc(inv.dossier)}">🚢 ${esc(inv.dossier)}</button>`}
-        </td>
-        <td><b>${esc(inv.client)}</b><br><small class="muted">${esc(inv.contact || inv.address || '—')}</small></td>
-        <td>
-         <span>${fmt(inv.date)}</span><br>
-         <small style="color:${isLate ? 'var(--bad)' : 'var(--muted)'};font-weight:${isLate ? '700' : 'normal'}">
-          Échéance : ${fmt(inv.due)} ${isLate ? `(+ ${daysLate} j retard)` : ''}
-         </small>
-        </td>
-        <td class="right num"><b>${n0(inv.ht)}</b></td>
-        <td class="right num"><b style="font-size:14.5px;color:var(--ink)">${n0(inv.ttc)}</b></td>
-        <td class="right num"><b style="color:var(--ok)">${n0(inv.paid)}</b></td>
-        <td class="right num"><b style="color:${inv.balance > 0 ? 'var(--bad)' : 'var(--ok)'}">${n0(inv.balance)}</b></td>
-        <td>${facStatusBadge(inv.status, inv.due)}</td>
-        <td>
-         ${isPaid ? '<span class="badge b-ok" style="font-weight:700">✓ Soldé</span>' :
-           inv.paid > 0 ? '<span class="badge b-warn" style="font-weight:700">⏳ Partiel</span>' :
-           '<span class="badge b-info">En attente</span>'}
-        </td>
-        <td style="white-space:nowrap;display:flex;gap:6px">
-         <button class="btn small" data-act="viewInvoice" data-id="${inv.id}" title="Afficher la facture complète">👁️ Facture</button>
-         ${inv.balance > 0 ? `<button class="btn small primary${lockCls('recouvrement')}" data-act="newPayment" data-id="${inv.id}" title="Enregistrer un encaissement direct">💳 Encaisser</button>` : ''}
-         ${inv.status === 'Brouillon' ? `<button class="btn small primary${lockCls('facturation')}" data-act="emitInvoice" data-id="${inv.id}">✓ Émettre</button>` : ''}
-        </td>
-       </tr>`;
-      }).join('') || '<tr><td colspan="11" class="empty">Aucune facture enregistrée dans cet historique pour ces critères de recherche.</td></tr>'}
-     </tbody>
-    </table>
-   </div>
-  </section>`;
-}
-
-/* ===================== Vue Recouvrement ===================== */
-function vRecouvrement() {
- const cS = curSite(), sObj = curSiteObj();
- normalizeInvoicesCategory();
- const allInvoices = siteInvoices(cS);
- const allPayments = sitePayments(cS);
- const allRelances = siteRelances(cS);
-
- // Sous-onglets Recouvrement : 'transit' | 'entrepot' | 'transport' | 'vue_globale'
- if(!['transit', 'entrepot', 'transport', 'vue_globale'].includes(recSub)) recSub = 'transit';
-
- const totalFactureTTC = allInvoices.reduce((a, i) => a + (+i.ttc || 0), 0);
- const totalEncaisse = allInvoices.reduce((a, i) => a + (+i.paid || 0), 0);
- const totalRestant = allInvoices.reduce((a, i) => a + (+i.balance || 0), 0);
- const tauxGlobal = totalFactureTTC ? Math.round((totalEncaisse / totalFactureTTC) * 100) : 100;
-
- let domainInvoices = allInvoices;
- let domainTitle = 'Vue Consolidée (Tous Métiers)';
- if(recSub === 'transit'){
-  domainInvoices = allInvoices.filter(i => i.category === 'transit' || (!i.category && !i.transportId && !i.reparationId));
-  domainTitle = 'Recouvrement Transit Maritime';
- } else if(recSub === 'entrepot'){
-  domainInvoices = allInvoices.filter(i => i.category === 'entrepot');
-  domainTitle = 'Recouvrement Entrepôt (Door Swap & Soudure)';
- } else if(recSub === 'transport'){
-  domainInvoices = allInvoices.filter(i => i.category === 'transport');
-  domainTitle = 'Recouvrement Transport & Livraisons';
- }
-
- const dTotTTC = domainInvoices.reduce((a, i) => a + (+i.ttc || 0), 0);
- const dTotPaid = domainInvoices.reduce((a, i) => a + (+i.paid || 0), 0);
- const dTotBal = domainInvoices.reduce((a, i) => a + (+i.balance || 0), 0);
- const dTaux = dTotTTC ? Math.round((dTotPaid / dTotTTC) * 100) : 100;
-
- // Détachement En cours vs Soldées/Recouvrées
- const unpaidInvoices = domainInvoices.filter(i => i.balance > 0);
- const paidInvoices = domainInvoices.filter(i => i.balance <= 0 || i.status === 'Payée');
-
- const qRecHist = (recHistQ || '').toLowerCase().trim();
- const filteredPaid = paidInvoices.filter(i => {
-  return !qRecHist || [i.id, i.num, i.dossier, i.client, i.obs].join(' ').toLowerCase().includes(qRecHist);
- });
-
- let subContent = '';
- if(recSub === 'vue_globale'){
-  // Balance âgée
-  const nonEchues = allInvoices.filter(i => i.balance > 0 && (!i.due || i.due >= TODAY_ISO));
-  const echues1_30 = allInvoices.filter(i => i.balance > 0 && i.due && i.due < TODAY_ISO && days(TODAY_ISO, i.due) <= 30);
-  const echues31_60 = allInvoices.filter(i => i.balance > 0 && i.due && i.due < TODAY_ISO && days(TODAY_ISO, i.due) > 30 && days(TODAY_ISO, i.due) <= 60);
-  const echues60Plus = allInvoices.filter(i => i.balance > 0 && i.due && i.due < TODAY_ISO && days(TODAY_ISO, i.due) > 60);
-
-  const sumNonEchues = nonEchues.reduce((a, i) => a + i.balance, 0);
-  const sum1_30 = echues1_30.reduce((a, i) => a + i.balance, 0);
-  const sum31_60 = echues31_60.reduce((a, i) => a + i.balance, 0);
-  const sum60Plus = echues60Plus.reduce((a, i) => a + i.balance, 0);
-
-  subContent = `
-   <section class="panel" style="margin-bottom:16px;border-top:3px solid var(--blue)">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+   <!-- ==================== RUBRIQUE 1 : OPÉRATIONS EN ATTENTE DE FACTURATION (EN COURS) ==================== -->
+   <section class="panel" style="margin-bottom:20px;border-left:5px solid #EA580C;background:var(--surface);box-shadow:0 2px 8px rgba(0,0,0,0.04)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
      <div>
-      <h3 style="margin:0;font-size:16px">Diagnostic Consolidé de la Balance Âgée des Créances (${sObj.name})</h3>
-      <small class="muted">Ventilation multi-métiers de toutes les factures impayées</small>
-     </div>
-     <span class="badge b-info">Total à recouvrer : <b>${fcfa(totalRestant)}</b></span>
-    </div>
-    <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-bottom:0">
-     <div class="kpi t-ok" style="cursor:default">
-      <span>Non échues (< 30j)</span>
-      <b>${fcfa(sumNonEchues)}</b>
-      <small class="muted">${nonEchues.length} facture${nonEchues.length > 1 ? 's' : ''}</small>
-     </div>
-     <div class="kpi t-warn" style="cursor:default">
-      <span>Échues 1 à 30 jours</span>
-      <b>${fcfa(sum1_30)}</b>
-      <small class="muted">${echues1_30.length} facture${echues1_30.length > 1 ? 's' : ''} · Rappels</small>
-     </div>
-     <div class="kpi" style="cursor:default;border-left:4px solid #EA580C">
-      <span style="color:#EA580C">Échues 31 à 60 jours</span>
-      <b style="color:#EA580C">${fcfa(sum31_60)}</b>
-      <small class="muted">${echues31_60.length} facture${echues31_60.length > 1 ? 's' : ''} · Mises en demeure</small>
-     </div>
-     <div class="kpi t-bad" style="cursor:default">
-      <span>En souffrance (> 60 jours)</span>
-      <b>${fcfa(sum60Plus)}</b>
-      <small class="muted">${echues60Plus.length} facture${echues60Plus.length > 1 ? 's' : ''} · Contentieux</small>
-     </div>
-    </div>
-   </section>
-  `;
- } else {
-  // Vue Métier (Transit, Entrepôt, Transport)
-  subContent = `
-   <!-- RUBRIQUE 1 : CRÉANCES EN COURS DE RECOUVREMENT -->
-   <section class="panel" style="margin-bottom:20px;border-left:5px solid #EA580C;background:var(--surface)">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
-     <div>
-      <h3 style="margin:0;color:#C2410C;display:flex;align-items:center;gap:8px">
-       💳 1. Créances en cours de recouvrement · ${domainTitle} (${unpaidInvoices.length})
+      <h3 style="margin:0;color:#92400E;display:flex;align-items:center;gap:8px">
+       ⏳ 1. Opérations ${labelMetier}
       </h3>
-      <small class="muted">Factures dont le solde est en attente d'encaissement ou en retard. Cliquez sur « Encaisser » dès réception de paiement.</small>
+      <small class="muted">
+       ${facSub==='transit'?'Dossiers dont le dépotage est clôturé et validé. Cliquez sur une ligne ou sur « Renseigner facturation » pour lui attribuer son numéro de facture et sa date.':
+         facSub==='entrepot'?'Interventions de DOOR SWAP et Soudures enregistrées. Cliquez pour attribuer le numéro et la date de facture.':
+         'Transports et livraisons dont le trajet est effectué. Cliquez pour attribuer le numéro et la date de facture.'}
+      </small>
      </div>
-     <div style="display:flex;gap:8px">
-      <button class="btn" data-act="printRecouvrement">🖨️ Imprimer État</button>
-      <button class="btn primary${lockCls('recouvrement')}" data-act="newPayment">${plus()} Enregistrer encaissement</button>
-     </div>
+     ${pendingList.length ? `<span class="badge b-warn pulse-badge" style="font-weight:700">⚡ ${pendingList.length} opération${pendingList.length>1?'s':''} en attente de facturation</span>` : `<span class="badge b-ok">✓ Toutes les opérations sont facturées</span>`}
     </div>
 
     <div class="tablewrap" style="margin:0">
      <table>
       <thead>
        <tr>
-        <th>N° Facture</th>
-        <th>Réf. Opération</th>
-        <th>Client Débiteur</th>
-        <th>Échéance & Retard</th>
-        <th class="right">Total TTC</th>
-        <th class="right">Acomptes Réglés</th>
-        <th class="right">Solde Dû à Recouvrer</th>
-        <th>Dernière Relance</th>
-        <th>Actions</th>
+        ${facSub==='transit' ? '<th>N° Dossier</th><th>Conteneur (TC)</th><th>Armateur / B/L</th><th>Date Dépotage</th><th>Temps Écoulé</th><th class="right">Palettes</th><th>Client Destinataire</th><th>Statut Opération</th><th>Action Facturation</th>' :
+          facSub==='entrepot' ? '<th>Réf. Intervention</th><th>Type d’Opération</th><th>Lot Entrepôt</th><th>Date Réalisation</th><th>Temps Écoulé</th><th class="right">Palettes</th><th>Client</th><th>Statut Opération</th><th>Action Facturation</th>' :
+          '<th>Réf. Transport</th><th>N° ITR / PO</th><th>Destination Client</th><th>Date Livraison</th><th>Temps Écoulé</th><th>Camion & Chauffeur</th><th class="right">Palettes</th><th>Statut Opération</th><th>Action Facturation</th>'}
        </tr>
       </thead>
       <tbody>
-       ${unpaidInvoices.map(inv => {
-        const isLate = inv.due && inv.due < TODAY_ISO;
-        const lateDays = isLate ? days(TODAY_ISO, inv.due) : 0;
-        const lastRel = (S.relances||[]).filter(r => r.invoiceId === inv.id).slice(-1)[0];
-        return `<tr style="border-left:4px solid ${lateDays > 30 ? 'var(--bad)' : isLate ? 'var(--warn)' : 'var(--blue)'}">
-         <td><span class="ref">${esc(inv.num)}</span></td>
-         <td>
-          ${inv.category === 'transport' ? `<span class="badge b-info" style="font-size:11px">🚚 ${esc(inv.transportId || inv.dossier || 'Transport')}</span>` :
-            inv.category === 'entrepot' ? `<span class="badge b-warn" style="font-size:11px">🏭 ${esc(inv.reparationId || inv.dossier || 'Entrepôt')}</span>` :
-            `<button class="refchip" style="border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer;padding:0" data-dossier="${esc(inv.dossier)}">🚢 ${esc(inv.dossier)}</button>`}
-         </td>
-         <td><b>${esc(inv.client)}</b><br><small class="muted">${esc(inv.contact || inv.address || '—')}</small></td>
-         <td>
-          <b>${fmt(inv.due)}</b><br>
-          ${isLate ? `<span class="badge b-bad" style="font-size:11px;font-weight:700">En retard de ${lateDays} j</span>` : `<span class="badge b-ok" style="font-size:11px">Dans les délais (${days(inv.due, TODAY_ISO)} j)</span>`}
-         </td>
-         <td class="right num"><b>${n0(inv.ttc)}</b></td>
-         <td class="right num"><b style="color:var(--ok)">${n0(inv.paid)}</b></td>
-         <td class="right num"><b style="color:var(--bad);font-size:15px">${n0(inv.balance)} FCFA</b></td>
-         <td>${lastRel ? `<span class="badge b-info">${esc(lastRel.level)}</span><br><small class="muted">${fmt(lastRel.date)}</small>` : '<span class="muted">Aucune relance</span>'}</td>
-         <td style="white-space:nowrap;display:flex;gap:6px">
-          <button class="btn small primary${lockCls('recouvrement')}" data-act="newPayment" data-id="${inv.id}" title="Encaisser un règlement">💳 Encaisser</button>
-          <button class="btn small${lockCls('recouvrement')}" data-act="newRelance" data-id="${inv.id}" title="Enregistrer une relance">📢 Relancer</button>
-          <button class="btn small" data-act="viewInvoice" data-id="${inv.id}" title="Voir facture">👁️</button>
-         </td>
-        </tr>`;
-       }).join('') || '<tr><td colspan="9" class="empty">Toutes les créances de ce métier sont soldées ! Aucune facture en attente de recouvrement.</td></tr>'}
+       ${facSub==='transit' ? (
+         pendingList.map(d => {
+          const qDep = d.depotage?.total || 140;
+          const dDate = d.D6 || d.depotage?.date || d.D5 || d.D3 || TODAY_ISO;
+          const delaiAttente = calcDelaiFacture(dDate, TODAY_ISO) || 0;
+          const client = d.client || (d.trans?.includes('SKCI') ? 'SKCI' : 'Client Transit');
+          return `<tr style="cursor:pointer" data-act="facturerDossierTransit" data-id="${d.num}" title="Cliquer pour renseigner la date et le numéro de facture de ce dossier">
+           <td><button class="refchip" style="border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer;padding:0" data-act="facturerDossierTransit" data-id="${esc(d.num)}">${esc(d.num)}</button></td>
+           <td><b class="num" style="color:#1E1B4B;font-size:14px">${esc(d.cont)}</b></td>
+           <td><b>${esc(d.lam||'—')}</b><br><small class="muted">${esc(d.bl||'—')}</small></td>
+           <td><b style="color:#059669">${fmt(dDate)}</b></td>
+           <td><span class="badge ${delaiAttente > 5 ? 'b-warn' : 'b-info'}" style="font-weight:700">⏱️ ${delaiAttente} j écoulé${delaiAttente>1?'s':''}</span></td>
+           <td class="right num"><b style="font-size:15px;color:var(--ink)">${n0(qDep)}</b></td>
+           <td><b>${esc(client)}</b></td>
+           <td><span class="badge b-ok">✓ Dépotage validé</span></td>
+           <td style="white-space:nowrap" onclick="event.stopPropagation()">
+            <button class="btn small primary${lockCls('facturation')}" data-act="facturerDossierTransit" data-id="${d.num}">📝 Renseigner facturation</button>
+           </td>
+          </tr>`;
+         }).join('') || '<tr><td colspan="9" class="empty">Tous les dossiers de transit clôturés ont été facturés !</td></tr>'
+       ) : facSub==='entrepot' ? (
+         pendingList.map(r => {
+          const isSwap = r.kind === 'DOOR SWAP';
+          const rDate = r.dateOp || r.date?.slice(0,10) || TODAY_ISO;
+          const delaiAttente = calcDelaiFacture(rDate, TODAY_ISO) || 0;
+          return `<tr style="cursor:pointer" data-act="facturerEntrepot" data-id="${r.id}" title="Cliquer pour renseigner la date et le numéro de facture de cette opération">
+           <td><span class="ref">${esc(r.id)}</span></td>
+           <td><span class="badge ${isSwap ? 'b-warn' : 'b-info'}" style="font-weight:700">${isSwap ? '⇄ DOOR SWAP' : '🔧 Soudure'}</span></td>
+           <td><b class="num">${esc(r.lot)}</b></td>
+           <td><b style="color:#059669">${fmt(rDate)}</b></td>
+           <td><span class="badge ${delaiAttente > 5 ? 'b-warn' : 'b-info'}" style="font-weight:700">⏱️ ${delaiAttente} j écoulé${delaiAttente>1?'s':''}</span></td>
+           <td class="right num"><b style="font-size:15px;color:var(--ink)">${n0(r.qty)}</b></td>
+           <td><b>SKCI</b><br><small class="muted">Entrepôt GoodPack</small></td>
+           <td><span class="badge b-ok">✓ Prestation Réalisée</span></td>
+           <td style="white-space:nowrap" onclick="event.stopPropagation()">
+            <button class="btn small primary${lockCls('facturation')}" data-act="facturerEntrepot" data-id="${r.id}">📝 Renseigner facturation</button>
+           </td>
+          </tr>`;
+         }).join('') || '<tr><td colspan="9" class="empty">Toutes les opérations de DOOR SWAP et Soudure ont été facturées !</td></tr>'
+       ) : (
+         pendingList.map(t => {
+          const destCl = t.to?.split('·')[0]?.trim() || 'Client Transport';
+          const pln = (S.planifications||[]).find(p => p.transport === t.id);
+          const lv = (S.deliveries||[]).find(l => l.id === t.liv || l.transport === t.id);
+          const refItr = t.itr || pln?.itr || lv?.itr || '—';
+          const refPo = t.po || pln?.po || lv?.po || '—';
+          const tDate = t.arrR || t.arrP || TODAY_ISO;
+          const delaiAttente = calcDelaiFacture(tDate, TODAY_ISO) || 0;
+          return `<tr style="cursor:pointer" data-act="facturerTransport" data-id="${t.id}" title="Cliquer pour renseigner la date et le numéro de facture de ce transport">
+           <td><span class="ref">${esc(t.id)}</span></td>
+           <td><b class="num" style="color:var(--blue)">${esc(refItr)}</b><br><small class="muted">PO: ${esc(refPo)}</small></td>
+           <td><b style="color:var(--text);font-size:13.5px">${esc(t.to)}</b></td>
+           <td><b style="color:#059669">${fmt(tDate)}</b></td>
+           <td><span class="badge ${delaiAttente > 5 ? 'b-warn' : 'b-info'}" style="font-weight:700">⏱️ ${delaiAttente} j écoulé${delaiAttente>1?'s':''}</span></td>
+           <td><b>${esc(t.trans||'—')}</b><br><small class="muted num">${esc(t.veh||'—')} (${esc(t.driver||'—')})</small></td>
+           <td class="right num"><b style="font-size:15px;color:var(--ink)">${n0(t.qty)}</b></td>
+           <td><span class="badge b-ok">✓ Livraison Effectuée</span></td>
+           <td style="white-space:nowrap" onclick="event.stopPropagation()">
+            <button class="btn small primary${lockCls('facturation')}" data-act="facturerTransport" data-id="${t.id}">📝 Renseigner facturation</button>
+           </td>
+          </tr>`;
+         }).join('') || '<tr><td colspan="9" class="empty">Toutes les livraisons de transport effectuées ont été facturées !</td></tr>'
+       )}
       </tbody>
      </table>
     </div>
    </section>
 
-   <!-- RUBRIQUE 2 : HISTORIQUE DES OPÉRATIONS RECOUVRÉES & SOLDÉES -->
-   <section class="panel" style="border:1px solid var(--line);border-top:4px solid var(--ok);background:var(--surface)">
+   <!-- ==================== RUBRIQUE 2 : HISTORIQUE DÉTACHÉ DES OPÉRATIONS FACTURÉES ==================== -->
+   <section class="panel" style="border:1px solid var(--line);border-top:4px solid var(--blue);background:var(--surface)">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
      <div>
-      <h3 style="margin:0;color:var(--ok);display:flex;align-items:center;gap:8px">
-       ✓ 2. Historique des opérations soldées & recouvrées à 100% (${paidInvoices.length})
+      <h3 style="margin:0;display:flex;align-items:center;gap:8px">
+       📜 2. Historique des opérations facturées · ${labelMetier} (${invoicedList.length})
       </h3>
-      <small class="muted">Traçabilité complète des encaissements finalisés. Utilisez la barre de recherche pour consulter un historique spécifique.</small>
+      <small class="muted">Traçabilité des facturations enregistrées et mesure de la durée mise pour facturer. Recherche en temps réel disponible.</small>
      </div>
-     <span class="badge b-ok" style="font-weight:700">Recouvrement Métier : ${dTaux}%</span>
+     <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" data-act="printRecouvrement">🖨️ Imprimer Suivi Facturation</button>
+     </div>
     </div>
 
     <!-- Barre de recherche dédiée dans l'historique -->
-    <div style="margin-bottom:14px;max-width:520px">
-     <input type="search" class="field-inline grow" data-bind-search="recHistQ" placeholder="🔍 Rechercher dans cet historique soldé (N° facture, client, réf...)" value="${esc(recHistQ)}">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+     <div style="display:flex;gap:8px;align-items:center;flex:1;max-width:520px">
+      <input type="search" class="field-inline grow" data-bind-search="facHistQ" placeholder="🔍 Rechercher dans cet historique (N° facture, dossier, TC, client, observation...)" value="${esc(facHistQ)}">
+     </div>
+     <div class="chips" style="margin:0">
+      ${filterChips.map(f => `<button class="chip" data-facfilter="${f}" aria-pressed="${facFilter === f}">${f} <span class="c">${
+        f === 'Tous' ? invoicedList.length :
+        f === '≤ 3 jours' ? invoicedList.filter(i => i.delaiFacture != null && i.delaiFacture <= 3).length :
+        f === '> 3 jours' ? invoicedList.filter(i => i.delaiFacture != null && i.delaiFacture > 3).length :
+        f === 'En attente' ? invoicedList.filter(i => i.recStatus === 'En attente').length :
+        invoicedList.filter(i => i.recStatus === 'Recouvré').length
+      }</span></button>`).join('')}
+     </div>
     </div>
 
     <div class="tablewrap" style="margin:0">
@@ -7250,247 +7078,690 @@ function vRecouvrement() {
       <thead>
        <tr>
         <th>N° Facture</th>
-        <th>Réf. Opération</th>
-        <th>Client & Destinataire</th>
-        <th>Montant Facturé TTC</th>
-        <th>Date d'Émission</th>
-        <th>Dernier Règlement</th>
-        <th>Statut de Recouvrement</th>
+        <th>Réf. Opération liée</th>
+        <th>Client Facturé</th>
+        <th>Date Fin Opération</th>
+        <th>Date Facturation</th>
+        <th>⏱️ Durée mise pour Facturer</th>
+        <th>Statut Facturation</th>
+        <th>Suivi Recouvrement</th>
+        <th>Actions</th>
+       </tr>
+      </thead>
+      <tbody>
+       ${filteredInvoiced.map(inv => {
+        const dFac = inv.delaiFacture != null ? inv.delaiFacture : 0;
+        const isRapid = dFac <= 3;
+        const isMedium = dFac > 3 && dFac <= 7;
+        const isRec = inv.recStatus === 'Recouvré';
+        return `<tr style="border-left:4px solid ${isRec ? 'var(--ok)' : 'var(--blue)'}">
+         <td><span class="ref" style="font-size:13.5px;font-weight:700;color:var(--blue)">${esc(inv.num)}</span></td>
+         <td>
+          ${inv.category === 'transport' ? `<span class="badge b-info" style="font-size:11px">🚚 ${esc(inv.transportId || inv.dossier || 'Transport')}</span>` :
+            inv.category === 'entrepot' ? `<span class="badge b-warn" style="font-size:11px">🏭 ${esc(inv.reparationId || inv.dossier || 'Entrepôt')}</span>` :
+            `<button class="refchip" style="border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer;padding:0" data-dossier="${esc(inv.dossier)}">🚢 ${esc(inv.dossier)}${inv.cont ? ' · ' + esc(inv.cont) : ''}</button>`}
+         </td>
+         <td><b>${esc(inv.client)}</b></td>
+         <td><span>${fmt(inv.opDate || inv.depotDate || inv.livDate || inv.date)}</span></td>
+         <td><b>${fmt(inv.date)}</b></td>
+         <td>
+          <span class="badge ${isRapid ? 'b-ok' : isMedium ? 'b-info' : 'b-warn'}" style="font-weight:700">
+           ${isRapid ? '⚡' : '⏱️'} ${dFac} jour${dFac > 1 ? 's' : ''} après réalisation
+          </span>
+         </td>
+         <td><span class="badge b-ok">✓ Facturé</span></td>
+         <td>
+          ${isRec ? `<span class="badge b-ok" style="font-weight:700">✓ Recouvré${inv.delaiRecouvrement != null ? ' (' + inv.delaiRecouvrement + ' j)' : ''}</span>` :
+            `<span class="badge b-warn" style="font-weight:700">⏳ En attente Recouvrement</span>`}
+         </td>
+         <td style="white-space:nowrap;display:flex;gap:6px">
+          <button class="btn small" data-act="${inv.category === 'transport' ? 'facturerTransport' : inv.category === 'entrepot' ? 'facturerEntrepot' : 'facturerDossierTransit'}" data-id="${inv.dossier || inv.transportId || inv.reparationId || inv.id}" title="Modifier le numéro ou la date de facture">✏️ Modifier Réf.</button>
+          <button class="btn small primary${lockCls('recouvrement')}" data-act="goRecouvrementSub" data-sub="${inv.category || 'transit'}" title="Accéder au suivi dans le sous-onglet Recouvrement">→ Recouvrement</button>
+         </td>
+        </tr>`;
+       }).join('') || '<tr><td colspan="9" class="empty">Aucune opération facturée enregistrée pour ces critères de recherche.</td></tr>'}
+      </tbody>
+     </table>
+    </div>
+   </section>`;
+}
+
+/* ===================== Vue Recouvrement (Suivi du Rapprochement & Encaissement) ===================== */
+function vRecouvrement() {
+  const cS = curSite(), sObj = curSiteObj();
+  normalizeInvoicesCategory();
+  const allInvoices = siteInvoices(cS);
+
+  if(!['transit', 'entrepot', 'transport', 'vue_globale'].includes(recSub)) recSub = 'transit';
+
+  let domainInvoices = allInvoices;
+  let domainTitle = 'Vue Consolidée (Tous Métiers)';
+  if(recSub === 'transit'){
+    domainInvoices = allInvoices.filter(i => i.category === 'transit' || (!i.category && !i.transportId && !i.reparationId));
+    domainTitle = 'Recouvrement Transit Maritime';
+  } else if(recSub === 'entrepot'){
+    domainInvoices = allInvoices.filter(i => i.category === 'entrepot');
+    domainTitle = 'Recouvrement Entrepôt (Door Swap & Soudure)';
+  } else if(recSub === 'transport'){
+    domainInvoices = allInvoices.filter(i => i.category === 'transport');
+    domainTitle = 'Recouvrement Transport & Livraisons';
+  }
+
+  // Séparation nette : En cours de recouvrement vs Soldées / Recouvrées
+  const unpaidInvoices = domainInvoices.filter(i => i.recStatus !== 'Recouvré');
+  const paidInvoices = domainInvoices.filter(i => i.recStatus === 'Recouvré');
+
+  const qRecHist = (recHistQ || '').toLowerCase().trim();
+  const filteredPaid = paidInvoices.filter(i => {
+    return !qRecHist || [i.id, i.num, i.dossier, i.client, i.recRef, i.recMode, i.obs].join(' ').toLowerCase().includes(qRecHist);
+  });
+
+  const totDom = domainInvoices.length;
+  const totAttente = unpaidInvoices.length;
+  const totRecouvres = paidInvoices.length;
+  const tauxRec = totDom ? Math.round((totRecouvres / totDom) * 100) : 100;
+
+  // Calcul délai moyen de recouvrement
+  const delaisRec = paidInvoices.map(i => i.delaiRecouvrement).filter(d => d != null);
+  const avgDelaiRec = delaisRec.length ? (delaisRec.reduce((a, b) => a + b, 0) / delaisRec.length).toFixed(1) : '—';
+
+  return siteBanner(`Suivi du Recouvrement des Opérations · ${sObj.name}`) +
+  hero('finance', `Recouvrement · ${sObj.icon} ${sObj.name}`, 'Suivi du recouvrement des opérations préalablement facturées dans chaque métier (Transit, Entrepôt, Transport). Visualisation du temps mis pour recouvrer les créances et clôture des règlements.',
+   `<div><b>${n0(totAttente)}</b>dossier${totAttente>1?'s':''} en attente de règlement</div>`+
+   `<div><b>${tauxRec}%</b>taux de recouvrement</div>`+
+   `<div><b>${avgDelaiRec} ${avgDelaiRec !== '—' ? 'j' : ''}</b>délai moyen de recouvrement</div>`) +
+  `
+   <!-- Sous-onglets Recouvrement -->
+   <div class="seg" role="group" aria-label="Sous-onglets Recouvrement" style="margin-bottom:16px">
+    <button data-recsub="transit" aria-pressed="${recSub==='transit'}">🚢 Transit (${allInvoices.filter(i => (i.category==='transit'||!i.category)&&i.recStatus!=='Recouvré').length ? `<b style="color:#DC2626">${allInvoices.filter(i => (i.category==='transit'||!i.category)&&i.recStatus!=='Recouvré').length} en attente</b>` : '✓ À jour'})</button>
+    <button data-recsub="entrepot" aria-pressed="${recSub==='entrepot'}">🏭 Entrepôt (${allInvoices.filter(i => i.category==='entrepot'&&i.recStatus!=='Recouvré').length ? `<b style="color:#DC2626">${allInvoices.filter(i => i.category==='entrepot'&&i.recStatus!=='Recouvré').length} en attente</b>` : '✓ À jour'})</button>
+    <button data-recsub="transport" aria-pressed="${recSub==='transport'}">🚚 Transport (${allInvoices.filter(i => i.category==='transport'&&i.recStatus!=='Recouvré').length ? `<b style="color:#DC2626">${allInvoices.filter(i => i.category==='transport'&&i.recStatus!=='Recouvré').length} en attente</b>` : '✓ À jour'})</button>
+    <button data-recsub="vue_globale" aria-pressed="${recSub==='vue_globale'}">🌐 Vue Consolidée (${allInvoices.filter(i => i.recStatus!=='Recouvré').length} créance${allInvoices.filter(i => i.recStatus!=='Recouvré').length>1?'s':''})</button>
+   </div>
+
+   <!-- KPIs Recouvrement -->
+   <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr));margin-bottom:16px">
+    <div class="kpi" style="cursor:default;border-left:4px solid ${totAttente ? '#EA580C' : 'var(--ok)'}">
+     <span>En Cours de Recouvrement</span>
+     <b style="color:${totAttente ? '#EA580C' : 'var(--ok)'}">${n0(totAttente)}</b>
+     <small class="muted">${totAttente} facture${totAttente>1?'s':''} en attente de règlement client</small>
+    </div>
+    <div class="kpi t-ok" style="cursor:default">
+     <span>Dossiers Recouvrés & Soldés</span>
+     <b>${n0(totRecouvres)}</b>
+     <small class="muted">${tauxRec}% du volume total de ${totDom} factures</small>
+    </div>
+    <div class="kpi" style="cursor:default;border-left:4px solid var(--blue)">
+     <span>Délai Moyen de Recouvrement</span>
+     <b style="color:var(--blue)">${avgDelaiRec} ${avgDelaiRec !== '—' ? 'jours' : ''}</b>
+     <small class="muted">Temps moyen entre facturation et encaissement</small>
+    </div>
+    <div class="kpi" style="cursor:default;border-left:4px solid #8B5CF6">
+     <span style="color:#8B5CF6">Métier Actif</span>
+     <b style="color:#8B5CF6;font-size:16px">${domainTitle.replace('Recouvrement ', '')}</b>
+     <small class="muted">${totDom} dossier${totDom>1?'s':''} transmis au recouvrement</small>
+    </div>
+   </div>
+
+   <!-- ==================== RUBRIQUE 1 : CRÉANCES EN COURS DE RECOUVREMENT ==================== -->
+   <section class="panel" style="margin-bottom:20px;border-left:5px solid #EA580C;background:var(--surface)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+     <div>
+      <h3 style="margin:0;color:#C2410C;display:flex;align-items:center;gap:8px">
+       💳 1. Suivi des opérations en cours de recouvrement · ${domainTitle} (${unpaidInvoices.length})
+      </h3>
+      <small class="muted">Opérations préalablement facturées transmises automatiquement ici. Cliquez sur « Valider Recouvrement » dès réception du règlement.</small>
+     </div>
+    </div>
+
+    <div class="tablewrap" style="margin:0">
+     <table>
+      <thead>
+       <tr>
+        <th>N° Facture</th>
+        <th>Réf. Opération liée</th>
+        <th>Client Débiteur</th>
+        <th>Date Facturation</th>
+        <th>Délai Facturation Initial</th>
+        <th>Temps d'Attente Règlement</th>
+        <th>Statut Recouvrement</th>
+        <th>Action Recouvrement</th>
+       </tr>
+      </thead>
+      <tbody>
+       ${unpaidInvoices.map(inv => {
+        const attenteJours = calcDelaiFacture(inv.date, TODAY_ISO) || 0;
+        const isLateWait = attenteJours > 15;
+        return `<tr style="border-left:4px solid ${isLateWait ? 'var(--bad)' : '#EA580C'}">
+         <td><span class="ref" style="font-size:13.5px;font-weight:700;color:var(--blue)">${esc(inv.num)}</span></td>
+         <td>
+          ${inv.category === 'transport' ? `<span class="badge b-info" style="font-size:11px">🚚 ${esc(inv.transportId || inv.dossier || 'Transport')}</span>` :
+            inv.category === 'entrepot' ? `<span class="badge b-warn" style="font-size:11px">🏭 ${esc(inv.reparationId || inv.dossier || 'Entrepôt')}</span>` :
+            `<button class="refchip" style="border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer;padding:0" data-dossier="${esc(inv.dossier)}">🚢 ${esc(inv.dossier)}${inv.cont ? ' · ' + esc(inv.cont) : ''}</button>`}
+         </td>
+         <td><b>${esc(inv.client)}</b></td>
+         <td><b>${fmt(inv.date)}</b></td>
+         <td>
+          <span class="badge b-info" style="font-size:11.5px">
+           Facturé en ${inv.delaiFacture != null ? inv.delaiFacture + ' j' : '—'}
+          </span>
+         </td>
+         <td>
+          <span class="badge ${isLateWait ? 'b-bad' : 'b-warn'}" style="font-weight:700">
+           ⏱️ ${attenteJours} j en attente
+          </span>
+         </td>
+         <td><span class="badge b-warn" style="font-weight:700">⏳ En attente de règlement</span></td>
+         <td style="white-space:nowrap">
+          <button class="btn small primary${lockCls('recouvrement')}" data-act="validerRecouvrement" data-id="${inv.id}">✓ Valider Recouvrement</button>
+         </td>
+        </tr>`;
+       }).join('') || '<tr><td colspan="8" class="empty">Toutes les opérations de ce métier ont été recouvrées et soldées !</td></tr>'}
+      </tbody>
+     </table>
+    </div>
+   </section>
+
+   <!-- ==================== RUBRIQUE 2 : HISTORIQUE DÉTACHÉ DES OPÉRATIONS RECOUVRÉES ==================== -->
+   <section class="panel" style="border:1px solid var(--line);border-top:4px solid var(--ok);background:var(--surface)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+     <div>
+      <h3 style="margin:0;display:flex;align-items:center;gap:8px">
+       📜 2. Historique des opérations soldées & recouvrées · ${domainTitle} (${paidInvoices.length})
+      </h3>
+      <small class="muted">Archive chronologique des opérations dont le règlement a été perçu. Recherche ciblée disponible.</small>
+     </div>
+     <button class="btn" data-act="printRecouvrement">🖨️ Imprimer Bordereau</button>
+    </div>
+
+    <!-- Barre de recherche dédiée dans l'historique de recouvrement -->
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;max-width:540px">
+     <input type="search" class="field-inline grow" data-bind-search="recHistQ" placeholder="🔍 Rechercher dans les opérations soldées (N° facture, dossier, client, réf règlement...)" value="${esc(recHistQ)}">
+    </div>
+
+    <div class="tablewrap" style="margin:0">
+     <table>
+      <thead>
+       <tr>
+        <th>N° Facture</th>
+        <th>Réf. Opération liée</th>
+        <th>Client</th>
+        <th>Date Facturation</th>
+        <th>Date Recouvrement</th>
+        <th>⏱️ Durée mise pour Recouvrer</th>
+        <th>Mode & Réf. Règlement</th>
+        <th>Statut Recouvrement</th>
         <th>Actions</th>
        </tr>
       </thead>
       <tbody>
        ${filteredPaid.map(inv => {
-        const pay = (S.payments||[]).filter(p => p.invoiceId === inv.id).slice(-1)[0];
+        const dRec = inv.delaiRecouvrement != null ? inv.delaiRecouvrement : calcDelaiFacture(inv.date, inv.recDate || TODAY_ISO);
         return `<tr style="border-left:4px solid var(--ok)">
-         <td><span class="ref">${esc(inv.num)}</span></td>
+         <td><span class="ref" style="font-size:13.5px;font-weight:700">${esc(inv.num)}</span></td>
          <td>
           ${inv.category === 'transport' ? `<span class="badge b-info" style="font-size:11px">🚚 ${esc(inv.transportId || inv.dossier || 'Transport')}</span>` :
             inv.category === 'entrepot' ? `<span class="badge b-warn" style="font-size:11px">🏭 ${esc(inv.reparationId || inv.dossier || 'Entrepôt')}</span>` :
             `<button class="refchip" style="border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer;padding:0" data-dossier="${esc(inv.dossier)}">🚢 ${esc(inv.dossier)}</button>`}
          </td>
          <td><b>${esc(inv.client)}</b></td>
-         <td class="num"><b style="color:var(--ok);font-size:14.5px">${n0(inv.ttc)} FCFA</b></td>
-         <td>${fmt(inv.date)}</td>
+         <td><span>${fmt(inv.date)}</span></td>
+         <td><b style="color:var(--ok)">${fmt(inv.recDate || inv.date)}</b></td>
          <td>
-          ${pay ? `<b>${fmt(pay.date)}</b><br><small class="muted">${esc(pay.mode)} (${esc(pay.bank||pay.ref||'—')})</small>` : '<span>Acquitté</span>'}
+          <span class="badge b-ok" style="font-weight:700">
+           ⚡ ${dRec} jour${dRec > 1 ? 's' : ''} après facture
+          </span>
          </td>
-         <td><span class="badge b-ok" style="font-weight:700">✓ Soldé / Payé à 100%</span></td>
          <td>
-          <button class="btn small" data-act="viewInvoice" data-id="${inv.id}">👁️ Reçu & Facture</button>
+          <b>${esc(inv.recMode || 'Virement bancaire')}</b><br>
+          <small class="muted">${esc(inv.recRef || inv.obs || 'Règlement validé')}</small>
+         </td>
+         <td><span class="badge b-ok" style="font-weight:700">✓ Soldé & Recouvré</span></td>
+         <td style="white-space:nowrap">
+          <button class="btn small" data-act="validerRecouvrement" data-id="${inv.id}" title="Consulter ou rectifier les références de recouvrement">✏️ Modifier</button>
          </td>
         </tr>`;
-       }).join('') || '<tr><td colspan="8" class="empty">Aucune facture soldée enregistrée dans cet historique pour ces critères de recherche.</td></tr>'}
+       }).join('') || '<tr><td colspan="9" class="empty">Aucune opération recouvrée enregistrée dans cet historique pour ces critères de recherche.</td></tr>'}
       </tbody>
      </table>
     </div>
-   </section>
-  `;
- }
-
- return siteBanner(`Recouvrement, encaissements et balance âgée · ${sObj.name}`) +
- hero('money', `Recouvrement · ${sObj.icon} ${sObj.name}`, 'Suivi analytique des règlements par métier (Transit, Entrepôt, Transport) et traçabilité des créances soldées.',
-  `<div><b>${tauxGlobal}%</b>taux global d’encaissement</div><div><b>${fcfa(totalRestant)}</b>solde total à recouvrer</div><div><b>${allPayments.length}</b>règlements enregistrés</div>`) +
- `
-  <!-- Sous-onglets Métier Recouvrement -->
-  <div class="seg" role="group" aria-label="Métiers Recouvrement" style="margin-bottom:16px">
-   <button data-recsub="transit" aria-pressed="${recSub==='transit'}">🚢 Transit (${allInvoices.filter(i=> (i.category==='transit'||(!i.category&&!i.transportId&&!i.reparationId)) && i.balance>0).length ? 'Créances actives' : 'Soldé'})</button>
-   <button data-recsub="entrepot" aria-pressed="${recSub==='entrepot'}">🏭 Entrepôt (${allInvoices.filter(i=> i.category==='entrepot' && i.balance>0).length ? 'Créances actives' : 'Soldé'})</button>
-   <button data-recsub="transport" aria-pressed="${recSub==='transport'}">🚚 Transport (${allInvoices.filter(i=> i.category==='transport' && i.balance>0).length ? 'Créances actives' : 'Soldé'})</button>
-   <button data-recsub="vue_globale" aria-pressed="${recSub==='vue_globale'}">📊 Vue Consolidée & Règlements</button>
-  </div>
-
-  <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr));margin-bottom:16px">
-   <div class="kpi" style="cursor:default;border-left:4px solid var(--blue)">
-    <span>Volume Facturé TTC (${recSub==='vue_globale'?'Global':domainTitle.split(' ')[1]})</span>
-    <b style="color:var(--blue)">${fcfa(dTotTTC)}</b>
-    <small class="muted">${domainInvoices.length} dossier${domainInvoices.length>1?'s':''} facturé${domainInvoices.length>1?'s':''}</small>
-   </div>
-   <div class="kpi t-ok" style="cursor:default">
-    <span>Montant Encaissé</span>
-    <b>${fcfa(dTotPaid)}</b>
-    <small class="muted">Taux de recouvrement : <b>${dTaux}%</b></small>
-   </div>
-   <div class="kpi t-warn" style="cursor:default">
-    <span>Créances en Cours</span>
-    <b>${n0(unpaidInvoices.length)}</b>
-    <small class="muted">En attente de paiement</small>
-   </div>
-   <div class="kpi t-bad" style="cursor:default">
-    <span>Solde Restant Dû</span>
-    <b>${fcfa(dTotBal)}</b>
-    <small class="muted">À recouvrer</small>
-   </div>
-  </div>
-
-  ${subContent}
- `;
+   </section>`;
 }
 
-/* ===================== Modales d'émission spécifiques ===================== */
+/* ===================== Modales d'attribution de facturation & validation recouvrement ===================== */
 
 function facturerDossierTransit(num){
- newInvoice(num);
+  if(!guard('facturation')) return;
+  const cS = curSite();
+  const d = siteDossiers(cS).find(x => x.num === num || x.id === num);
+  if(!d){ toast('Dossier de transit introuvable.','bad'); return; }
+
+  const dDate = d.D6 || d.depotage?.date || d.D5 || d.D3 || TODAY_ISO;
+  const qDep = d.depotage?.total || 140;
+  const client = d.client || (d.trans?.includes('SKCI') ? 'SKCI' : 'SKCI');
+  const existingInv = getInvoiceForDossier(d.num);
+
+  S.seq.FAC = (S.seq.FAC || 5) + 1;
+  const defFacNum = existingInv ? existingInv.num : (cS === 'sanpedro' ? 'FAC-SP-2026-' + String(S.seq.FAC).padStart(2, '0') : 'FAC-2026-' + String(S.seq.FAC).padStart(3, '0'));
+  const defDate = existingInv ? existingInv.date : TODAY_ISO;
+  const initDelai = calcDelaiFacture(dDate, defDate) || 0;
+
+  openModal(`📋 Enregistrer la Facturation · Dossier Transit ${d.num}`,
+    `<div class="panel" style="margin-bottom:14px;background:var(--surface-2);border-left:4px solid var(--blue);padding:12px 14px">
+      <div style="font-weight:700;color:var(--text);margin-bottom:8px;font-size:13.5px">🔍 Éléments de contrôle du dossier (vérification) :</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;font-size:12.5px">
+        <div><small class="muted">N° Dossier :</small><br><b class="num" style="color:var(--blue);font-size:13.5px">${esc(d.num)}</b></div>
+        <div><small class="muted">Conteneur (TC) :</small><br><b class="num">${esc(d.cont)}</b></div>
+        <div><small class="muted">Armateur / B/L :</small><br><b>${esc(d.lam || '—')}</b> · <span class="muted">${esc(d.bl || '—')}</span></div>
+        <div><small class="muted">Date Dépotage (D6) :</small><br><b style="color:#059669">${fmt(dDate)}</b></div>
+        <div><small class="muted">Palettes dépotées :</small><br><b>${n0(qDep)} palettes</b></div>
+        <div><small class="muted">Client destinataire :</small><br><b>${esc(client)}</b></div>
+      </div>
+    </div>` +
+    fld('Numéro de Facture associé', 'num', 'text', { req: 1, value: defFacNum, ph: 'Ex. FAC-2026-005, FAC-SKCI-889...' }) +
+    fld('Date effective de Facturation', 'date', 'date', { req: 1, value: defDate }) +
+    `<div class="full" style="padding:10px 14px;border-radius:8px;background:#F0FDF4;border:1px solid #BBF7D0;margin:10px 0;display:flex;align-items:center;gap:10px">
+      <span style="font-size:22px">⏱️</span>
+      <div>
+        <b style="font-size:13px;color:#166534">Durée mise pour réaliser la facturation :</b><br>
+        <span id="fac_delai_text" style="font-size:13.5px;color:#15803D;font-weight:700">${initDelai} jour${initDelai > 1 ? 's' : ''} après dépotage</span>
+      </div>
+    </div>` +
+    fld('Client facturé', 'client', 'text', { req: 1, value: client }) +
+    fld('Observations / Références internes', 'obs', 'textarea', { full: 1, value: existingInv?.obs || '', ph: 'Notes de facturation, bon de commande client...' }),
+    '✓ Valider la facturation & Transmettre au Recouvrement',
+    (data) => {
+      const e = req(data, ['num', 'date', 'client']);
+      if (Object.keys(e).length) return e;
+
+      const curDelai = calcDelaiFacture(dDate, data.date) || 0;
+
+      save(`Facturation enregistrée pour le dossier ${d.num} (Facture ${data.num}).`, () => {
+        let inv = (S.invoices || []).find(i => i.dossier === d.num);
+        if (inv) {
+          inv.num = data.num.trim();
+          inv.date = data.date;
+          inv.client = data.client.trim();
+          inv.delaiFacture = curDelai;
+          inv.opDate = dDate;
+          inv.category = 'transit';
+          inv.obs = data.obs?.trim() || '';
+          if (!inv.recStatus) inv.recStatus = inv.status === 'Payée' ? 'Recouvré' : 'En attente';
+        } else {
+          inv = {
+            id: data.num.trim(),
+            num: data.num.trim(),
+            site: curSite(),
+            category: 'transit',
+            dossier: d.num,
+            cont: d.cont,
+            bl: d.bl,
+            lam: d.lam,
+            date: data.date,
+            opDate: dDate,
+            delaiFacture: curDelai,
+            client: data.client.trim(),
+            status: 'Facturé',
+            recStatus: 'En attente',
+            recDate: null,
+            recRef: '',
+            recMode: '',
+            lines: [],
+            ht: 0,
+            tva: 0,
+            ttc: 0,
+            paid: 0,
+            balance: 0,
+            createdBy: S.me,
+            createdAt: nowISO(),
+            obs: data.obs?.trim() || ''
+          };
+          S.invoices.unshift(inv);
+        }
+
+        d.facture = {
+          num: data.num.trim(),
+          date: data.date,
+          delai: curDelai,
+          status: 'Facturé'
+        };
+
+        audit('Facturation dossier transit', d.num, `Facture ${data.num} attribuée · Délai : ${curDelai} j`);
+        closeModal();
+        render();
+        toast(`✓ Dossier ${d.num} facturé (Facture ${data.num}, délai : ${curDelai} j) et transmis automatiquement au Recouvrement !`, 'ok');
+      }, submitBtn());
+    },
+    { wide: true }
+  );
+
+  setTimeout(() => {
+    const dateInput = $('input[name="date"]');
+    if (dateInput) {
+      dateInput.addEventListener('input', () => {
+        const val = dateInput.value;
+        const dDays = calcDelaiFacture(dDate, val);
+        const tSpan = $('#fac_delai_text');
+        if (tSpan) {
+          tSpan.textContent = dDays != null ? `${dDays} jour${dDays > 1 ? 's' : ''} après dépotage` : '—';
+        }
+      });
+    }
+  }, 100);
 }
 
 function facturerTransport(transId){
- if(!guard('facturation')) return;
- const cS = curSite();
- const t = (S.transports||[]).find(x => x.id === transId) || (S.planifications||[]).find(x => x.id === transId || x.transport === transId);
- if(!t){ toast('Transport introuvable.','bad'); return; }
+  if(!guard('facturation')) return;
+  const cS = curSite();
+  const t = (S.transports || []).find(x => x.id === transId) || (S.planifications || []).find(x => x.id === transId || x.transport === transId);
+  if(!t){ toast('Transport introuvable.','bad'); return; }
 
- const pln = (S.planifications||[]).find(p => p.transport === t.id);
- const lv = (S.deliveries||[]).find(l => l.id === t.liv || l.transport === t.id);
- const refItr = t.itr || pln?.itr || lv?.itr || '';
- const refPo = t.po || pln?.po || lv?.po || '';
- const destName = t.to || 'Client Transport';
- const clientName = destName.split('·')[0].trim() || 'SKCI';
+  const pln = (S.planifications || []).find(p => p.transport === t.id);
+  const lv = (S.deliveries || []).find(l => l.id === t.liv || l.transport === t.id);
+  const refItr = t.itr || pln?.itr || lv?.itr || '';
+  const refPo = t.po || pln?.po || lv?.po || '';
+  const destName = t.to || 'Client Transport';
+  const clientName = destName.split('·')[0].trim() || 'SKCI';
+  const dateLiv = t.arrR || t.arrP || TODAY_ISO;
 
- S.seq.FAC = (S.seq.FAC || 5) + 1;
- const facId = cS === 'sanpedro' ? 'FAC-SP-2026-' + String(S.seq.FAC).padStart(2, '0') : 'FAC-2026-' + String(S.seq.FAC).padStart(3, '0');
+  const existingInv = getInvoiceForTransport(t.id, refItr);
 
- const defTarif = destInfo(destName).tarif || 85000;
+  S.seq.FAC = (S.seq.FAC || 5) + 1;
+  const defFacNum = existingInv ? existingInv.num : (cS === 'sanpedro' ? 'FAC-SP-2026-' + String(S.seq.FAC).padStart(2, '0') : 'FAC-2026-' + String(S.seq.FAC).padStart(3, '0'));
+  const defDate = existingInv ? existingInv.date : TODAY_ISO;
+  const initDelai = calcDelaiFacture(dateLiv, defDate) || 0;
 
- openModal(`Émettre la facture de transport · ${t.id}`,
-  fld('N° de Facture généré', 'num', 'text', { req: 1, value: facId, readonly: 1 }) +
-  fld('Réf. Transport concerné', 'transId', 'text', { req: 1, value: t.id, readonly: 1 }) +
-  fld('Numéro ITR / PO client', 'itr', 'text', { value: `ITR: ${refItr} · PO: ${refPo}`, readonly: 1 }) +
-  fld('Client facturé', 'client', 'text', { req: 1, value: clientName }) +
-  fld('Destination & Trajet', 'trajet', 'text', { full: 1, value: `${t.from} → ${destName}`, readonly: 1 }) +
-  fld('Date d’émission', 'date', 'date', { req: 1, value: TODAY_ISO }) +
-  fld('Date d’échéance de règlement (30j)', 'due', 'date', { req: 1, value: iso(30), min: TODAY_ISO }) +
-  `<div class="full" style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);margin:10px 0">
-    <b style="font-size:13.5px;color:var(--text)">Prestation de transport :</b>
-    <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-top:8px">
-     <div><small class="muted">Prestation</small><input type="text" id="inv_tr_desc" value="Traction & Transport routier (${t.qty} palettes vers ${destName})" readonly style="font-size:12px"></div>
-     <div><small class="muted">Quantité</small><input type="number" id="inv_tr_q" value="1" min="1" readonly></div>
-     <div><small class="muted">Tarif HT (FCFA)</small><input type="number" id="inv_tr_p" value="${defTarif}" min="0"></div>
-    </div>
-   </div>` +
-  fld('Observations / Références chauffeur', 'obs', 'textarea', { full: 1, value: `Transport ${t.id} effectué par ${t.trans||'Transporteur'} · Chauffeur : ${t.driver||'—'} (${t.veh||'—'})` }),
-  'Émettre la facture de transport', (data) => {
-   const e = req(data, ['num', 'client', 'date', 'due']);
-   if (Object.keys(e).length) return e;
+  openModal(`📋 Enregistrer la Facturation · Transport ${t.id}`,
+    `<div class="panel" style="margin-bottom:14px;background:var(--surface-2);border-left:4px solid var(--blue);padding:12px 14px">
+      <div style="font-weight:700;color:var(--text);margin-bottom:8px;font-size:13.5px">🔍 Éléments de contrôle du transport (vérification) :</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;font-size:12.5px">
+        <div><small class="muted">Réf. Transport :</small><br><b class="num" style="color:var(--blue);font-size:13.5px">${esc(t.id)}</b></div>
+        <div><small class="muted">N° ITR / PO :</small><br><b>${esc(refItr)}</b> <span class="muted">/ ${esc(refPo)}</span></div>
+        <div><small class="muted">Trajet & Destination :</small><br><b>${esc(t.from)} → ${esc(destName)}</b></div>
+        <div><small class="muted">Date Livraison :</small><br><b style="color:#059669">${fmt(dateLiv)}</b></div>
+        <div><small class="muted">Palettes livrées :</small><br><b>${n0(t.qty)} palettes</b></div>
+        <div><small class="muted">Chauffeur & Véhicule :</small><br><b>${esc(t.driver || '—')}</b> (${esc(t.veh || '—')})</div>
+      </div>
+    </div>` +
+    fld('Numéro de Facture associé', 'num', 'text', { req: 1, value: defFacNum, ph: 'Ex. FAC-2026-TR-01...' }) +
+    fld('Date effective de Facturation', 'date', 'date', { req: 1, value: defDate }) +
+    `<div class="full" style="padding:10px 14px;border-radius:8px;background:#F0FDF4;border:1px solid #BBF7D0;margin:10px 0;display:flex;align-items:center;gap:10px">
+      <span style="font-size:22px">⏱️</span>
+      <div>
+        <b style="font-size:13px;color:#166534">Durée mise pour réaliser la facturation :</b><br>
+        <span id="fac_delai_text" style="font-size:13.5px;color:#15803D;font-weight:700">${initDelai} jour${initDelai > 1 ? 's' : ''} après livraison</span>
+      </div>
+    </div>` +
+    fld('Client facturé', 'client', 'text', { req: 1, value: clientName }) +
+    fld('Observations / Références internes', 'obs', 'textarea', { full: 1, value: existingInv?.obs || '', ph: 'Notes de facturation transport...' }),
+    '✓ Valider la facturation & Transmettre au Recouvrement',
+    (data) => {
+      const e = req(data, ['num', 'date', 'client']);
+      if (Object.keys(e).length) return e;
 
-   const ht = +($('#inv_tr_p')?.value || defTarif);
-   const tva = Math.round(ht * 0.18);
-   const ttc = ht + tva;
+      const curDelai = calcDelaiFacture(dateLiv, data.date) || 0;
 
-   const lines = [
-    { desc: $('#inv_tr_desc')?.value || `Transport routier vers ${destName}`, qty: 1, unit: 'Trajet', price: ht, total: ht }
-   ];
+      save(`Facturation enregistrée pour le transport ${t.id} (Facture ${data.num}).`, () => {
+        let inv = (S.invoices || []).find(i => i.transportId === t.id || (i.category === 'transport' && i.dossier === t.id));
+        if (inv) {
+          inv.num = data.num.trim();
+          inv.date = data.date;
+          inv.client = data.client.trim();
+          inv.delaiFacture = curDelai;
+          inv.opDate = dateLiv;
+          inv.category = 'transport';
+          inv.obs = data.obs?.trim() || '';
+          if (!inv.recStatus) inv.recStatus = inv.status === 'Payée' ? 'Recouvré' : 'En attente';
+        } else {
+          inv = {
+            id: data.num.trim(),
+            num: data.num.trim(),
+            site: curSite(),
+            category: 'transport',
+            transportId: t.id,
+            itr: refItr,
+            dossier: t.id,
+            date: data.date,
+            opDate: dateLiv,
+            delaiFacture: curDelai,
+            client: data.client.trim(),
+            status: 'Facturé',
+            recStatus: 'En attente',
+            recDate: null,
+            recRef: '',
+            recMode: '',
+            lines: [],
+            ht: 0,
+            tva: 0,
+            ttc: 0,
+            paid: 0,
+            balance: 0,
+            createdBy: S.me,
+            createdAt: nowISO(),
+            obs: data.obs?.trim() || ''
+          };
+          S.invoices.unshift(inv);
+        }
 
-   save(`Facture de transport ${data.num} (${fcfa(ttc)}) émise avec succès.`, () => {
-    S.invoices.unshift({
-     id: data.num,
-     num: data.num,
-     site: curSite(),
-     category: 'transport',
-     transportId: t.id,
-     itr: refItr,
-     dossier: t.id,
-     date: data.date,
-     due: data.due,
-     client: data.client.trim(),
-     contact: 'Service Logistique & Facturation',
-     address: destName,
-     lines,
-     ht,
-     taxRate: 18,
-     tva,
-     ttc,
-     paid: 0,
-     balance: ttc,
-     status: 'Émise',
-     createdBy: S.me,
-     createdAt: nowISO(),
-     obs: data.obs?.trim() || ''
-    });
-    audit('Émission facture transport', data.num, `Transport ${t.id} · Total TTC : ${fcfa(ttc)}`);
-    closeModal();
-    render();
-    toast(`Facture ${data.num} générée et transmise au Recouvrement Transport !`, 'ok');
-    setTimeout(() => viewInvoice(data.num), 80);
-   }, submitBtn());
-  }, { wide: true });
+        audit('Facturation transport', t.id, `Facture ${data.num} attribuée · Délai : ${curDelai} j`);
+        closeModal();
+        render();
+        toast(`✓ Transport ${t.id} facturé (Facture ${data.num}, délai : ${curDelai} j) et transmis automatiquement au Recouvrement !`, 'ok');
+      }, submitBtn());
+    },
+    { wide: true }
+  );
+
+  setTimeout(() => {
+    const dateInput = $('input[name="date"]');
+    if (dateInput) {
+      dateInput.addEventListener('input', () => {
+        const val = dateInput.value;
+        const dDays = calcDelaiFacture(dateLiv, val);
+        const tSpan = $('#fac_delai_text');
+        if (tSpan) {
+          tSpan.textContent = dDays != null ? `${dDays} jour${dDays > 1 ? 's' : ''} après livraison` : '—';
+        }
+      });
+    }
+  }, 100);
 }
 
 function facturerEntrepot(repId){
- if(!guard('facturation')) return;
- const cS = curSite();
- const r = (S.reparations||[]).find(x => x.id === repId);
- if(!r){ toast('Opération entrepôt introuvable.','bad'); return; }
+  if(!guard('facturation')) return;
+  const cS = curSite();
+  const r = (S.reparations || []).find(x => x.id === repId);
+  if(!r){ toast('Opération entrepôt introuvable.','bad'); return; }
 
- const isSwap = r.kind === 'DOOR SWAP';
- const clientName = 'SKCI';
+  const isSwap = r.kind === 'DOOR SWAP';
+  const clientName = 'SKCI';
+  const dateOp = r.dateOp || r.date?.slice(0, 10) || TODAY_ISO;
 
- S.seq.FAC = (S.seq.FAC || 5) + 1;
- const facId = cS === 'sanpedro' ? 'FAC-SP-2026-' + String(S.seq.FAC).padStart(2, '0') : 'FAC-2026-' + String(S.seq.FAC).padStart(3, '0');
+  const existingInv = getInvoiceForReparation(r.id, r.lot);
 
- const defP = isSwap ? 75000 : (r.qty * 2500);
+  S.seq.FAC = (S.seq.FAC || 5) + 1;
+  const defFacNum = existingInv ? existingInv.num : (cS === 'sanpedro' ? 'FAC-SP-2026-' + String(S.seq.FAC).padStart(2, '0') : 'FAC-2026-' + String(S.seq.FAC).padStart(3, '0'));
+  const defDate = existingInv ? existingInv.date : TODAY_ISO;
+  const initDelai = calcDelaiFacture(dateOp, defDate) || 0;
 
- openModal(`Émettre la facture Entrepôt · ${r.id} (${r.kind})`,
-  fld('N° de Facture généré', 'num', 'text', { req: 1, value: facId, readonly: 1 }) +
-  fld('Réf. Opération Entrepôt', 'repId', 'text', { req: 1, value: r.id, readonly: 1 }) +
-  fld('Lot & Type intervention', 'lot', 'text', { value: `${r.lot} · ${r.kind}`, readonly: 1 }) +
-  fld('Client facturé', 'client', 'text', { req: 1, value: clientName }) +
-  fld('Date d’émission', 'date', 'date', { req: 1, value: TODAY_ISO }) +
-  fld('Date d’échéance de règlement (30j)', 'due', 'date', { req: 1, value: iso(30), min: TODAY_ISO }) +
-  `<div class="full" style="padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);margin:10px 0">
-    <b style="font-size:13.5px;color:var(--text)">Prestation Entrepôt :</b>
-    <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-top:8px">
-     <div><small class="muted">Prestation</small><input type="text" id="inv_ent_desc" value="${isSwap ? `Opération de DOOR SWAP (${r.qty} palettes sales vers Lavage)` : `Reconditionnement & Soudure de ${r.qty} palettes sales`}" readonly style="font-size:12px"></div>
-     <div><small class="muted">Palettes</small><input type="number" id="inv_ent_q" value="${r.qty}" min="1" readonly></div>
-     <div><small class="muted">Tarif HT (FCFA)</small><input type="number" id="inv_ent_p" value="${defP}" min="0"></div>
-    </div>
-   </div>` +
-  fld('Observations / Références', 'obs', 'textarea', { full: 1, value: `Prestation ${r.kind} (Lot ${r.lot}) réalisée à l’Entrepôt GoodPack · ${r.qty} palettes traitées.` }),
-  'Émettre la facture Entrepôt', (data) => {
-   const e = req(data, ['num', 'client', 'date', 'due']);
-   if (Object.keys(e).length) return e;
+  openModal(`📋 Enregistrer la Facturation · ${r.id} (${r.kind})`,
+    `<div class="panel" style="margin-bottom:14px;background:var(--surface-2);border-left:4px solid var(--blue);padding:12px 14px">
+      <div style="font-weight:700;color:var(--text);margin-bottom:8px;font-size:13.5px">🔍 Éléments de contrôle de l’intervention (vérification) :</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;font-size:12.5px">
+        <div><small class="muted">Réf. Intervention :</small><br><b class="num" style="color:var(--blue);font-size:13.5px">${esc(r.id)}</b></div>
+        <div><small class="muted">Type d’opération :</small><br><b>${isSwap ? '⇄ DOOR SWAP' : '🔧 Soudure'}</b></div>
+        <div><small class="muted">Lot Entrepôt :</small><br><b class="num">${esc(r.lot)}</b></div>
+        <div><small class="muted">Date de réalisation :</small><br><b style="color:#059669">${fmt(dateOp)}</b></div>
+        <div><small class="muted">Palettes traitées :</small><br><b>${n0(r.qty)} palettes</b></div>
+        <div><small class="muted">Client destinataire :</small><br><b>${clientName}</b></div>
+      </div>
+    </div>` +
+    fld('Numéro de Facture associé', 'num', 'text', { req: 1, value: defFacNum, ph: 'Ex. FAC-2026-ENT-01...' }) +
+    fld('Date effective de Facturation', 'date', 'date', { req: 1, value: defDate }) +
+    `<div class="full" style="padding:10px 14px;border-radius:8px;background:#F0FDF4;border:1px solid #BBF7D0;margin:10px 0;display:flex;align-items:center;gap:10px">
+      <span style="font-size:22px">⏱️</span>
+      <div>
+        <b style="font-size:13px;color:#166534">Durée mise pour réaliser la facturation :</b><br>
+        <span id="fac_delai_text" style="font-size:13.5px;color:#15803D;font-weight:700">${initDelai} jour${initDelai > 1 ? 's' : ''} après réalisation</span>
+      </div>
+    </div>` +
+    fld('Client facturé', 'client', 'text', { req: 1, value: clientName }) +
+    fld('Observations / Références internes', 'obs', 'textarea', { full: 1, value: existingInv?.obs || '', ph: 'Notes de facturation entrepôt...' }),
+    '✓ Valider la facturation & Transmettre au Recouvrement',
+    (data) => {
+      const e = req(data, ['num', 'date', 'client']);
+      if (Object.keys(e).length) return e;
 
-   const ht = +($('#inv_ent_p')?.value || defP);
-   const tva = Math.round(ht * 0.18);
-   const ttc = ht + tva;
+      const curDelai = calcDelaiFacture(dateOp, data.date) || 0;
 
-   const lines = [
-    { desc: $('#inv_ent_desc')?.value || `Prestation Entrepôt ${r.kind}`, qty: r.qty, unit: 'Palettes', price: Math.round(ht/r.qty), total: ht }
-   ];
+      save(`Facturation enregistrée pour l'opération entrepôt ${r.id} (Facture ${data.num}).`, () => {
+        let inv = (S.invoices || []).find(i => i.reparationId === r.id || (i.category === 'entrepot' && (i.lot === r.lot || i.dossier === r.id)));
+        if (inv) {
+          inv.num = data.num.trim();
+          inv.date = data.date;
+          inv.client = data.client.trim();
+          inv.delaiFacture = curDelai;
+          inv.opDate = dateOp;
+          inv.category = 'entrepot';
+          inv.obs = data.obs?.trim() || '';
+          if (!inv.recStatus) inv.recStatus = inv.status === 'Payée' ? 'Recouvré' : 'En attente';
+        } else {
+          inv = {
+            id: data.num.trim(),
+            num: data.num.trim(),
+            site: curSite(),
+            category: 'entrepot',
+            reparationId: r.id,
+            lot: r.lot,
+            dossier: r.id,
+            date: data.date,
+            opDate: dateOp,
+            delaiFacture: curDelai,
+            client: data.client.trim(),
+            status: 'Facturé',
+            recStatus: 'En attente',
+            recDate: null,
+            recRef: '',
+            recMode: '',
+            lines: [],
+            ht: 0,
+            tva: 0,
+            ttc: 0,
+            paid: 0,
+            balance: 0,
+            createdBy: S.me,
+            createdAt: nowISO(),
+            obs: data.obs?.trim() || ''
+          };
+          S.invoices.unshift(inv);
+        }
 
-   save(`Facture entrepôt ${data.num} (${fcfa(ttc)}) émise avec succès.`, () => {
-    S.invoices.unshift({
-     id: data.num,
-     num: data.num,
-     site: curSite(),
-     category: 'entrepot',
-     reparationId: r.id,
-     lot: r.lot,
-     dossier: r.lot || r.id,
-     date: data.date,
-     due: data.due,
-     client: data.client.trim(),
-     contact: 'Service Entrepôt & Maintenance',
-     address: 'Entrepôt Vridi GoodPack',
-     lines,
-     ht,
-     taxRate: 18,
-     tva,
-     ttc,
-     paid: 0,
-     balance: ttc,
-     status: 'Émise',
-     createdBy: S.me,
-     createdAt: nowISO(),
-     obs: data.obs?.trim() || ''
-    });
-    audit('Émission facture entrepôt', data.num, `Opération ${r.id} (${r.kind}) · Total TTC : ${fcfa(ttc)}`);
-    closeModal();
-    render();
-    toast(`Facture ${data.num} générée et transmise au Recouvrement Entrepôt !`, 'ok');
-    setTimeout(() => viewInvoice(data.num), 80);
-   }, submitBtn());
-  }, { wide: true });
+        audit('Facturation entrepôt', r.id, `Facture ${data.num} attribuée · Délai : ${curDelai} j`);
+        closeModal();
+        render();
+        toast(`✓ Opération entrepôt ${r.id} facturée (Facture ${data.num}, délai : ${curDelai} j) et transmise automatiquement au Recouvrement !`, 'ok');
+      }, submitBtn());
+    },
+    { wide: true }
+  );
+
+  setTimeout(() => {
+    const dateInput = $('input[name="date"]');
+    if (dateInput) {
+      dateInput.addEventListener('input', () => {
+        const val = dateInput.value;
+        const dDays = calcDelaiFacture(dateOp, val);
+        const tSpan = $('#fac_delai_text');
+        if (tSpan) {
+          tSpan.textContent = dDays != null ? `${dDays} jour${dDays > 1 ? 's' : ''} après réalisation` : '—';
+        }
+      });
+    }
+  }, 100);
 }
+
+function validerRecouvrement(invId){
+  if(!guard('recouvrement')) return;
+  const inv = (S.invoices || []).find(i => i.id === invId || i.num === invId);
+  if(!inv){ toast('Facture introuvable.','bad'); return; }
+
+  const facDate = inv.date || TODAY_ISO;
+  const initDelaiRec = calcDelaiFacture(facDate, TODAY_ISO) || 0;
+
+  openModal(`💳 Suivi du Recouvrement · Facture ${inv.num}`,
+    `<div class="panel" style="margin-bottom:14px;background:var(--surface-2);border-left:4px solid #16A34A;padding:12px 14px">
+      <div style="font-weight:700;color:var(--text);margin-bottom:8px;font-size:13.5px">🔍 Références de l’opération à recouvrer :</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;font-size:12.5px">
+        <div><small class="muted">N° Facture :</small><br><b class="num" style="color:var(--blue);font-size:14px">${esc(inv.num)}</b></div>
+        <div><small class="muted">Réf. Opération liée :</small><br><b>${esc(inv.dossier || inv.transportId || inv.reparationId || '—')}</b></div>
+        <div><small class="muted">Client débiteur :</small><br><b>${esc(inv.client)}</b></div>
+        <div><small class="muted">Date Facturation :</small><br><b>${fmt(facDate)}</b></div>
+        <div><small class="muted">Délai initial de facturation :</small><br><span class="badge b-info">${inv.delaiFacture != null ? inv.delaiFacture + ' jours' : '—'}</span></div>
+      </div>
+    </div>` +
+    fld('Date de règlement / encaissement', 'recDate', 'date', { req: 1, value: inv.recDate || TODAY_ISO }) +
+    fld('Mode de règlement client', 'recMode', 'select', {
+      req: 1,
+      options: [['Virement bancaire', 'Virement bancaire'], ['Chèque', 'Chèque bancaire'], ['Traite', 'Traite / Billet'], ['Espèces', 'Versement espèces'], ['Compensation', 'Compensation compte client']],
+      value: inv.recMode || 'Virement bancaire'
+    }) +
+    fld('Banque & Référence du règlement', 'recRef', 'text', { req: 1, value: inv.recRef || '', ph: 'Ex. SGBCI · VIR-882910, Chèque NSIA 441029...' }) +
+    `<div class="full" style="padding:10px 14px;border-radius:8px;background:#F0FDF4;border:1px solid #BBF7D0;margin:10px 0;display:flex;align-items:center;gap:10px">
+      <span style="font-size:22px">⏱️</span>
+      <div>
+        <b style="font-size:13px;color:#166534">Durée mise pour réaliser le recouvrement :</b><br>
+        <span id="rec_delai_text" style="font-size:13.5px;color:#15803D;font-weight:700">${initDelaiRec} jour${initDelaiRec > 1 ? 's' : ''} après facturation</span>
+      </div>
+    </div>` +
+    fld('Observations / Note de clôture', 'obs', 'textarea', { full: 1, value: inv.obs || '', ph: 'Notes de rapprochement bancaire...' }),
+    '✓ Confirmer le Recouvrement (Soldé)',
+    (data) => {
+      const e = req(data, ['recDate', 'recMode', 'recRef']);
+      if (Object.keys(e).length) return e;
+
+      const delaiRec = calcDelaiFacture(facDate, data.recDate) || 0;
+
+      save(`Recouvrement confirmé pour la facture ${inv.num}.`, () => {
+        inv.recStatus = 'Recouvré';
+        inv.recDate = data.recDate;
+        inv.recMode = data.recMode;
+        inv.recRef = data.recRef.trim();
+        inv.delaiRecouvrement = delaiRec;
+        inv.status = 'Payée';
+        inv.balance = 0;
+        inv.obs = data.obs?.trim() || inv.obs || '';
+
+        const dos = (S.dossiers || []).find(d => d.num === inv.dossier);
+        if (dos && dos.facture) {
+          dos.facture.recStatus = 'Recouvré';
+          dos.facture.recDate = data.recDate;
+          dos.facture.delaiRecouvrement = delaiRec;
+        }
+
+        audit('Recouvrement validé', inv.num, `Facture ${inv.num} recouvrée en ${delaiRec} j · Réf: ${data.recRef}`);
+        closeModal();
+        render();
+        toast(`✓ Facture ${inv.num} marquée comme recouvrée avec succès (délai : ${delaiRec} j) !`, 'ok');
+      }, submitBtn());
+    },
+    { wide: true }
+  );
+
+  setTimeout(() => {
+    const dateInput = $('input[name="recDate"]');
+    if (dateInput) {
+      dateInput.addEventListener('input', () => {
+        const val = dateInput.value;
+        const dDays = calcDelaiFacture(facDate, val);
+        const tSpan = $('#rec_delai_text');
+        if (tSpan) {
+          tSpan.textContent = dDays != null ? `${dDays} jour${dDays > 1 ? 's' : ''} après facturation` : '—';
+        }
+      });
+    }
+  }, 100);
+}
+
 
 function newInvoice(presetDossierId = null) {
  if (!guard('facturation')) return;
@@ -8284,7 +8555,7 @@ document.addEventListener('click',e=>{
   finishReparation:()=>finishReparation(id),
   commentMove:()=>commentMove(id),
   newTransport,newDemandeTransport,newDestination,newLivraison,newOperateur,newConv,newUser,newDriver,
-  facturerDossierTransit:()=>facturerDossierTransit(id),facturerTransport:()=>facturerTransport(id),facturerEntrepot:()=>facturerEntrepot(id),newInvoice:()=>newInvoice(id),viewInvoice:()=>viewInvoice(id),newPayment:()=>newPayment(id),newRelance:()=>newRelance(id),printRecouvrement,
+  facturerDossierTransit:()=>facturerDossierTransit(id),facturerTransport:()=>facturerTransport(id),facturerEntrepot:()=>facturerEntrepot(id),validerRecouvrement:()=>validerRecouvrement(id),goRecouvrementSub:()=>{recSub=a.dataset.sub||'transit';goTab('recouvrement')},newInvoice:()=>newInvoice(id),viewInvoice:()=>viewInvoice(id),newPayment:()=>newPayment(id),newRelance:()=>newRelance(id),printRecouvrement,
   validerStockPlanif:()=>validerStockPlanif(id),
   confirmerCamionPlanif:()=>confirmerCamionPlanif(id),
   goSuiviTransports:()=>{lvSub='suivi';goTab('livraisons')},
