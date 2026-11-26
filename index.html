@@ -5856,7 +5856,7 @@ function openTransportDetails(id){
      ? '<span class="badge b-ok" style="padding:6px 14px;font-size:12.5px;font-weight:700">✓ Dossier clôturé</span>'
      : (isPendingTr
         ? (!pln?.stockValAt
-           ? `<button class="btn small" disabled style="opacity:0.6;cursor:not-allowed" title="Le dépôt doit d’abord valider la réservation du stock">⏳ Attente validation Dépôt</button>`
+           ? ''
            : `<button class="btn primary small" onclick="closeModal();programmerTransportPlanif('${target.id}')">Programmer le transport & Valider</button>`
           )
         : ''));
@@ -6003,7 +6003,7 @@ function vTransport(){
        <td>${camOk ? badge('ok', 'Effectué', '✓') : badge('warn', 'En attente', '⏳')}</td>
        <td style="white-space:nowrap">
         ${p.status === 'Clôturé' ? '<span class="badge b-ok" style="font-weight:700">✓ Clôturé</span>' : `
-        ${stockOk ? `<button class="btn small primary" data-act="programmerTransportPlanif" data-id="${esc(p.id)}">Programmer & Valider</button>` : `<button class="btn small" disabled style="opacity:0.6;cursor:not-allowed" title="Le dépôt doit d’abord valider la réservation du stock">⏳ Attente validation Dépôt</button>`}
+        ${stockOk ? `<button class="btn small primary" data-act="programmerTransportPlanif" data-id="${esc(p.id)}">Programmer & Valider</button>` : ''}
         <button class="btn small" data-act="openTransportDetails" data-id="${esc(p.id)}">Détails</button>
         <button class="btn small danger" data-act="cancelPlanif" data-id="${esc(p.id)}" title="Annuler la programmation et l’exporter dans l’historique">Annuler</button>
         `}
@@ -6548,7 +6548,7 @@ function vLivraisons(){
     }
     const p = (S.planifications||[]).find(x => x.liv === l.id || x.id === l.id);
     if(!p?.stockValAt){
-     return `<button class="btn small" disabled style="opacity:0.6;cursor:not-allowed" title="Le dépôt doit d’abord valider la réservation du stock">⏳ Attente validation Dépôt</button> <button class="btn small danger${lockCls('livraisons')}" data-act="cancelPlanif" data-id="${l.id}" title="Annuler la demande (motif obligatoire)">Annuler</button>`;
+     return `<button class="btn small danger${lockCls('livraisons')}" data-act="cancelPlanif" data-id="${l.id}" title="Annuler la demande (motif obligatoire)">Annuler</button>`;
     }
     return `<button class="btn small primary${lockCls('transport')}" data-act="programmerTransportPlanif" data-id="${l.id}">Programmer Transport</button> <button class="btn small danger${lockCls('livraisons')}" data-act="cancelPlanif" data-id="${l.id}" title="Annuler la demande (motif obligatoire)">Annuler</button>`;
    })()}
