@@ -3844,7 +3844,7 @@ function vEntrepot(){
       <small style="color:#92400E;font-size:12.5px;font-weight:600">Validez la réservation du stock demandée pour autoriser le Transport à programmer le camion, chauffeur et transporteur.</small>
      </div>
     </div>
-    ${pendPlns.length?badge('warn',`${pendPlns.length} planification${pendPlns.length>1?'s':''} en cours (attente validation réservation stock)`,'⏳'):badge('ok','Aucune demande de transport en attente','✓')}
+    ${pendPlns.length?badge('warn',`${pendPlns.length} planification${pendPlns.length>1?'s':''} en cours`,'⏳'):badge('ok','Aucune demande de transport en attente','✓')}
    </div>
    <div style="padding:14px 18px">
     <div class="tablewrap"><table style="margin:0"><thead><tr><th>Réf. Demande</th><th>Numéro ITR</th><th>Purchase Order (PO)</th><th>Destination</th><th>Stock requis</th><th class="right">Quantité</th><th>Chargement souhaité</th><th>Action Dépôt</th></tr></thead><tbody>
