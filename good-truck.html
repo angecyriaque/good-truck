@@ -1544,7 +1544,8 @@ function alerts(){
   else if(x.k==='anom')a.push({k:'bad',ic:'⚠',t:`${d.num} : incohérence de dates`,s:'La date de retour du conteneur précède l’arrivée du navire.',go:()=>openDossier(d.id)});
   else if(x.k==='warn')a.push({k:'warn',ic:'!',t:`${d.num} : franchise en cours (J+${x.el}, reste ${Math.abs(x.diffFin||0)} j avant fin de franchise)`,s:`Conteneur ${d.cont} non encore retourné`,go:()=>openDossier(d.id)});
  });
- siteReceptions(cS).filter(r=>r.status==='En attente').forEach(r=>a.push({k:'warn',ic:'📥',t:`${r.id} (${r.dossier}) : dépotage à valider en entrepôt`,s:`${r.total} palettes en attente de contrôle & mise en stock`,go:()=>{ent='stock';goTab('entrepot')}}));
+ (S.transfers||[]).filter(t=>t.status==='En transit'&&t.toSite===cS).forEach(t=>a.push({k:'warn',ic:'🚚',t:`${t.id} : transport à recevoir depuis ${siteName(t.fromSite)}`,s:`${n0(t.qty)} palettes ${catL(t.cat)} par ${t.trans} (${t.veh})`,go:()=>{trFilter='Tous';trSub='missions';goTab('transport')}}));
+  siteReceptions(cS).filter(r=>r.status==='En attente').forEach(r=>a.push({k:'warn',ic:'📥',t:`${r.id} (${r.dossier}) : dépotage à valider en entrepôt`,s:`${r.total} palettes en attente de contrôle & mise en stock`,go:()=>{ent='stock';goTab('entrepot')}}));
  siteTransports(cS).filter(trLate).forEach(t=>a.push({k:'warn',ic:'◷',t:`${t.id} : livraison en retard`,s:`Prévue le ${fmt(t.arrP)} · ${t.to}`,go:()=>goTab('transport')}));
  siteDeliveries(cS).filter(l=>l.qtyRec!=null&&l.qtyRec!==l.qtyShip&&l.status!=='Clôturée').forEach(l=>a.push({k:'warn',ic:'≠',t:`${l.id} : écart de réception`,s:`${l.qtyShip} expédiées, ${l.qtyRec} reçues`,go:()=>goTab('livraisons')}));
  if(dispo('SKCI',cS)<150)a.push({k:'bad',ic:'▼',t:`Stock propre SKCI faible (${siteName(cS)})`,s:`${n0(dispo('SKCI',cS))} disponibles (seuil de sécurité : 150)`,go:()=>{ent='dispo';goTab('entrepot')}});
@@ -3840,6 +3841,67 @@ function vEntrepot(){
   ['dispo','Disponibilité SKCI / Global']
  ];
 
+ /* Section des transferts / transports inter-sites à recevoir */
+ const pendingTransfertsIncomingTable=()=>{
+  const inc = (S.transfers||[]).filter(t => t.toSite === cS && t.status === 'En transit');
+  if(!inc.length) return '';
+  return `<section class="panel" style="margin-bottom:20px;padding:0;border-radius:14px;border:2.5px solid #2563EB;border-left:9px solid #1D4ED8;overflow:hidden;background:var(--surface);box-shadow:0 4px 14px rgba(37,99,235,0.15)">
+   <div style="background:linear-gradient(135deg,#DBEAFE 0%,#BFDBFE 100%);padding:14px 18px;border-bottom:2.5px solid #2563EB;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:12px">
+     <span style="background:#1D4ED8;color:#FFF;padding:4px 10px;border-radius:7px;font-size:11.5px;font-weight:800;letter-spacing:0.6px;box-shadow:0 2px 4px rgba(29,78,216,0.4)">TRANSFERT INTER-SITES</span>
+     <div>
+      <h3 style="margin:0;font-size:15.5px;color:#1E3A8A;font-weight:800">Transports à recevoir en provenance de ${siteName(otherSite(cS))} (${inc.length})</h3>
+      <small style="color:#1D4ED8;font-size:12.5px;font-weight:600">Palettes expédiées par camion vers ${siteName(cS)} en attente d’arrivée physique et de confirmation de réception dans le stock.</small>
+     </div>
+    </div>
+    <span class="badge b-warn pulse-badge" style="font-weight:700">🚚 ${n0(inc.reduce((a,t)=>a+(+t.qty||0),0))} palettes en chemin</span>
+   </div>
+   <div style="padding:14px 18px">
+    <div class="tablewrap"><table style="margin:0"><thead><tr>
+     <th>N° Transfert</th>
+     <th>N° ITR / PO</th>
+     <th>Trajet & Sites</th>
+     <th>Catégorie de palettes</th>
+     <th class="right">Quantité</th>
+     <th>Transporteur</th>
+     <th>Camion · Chauffeur</th>
+     <th>Date départ</th>
+     <th>Arrivée prévue</th>
+     <th>Statut</th>
+     <th>Action</th>
+    </tr></thead><tbody>
+    ${inc.map(t=>{
+     const fromName=siteName(t.fromSite), toName=siteName(t.toSite);
+     const fromIc=siteIcon(t.fromSite), toIc=siteIcon(t.toSite);
+     const catCol=DEP_CAT_META[t.cat]?.col||'var(--ok)';
+     return `<tr>
+      <td><span class="ref">${esc(t.id)}</span></td>
+      <td><b class="num" style="color:var(--blue)">${esc(t.itr)}</b><br><small class="muted">${esc(t.po)}</small></td>
+      <td style="white-space:nowrap">
+       <div style="display:flex;align-items:center;gap:6px">
+        <span class="badge" style="background:var(--surface-2);border:1px solid var(--line);font-weight:700">${fromIc} ${fromName}</span>
+        <b style="color:var(--blue);font-size:14px">➔</b>
+        <span class="badge" style="background:#DCFCE7;border:1px solid #86EFAC;color:#166534;font-weight:700">${toIc} ${toName}</span>
+       </div>
+      </td>
+      <td><b style="color:${catCol}">${catL(t.cat)}</b> <span class="badge b-info">${esc(t.model||'MB5')}</span></td>
+      <td class="right num"><b style="font-size:16px;color:var(--blue)">${n0(t.qty)}</b></td>
+      <td><b title="Camion : ${esc(t.veh||'—')} · Chauffeur : ${esc(t.driver||'—')}">${esc(t.trans)}</b></td>
+      <td><span class="num" style="font-weight:700;color:var(--navy)">${esc(t.veh)}</span><br><small>${esc(t.driver)} (${esc(t.driverPhone)})</small></td>
+      <td><b>${fmt(t.dateDep)}</b></td>
+      <td><b>${fmt(t.dateArrP)}</b> <small class="muted">(prévue)</small></td>
+      <td><span class="badge b-warn pulse-badge">🚚 En transit</span></td>
+      <td style="white-space:nowrap;display:flex;gap:6px">
+       <button class="btn small primary${lockCls('entrepot')}" data-act="confirmReceptionTransfert" data-id="${t.id}" style="background:#15803D;border-color:#166534;color:#FFF;font-weight:700" title="Valider la réception de ce transfert dans le stock de ${toName}">✓ Confirmer réception</button>
+       <button class="btn small" data-act="viewTransfertBon" data-id="${t.id}" title="Afficher le bon de transfert">Bon de transfert</button>
+      </td>
+     </tr>`;
+    }).join('')}
+    </tbody></table></div>
+   </div>
+  </section>`;
+ };
+
  /* Tableau des réceptions en attente dans Stock & Réceptions : gestion progressive du cycle de vie du conteneur */
  const pendingRecTable=()=>{
   return `<section class="panel" style="margin-bottom:20px;padding:0;border-radius:14px;border:2.5px solid #6D28D9;border-left:9px solid #4C1D95;overflow:hidden;background:var(--surface);box-shadow:0 4px 14px rgba(109,40,217,0.15)">
@@ -4108,6 +4170,7 @@ function vEntrepot(){
  let body='';
  if(!['stock','transferts','receptions','lavage','reparations','mouvements','dispo'].includes(ent)) ent='stock';
  if(ent==='stock')body=cycleBar+
+   pendingTransfertsIncomingTable()+
    pendingPlnStockTable()+
    pendingRecTable()+
    `<!-- CADRANT RUBRIQUE 4 : SITUATION & DISPONIBILITÉ DES STOCKS -->
@@ -5793,13 +5856,14 @@ function openTransportDetails(id){
 /* ===================== Transport & Destinations Clients ===================== */
 function vTransport(){
  const cS=curSite();
- const sts=['Tous','En cours','Planifié','Brouillon','Incident'];
+ const incomingTrfs=(S.transfers||[]).filter(t=>t.toSite===cS&&t.status==='En transit');
+ const sts=['Tous','En cours','Planifié','À recevoir'+(incomingTrfs.length?` (${incomingTrfs.length})`:''),'Brouillon','Incident'];
  const list=siteTransports(cS).filter(t=>t.status!=='Clôturé'&&(!t.arrR||t.status==='En cours')&&(trFilter==='Tous'||(trFilter==='Incident'?t.incidents.length:t.status===trFilter))).slice().reverse();
  const pendPlns=sitePlanifications(cS).filter(p=>p.status!=='Annulée'&&p.status!=='Clôturé'&&(!p.stockValAt||!p.camionValAt||!p.transport));
  const histPlns=sitePlanifications(cS).filter(p=>p.status==='Annulée');
  const dests=siteDestinations(cS);
  const subBar=`<div class="seg" role="group" aria-label="Espaces Transport" style="margin-bottom:14px">
-  <button data-trsub="missions" aria-pressed="${trSub==='missions'}">Transports en cours (${list.length})</button>
+  <button data-trsub="missions" aria-pressed="${trSub==='missions'}">Transports en cours (${list.length + incomingTrfs.length})</button>
   <button data-trsub="planning" aria-pressed="${trSub==='planning'}">Planning & Commandes</button>
   <button data-trsub="destinations" aria-pressed="${trSub==='destinations'}">Trajets & Destinations (${dests.length})</button>
   <button data-trsub="chauffeurs" aria-pressed="${trSub==='chauffeurs'}">Répertoire Chauffeurs (${(S.drivers||[]).length})</button>
@@ -5993,17 +6057,129 @@ function vTransport(){
    </tbody>
   </table></div>`;
  }else{
+  const isARecevoirFilter = trFilter.startsWith('À recevoir');
+  const showIncoming = incomingTrfs.length > 0 && (trFilter === 'Tous' || trFilter === 'En cours' || isARecevoirFilter);
+  const incomingSection = showIncoming ? `<section class="panel" style="margin-bottom:18px;padding:0;border-radius:12px;border:2.5px solid #2563EB;border-left:9px solid #1D4ED8;overflow:hidden;background:var(--surface);box-shadow:0 4px 14px rgba(37,99,235,0.15)">
+   <div style="background:linear-gradient(135deg,#DBEAFE 0%,#BFDBFE 100%);padding:12px 18px;border-bottom:2px solid #2563EB;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:10px">
+     <span style="font-size:22px">🚚</span>
+     <div>
+      <h3 style="margin:0;font-size:15px;color:#1E3A8A;font-weight:800">Transports inter-sites à recevoir en provenance de ${siteName(otherSite(cS))} (${incomingTrfs.length})</h3>
+      <small style="color:#1D4ED8;font-size:12.5px;font-weight:600">Transferts inter-sites actuellement en transit routier vers ${siteName(cS)}.</small>
+     </div>
+    </div>
+    <span class="badge b-warn pulse-badge" style="font-weight:700">🚚 En cours d’acheminement</span>
+   </div>
+   <div class="tablewrap" style="margin:0">
+    <table style="margin:0">
+     <thead>
+      <tr>
+       <th>N° Transfert</th>
+       <th>N° ITR / PO</th>
+       <th>Provenance & Trajet</th>
+       <th>Catégorie de palettes</th>
+       <th class="right">Quantité</th>
+       <th>Transporteur</th>
+       <th>Camion · Chauffeur</th>
+       <th>Date départ</th>
+       <th>Arrivée prévue</th>
+       <th>Statut</th>
+       <th>Action</th>
+      </tr>
+     </thead>
+     <tbody>
+      ${incomingTrfs.map(t => {
+        const fromName = siteName(t.fromSite), toName = siteName(t.toSite);
+        const fromIc = siteIcon(t.fromSite), toIc = siteIcon(t.toSite);
+        const catCol = DEP_CAT_META[t.cat]?.col || 'var(--ok)';
+        return `<tr>
+         <td><span class="ref">${esc(t.id)}</span></td>
+         <td><b class="num" style="color:var(--blue)">${esc(t.itr)}</b><br><small class="muted">${esc(t.po)}</small></td>
+         <td style="white-space:nowrap">
+          <div style="display:flex;align-items:center;gap:6px">
+           <span class="badge" style="background:var(--surface-2);border:1px solid var(--line);font-weight:700">${fromIc} ${fromName}</span>
+           <b style="color:var(--blue);font-size:14px">➔</b>
+           <span class="badge" style="background:#DCFCE7;border:1px solid #86EFAC;color:#166534;font-weight:700">${toIc} ${toName}</span>
+          </div>
+         </td>
+         <td><b style="color:${catCol}">${catL(t.cat)}</b> <span class="badge b-info">${esc(t.model||'MB5')}</span></td>
+         <td class="right num"><b style="font-size:16px;color:var(--blue)">${n0(t.qty)}</b></td>
+         <td><b title="Camion : ${esc(t.veh||'—')} · Chauffeur : ${esc(t.driver||'—')}">${esc(t.trans)}</b></td>
+         <td><span class="num" style="font-weight:700;color:var(--navy)">${esc(t.veh)}</span><br><small>${esc(t.driver)} (${esc(t.driverPhone)})</small></td>
+         <td><b>${fmt(t.dateDep)}</b></td>
+         <td><b>${fmt(t.dateArrP)}</b> <small class="muted">(prévue)</small></td>
+         <td><span class="badge b-warn pulse-badge">🚚 En transit</span></td>
+         <td style="white-space:nowrap;display:flex;gap:6px">
+          <button class="btn small primary${lockCls('entrepot')}" data-act="confirmReceptionTransfert" data-id="${t.id}" style="background:#15803D;border-color:#166534;color:#FFF;font-weight:700" title="Confirmer la réception de ce transport et entrer les palettes dans le stock de ${toName}">✓ Confirmer réception</button>
+          <button class="btn small" data-act="viewTransfertBon" data-id="${t.id}" title="Afficher le bon de transfert">Bon de transfert</button>
+         </td>
+        </tr>`;
+      }).join('')}
+     </tbody>
+    </table>
+   </div>
+  </section>` : '';
+
+  const incomingCards = showIncoming ? incomingTrfs.map(transferCard) : [];
+  const displayCards = isARecevoirFilter ? incomingCards : (trFilter === 'Tous' || trFilter === 'En cours' ? [...incomingCards, ...list.map(tCard)] : list.map(tCard));
+
   content=`<div class="toolbar">
    <div class="chips grow">${sts.map(s=>`<button class="chip" data-tf="${s}" aria-pressed="${trFilter===s}">${s}</button>`).join('')}</div>
    <button class="btn${lockCls('transport')}" data-act="newDestination">${plus()}Nouvelle destination</button>
    <button class="btn primary" onclick="goTab('livraisons')">📅 Programmer un transport (Planning)</button>
   </div>
-  <div class="tcards">${list.map(tCard).join('')||'<p class="empty">Aucun transport pour ce filtre.</p>'}</div>`;
+  ${incomingSection}
+  <div class="tcards">${displayCards.join('')||'<p class="empty">Aucun transport pour ce filtre.</p>'}</div>`;
  }
  return hero('truck','Transport & Planification','Planification des expéditions vers les destinations clients repertoriées.',
   `<div><b>${n0(dispo('SKCI'))}</b>dispo Stock SKCI</div><div><b>${n0(dispo('Global'))}</b>dispo Stock Classique</div><div><b>${n0(reserved('Tous'))}</b>réservées par Transport</div>`)+
   subBar+stockBanner+content+renderTransportSynthese(cS);
 }
+function transferCard(t){
+ const pl = (t.cat === 'propre_skci' ? 'SKCI' : 'Global');
+ const catCol = DEP_CAT_META[t.cat]?.col || 'var(--ok)';
+ return `<article class="tcard" data-act="viewTransfertBon" data-id="${esc(t.id)}" style="cursor:pointer;border-left:5px solid #2563EB" title="Cliquez pour voir le bon de transfert">
+  <div class="head">
+   <div>
+    <div style="display:flex;align-items:center;gap:6px">
+     <span class="badge" style="background:#DBEAFE;color:#1D4ED8;font-weight:700;font-size:11px">TRANSIT INTER-SITES</span>
+     <span class="badge b-warn pulse-badge" style="font-size:11px">À recevoir</span>
+    </div>
+    <h3 style="margin-top:4px">${t.id}</h3>
+    <div style="font-size:13px;margin-top:4px;display:flex;flex-direction:column;gap:2px">
+     <div>Transporteur : <b>${esc(t.trans)}</b></div>
+     <div>Camion : <b class="num" style="color:var(--blue)">${esc(t.veh)}</b></div>
+     <div>Chauffeur : <b>${esc(t.driver||'—')}</b> (${esc(t.driverPhone||'')})</div>
+    </div>
+   </div>
+   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+    <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">
+     <span class="badge" style="background:var(--surface-2);border:1px solid var(--line);font-weight:700">${siteIcon(t.fromSite)} ${siteName(t.fromSite)}</span>
+     <b style="color:var(--blue)">➔</b>
+     <span class="badge" style="background:#DCFCE7;border:1px solid #86EFAC;color:#166534;font-weight:700">${siteIcon(t.toSite)} ${siteName(t.toSite)}</span>
+    </div>
+    <span class="badge b-warn pulse-badge">🚚 En transit</span>
+   </div>
+  </div>
+  <div class="route" style="height:auto;margin-top:6px">
+   <div class="pins">
+    <span>🛫 ${siteName(t.fromSite)}</span>
+    <span style="text-align:right">🎯 ${siteName(t.toSite)}</span>
+   </div>
+  </div>
+  <div class="meta" style="grid-template-columns:1fr 1fr;gap:8px 12px;margin-top:10px">
+   <div><div>Départ effectif : <b>${fmt(t.dateDep)||'—'}</b></div></div>
+   <div><div>Arrivée prévue : <b>${fmt(t.dateArrP)||'—'}</b></div></div>
+   <div>Palettes : <b style="color:${catCol}">${n0(t.qty)} ${catL(t.cat)} (${esc(t.model||'MB5')})</b></div>
+   <div>ITR / PO : <b>${esc(t.itr)} · ${esc(t.po)}</b></div>
+  </div>
+  <div class="acts" style="margin-top:12px">
+   <button class="btn small primary${lockCls('entrepot')}" data-act="confirmReceptionTransfert" data-id="${t.id}" style="background:#15803D;border-color:#166534;color:#FFF;font-weight:700" title="Confirmer la réception de ce transfert et mettre à jour le stock">✓ Confirmer réception</button>
+   <button class="btn small" data-act="viewTransfertBon" data-id="${t.id}">Bon de transfert</button>
+  </div>
+ </article>`;
+}
+
 function tCard(t){
  const i=TSTEPS.indexOf(t.status),late=trLate(t),run=t.status==='En cours';
  const pl=t.pool||destPool(t.to),dst=destInfo(t.to);
