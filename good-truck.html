@@ -3106,7 +3106,13 @@ function confirmerRecuperationTC(id){
     </div>
    </div>`+
   fld('Date effective de restitution / enlèvement','D8','date',{req:1,value:TODAY_ISO,min:minDate})+
-  fld('Transporteur ayant effectué l’enlèvement','trans','text',{req:1,value:dos.trans||'',full:1})+
+  (dos.trans ? `<div class="fld full" style="margin-bottom:12px">
+   <label style="font-weight:700;font-size:12.5px;color:var(--muted)">Transporteur (même transporteur désigné pour transport & restitution)</label>
+   <div style="padding:9px 12px;background:var(--surface-2);border:1.5px solid #A7F3D0;border-radius:8px;font-weight:700;font-size:13.5px;color:#065F46">
+    🚚 ${esc(dos.trans)}
+   </div>
+   <input type="hidden" name="trans" value="${esc(dos.trans)}">
+  </div>` : fld('Transporteur (acheminement & récupération retour port)','trans','text',{req:1,value:'',full:1}))+
   fld('N° Bon d’enlèvement / Reçu port (EIR)','bonEIR','text',{ph:'Ex: EIR-2026-9942 (facultatif)'})+
   fld('Observations restitution','obs','textarea',{ph:'Observations éventuelles lors du départ du conteneur vide…'}),
   'Valider la restitution & Clôturer', data => {
@@ -3840,10 +3846,11 @@ function vEntrepot(){
     <div class="tablewrap"><table style="margin:0"><thead><tr>
      <th>N° TC / Réception</th>
      <th>Dossier Transit</th>
+     <th>Transporteur</th>
      <th>Étape courante</th>
      <th class="right">Palettes</th>
      <th>Suivi / Dépotage</th>
-     <th style="min-width:180px">Action progressive</th>
+     <th style="min-width:160px">Action progressive</th>
     </tr></thead><tbody>
     ${activeRecs.map(r=>{
      const dos = (S.dossiers||[]).find(d => d.num === r.dossier || d.id === r.dossier);
@@ -3916,12 +3923,13 @@ function vEntrepot(){
       <td>
        <button type="button" class="refchip" style="border:0;background:none;color:var(--blue);font-size:13px;font-weight:700;cursor:pointer;padding:0" data-dossier="${esc(r.dossier)}" title="Cliquer pour ouvrir la fiche du dossier Transit">${esc(r.dossier)}</button>
       </td>
+      <td><b style="color:#1E293B;font-size:13.5px">${esc(dos?.trans || '—')}</b></td>
       <td>${stepBadge}</td>
       <td class="right num"><b style="font-size:16px">${n0(r.total)}</b>${r.model&&r.model!=='MB5'?` <span class="badge b-autre">${esc(r.model)}</span>`:''}</td>
       <td>${suiviHtml}</td>
       <td style="white-space:nowrap">${actionBtnHtml}</td>
      </tr>`;
-    }).join('')||`<tr><td colspan="6" class="empty">Aucune opération de dépotage ou conteneur en attente.</td></tr>`}
+    }).join('')||`<tr><td colspan="7" class="empty">Aucune opération de dépotage ou conteneur en attente.</td></tr>`}
     </tbody></table></div>
    </div>
   </section>`;
