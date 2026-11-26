@@ -1874,6 +1874,10 @@ function confirmReceptionTransfert(trfId){
  const trf=(S.transfers||[]).find(t=>t.id===trfId);
  if(!trf){toast('Transfert introuvable.','bad');return}
  if(trf.status==='Réceptionné'){toast('Ce transfert a déjà été réceptionné.','bad');return}
+ if(curSite() !== trf.toSite){
+  toast(`Règle métier : Seul le site destinataire (${siteName(trf.toSite)}) peut valider la réception physique de ce transfert.`, 'warn');
+  return;
+ }
  openModal(`Confirmation de réception · ${trf.id}`,
   `<div class="route-banner" style="display:flex;align-items:center;justify-content:center;gap:16px;background:var(--surface-2);padding:14px;border-radius:10px;margin-bottom:14px;border:1px solid var(--line)">
     <div style="text-align:center">
@@ -1972,9 +1976,12 @@ function viewTransfertBon(trfId){
   }
  ];
 
- const actBtn = !isDone
-  ? `<button type="button" class="btn primary${lockCls('entrepot')}" onclick="closeModal();confirmReceptionTransfert('${t.id}')" style="background:#15803D;border-color:#166534;color:#FFF;font-weight:700">✓ Réceptionner</button>`
-  : `<span class="badge b-ok" style="padding:6px 14px;font-size:12.5px;font-weight:700">✓ Transfert réceptionné & clôturé</span>`;
+ const canReceive = !isDone && curSite() === t.toSite;
+ const actBtn = isDone
+  ? `<span class="badge b-ok" style="padding:6px 14px;font-size:12.5px;font-weight:700">✓ Transfert réceptionné & clôturé</span>`
+  : (canReceive
+     ? `<button type="button" class="btn primary${lockCls('entrepot')}" onclick="closeModal();confirmReceptionTransfert('${t.id}')" style="background:#15803D;border-color:#166534;color:#FFF;font-weight:700">✓ Réceptionner</button>`
+     : `<span class="badge b-warn" style="padding:6px 14px;font-size:12px;font-weight:700">⏳ Réception à valider à ${siteName(t.toSite)}</span>`);
 
  openModal(`Bon de Transfert Inter-Sites · ${t.id}`,
   `<div class="full" style="display:flex;flex-direction:column;gap:14px;font-size:13.5px">
@@ -4311,9 +4318,9 @@ function vEntrepot(){
     <td><b>${fmt(t.dateDep)}</b></td>
     <td>${isTransit?`<b>${fmt(t.dateArrP)}</b> <small class="muted">(prévue)</small>`:`<b>${fmt(t.dateArrR)}</b> <span class="badge b-ok" style="font-size:10px">Reçu</span>`}</td>
     <td>${isTransit?`<span class="badge b-warn pulse-badge">🚚 En transit</span>`:`<span class="badge b-ok">✓ Réceptionné</span>`}</td>
-    <td style="white-space:nowrap;display:flex;gap:6px">
-     ${isTransit?`<button class="btn small primary${lockCls('entrepot')}" data-act="confirmReceptionTransfert" data-id="${t.id}" title="Valider la réception de ce transfert dans le stock de ${toName}">Réceptionner</button>`:''}
-     <button class="btn small" data-act="viewTransfertBon" data-id="${t.id}" title="Afficher le bon de transfert">Détails</button>
+    <td style="white-space:nowrap;display:flex;gap:6px;align-items:center">
+     ${isTransit ? (curSite() === t.toSite ? `<button class="btn small primary${lockCls('entrepot')}" data-act="confirmReceptionTransfert" data-id="${t.id}" style="background:#15803D;border-color:#166534;color:#FFF;font-weight:700" title="Valider la réception de ce transfert dans le stock de ${toName}">Réceptionner</button>` : `<span class="badge b-warn" style="font-size:11px" title="La réception physique doit être validée par le site destinataire (${toName})">⏳ En attente à ${toName}</span>`) : ''}
+     <button class="btn small" data-act="viewTransfertBon" data-id="${t.id}" title="Afficher les détails du transfert">Détails</button>
     </td>
    </tr>`;
   }).join('')||'<tr><td colspan="10" class="empty">Aucun transfert inter-sites enregistré.</td></tr>'}
