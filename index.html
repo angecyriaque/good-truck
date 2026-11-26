@@ -3858,7 +3858,7 @@ function vEntrepot(){
       <td>${poolBadge(pool)}<br><small class="muted">Dispo : <b class="num" style="color:${enough?'var(--ok)':'var(--warn)'}">${n0(disp)}</b></small>${!enough ? `<br><span class="badge b-warn" style="font-size:10.5px;font-weight:700">🧼 Déclenche lavage (+${n0(p.qty - Math.max(0, disp))})</span>` : ''}</td>
       <td class="right num"><b style="font-size:16px">${n0(p.qty)}</b></td>
       <td><b>${fmt(p.depP)}</b> → ${fmt(p.arrP)}</td>
-      <td style="white-space:nowrap"><button class="btn small primary${lockCls('entrepot')}" data-act="validerStockPlanif" data-id="${p.id}">✓ Valider la réservation du stock</button></td>
+      <td style="white-space:nowrap"><button class="btn small primary${lockCls('entrepot')}" data-act="validerStockPlanif" data-id="${p.id}">Valider</button></td>
      </tr>`;
     }).join('')||`<tr><td colspan="8" class="empty">Aucune demande de transport en attente de validation stock.</td></tr>`}
     </tbody></table></div>
