@@ -1921,51 +1921,169 @@ function confirmReceptionTransfert(trfId){
  );
 }
 
-/* Modale d'affichage du Bon de transfert inter-sites */
+/* Modale d'affichage du Bon de transfert inter-sites (proportionnelle à la fiche de recap) */
 function viewTransfertBon(trfId){
- const t=(S.transfers||[]).find(x=>x.id===trfId);
- if(!t){toast('Transfert introuvable.','bad');return}
+ const t = (S.transfers||[]).find(x => x.id === trfId);
+ if(!t){ toast('Transfert introuvable.', 'bad'); return; }
+
+ const isDone = t.status === 'Réceptionné';
+ const catCol = DEP_CAT_META[t.cat]?.col || 'var(--ok)';
+ const qRec = t.qtyRec != null ? t.qtyRec : t.qty;
+
+ // Frise chronologique détaillée du transfert
+ const stepsFlow = [
+  {
+   title: '1. Émission du transfert & Sortie physique du stock départ',
+   sub: 'Déclaration du rééquilibrage de stock, déduction physique immédiate des palettes au site expéditeur.',
+   date: t.dateDep ? fmt(t.dateDep) : (t.createdAt ? fmtT(t.createdAt) : '—'),
+   author: t.createdBy ? user(t.createdBy).name : ('Équipe Entrepôt ' + siteName(t.fromSite)),
+   done: true,
+   statusTag: badge('ok', 'Sortie déduite', '✓'),
+   detail: `Sortie de <b>${n0(t.qty)}</b> palettes ${catL(t.cat)} validée au départ de <b>${siteIcon(t.fromSite)} ${siteName(t.fromSite)}</b>`
+  },
+  {
+   title: '2. Affectation Transporteur & Chargement Camion',
+   sub: 'Désignation de la société de transport routier, contrôle de l’immatriculation camion et contact chauffeur.',
+   date: fmt(t.dateDep) || '—',
+   author: t.trans || 'Transporteur partenaire',
+   done: true,
+   statusTag: badge('ok', 'Camion affecté', '🚚'),
+   detail: `Transporteur : <b>${esc(t.trans)}</b> · Immat Camion : <b class="num" style="color:var(--blue)">${esc(t.veh)}</b> · Chauffeur : <b>${esc(t.driver)}</b> (${esc(t.driverPhone)})`
+  },
+  {
+   title: '3. Acheminement Routier (Liaison Abidjan ⇄ San Pedro)',
+   sub: 'Transit routier sur l’axe inter-sites entre le site de départ et le quai destinataire.',
+   date: isDone ? `Départ ${fmt(t.dateDep)} → Arrivé` : `En route · Arrivée estimée le ${fmt(t.dateArrP)}`,
+   author: 'Chauffeur ' + (t.driver || ''),
+   done: true,
+   statusTag: isDone ? badge('ok', 'Trajet effectué', '✓') : badge('info', 'Sur la route', '🚚'),
+   detail: `Liaison inter-sites en cours depuis <b>${siteName(t.fromSite)}</b> vers <b>${siteName(t.toSite)}</b> (${n0(t.qty)} palettes en transit)`
+  },
+  {
+   title: '4. Réception Entrepôt & Intégration en Stock',
+   sub: 'Contrôle physique des palettes au déchargement, constat des écarts éventuels et versement dans le stock récepteur.',
+   date: isDone ? fmt(t.dateArrR) : 'En attente d’arrivée au quai',
+   author: t.recBy ? user(t.recBy).name : ('Équipe Entrepôt ' + siteName(t.toSite)),
+   done: isDone,
+   statusTag: isDone ? badge('ok', 'Stock intégré', '✓') : badge('warn', 'À réceptionner', '⏳'),
+   detail: isDone
+    ? `Réception confirmée le <b>${fmt(t.dateArrR)}</b> · <b>${n0(qRec)}</b> palettes ${catL(t.cat)} intégrées dans le stock de <b>${siteName(t.toSite)}</b>${t.damaged ? ` · <b style="color:var(--bad)">${n0(t.damaged)} avarie(s)</b>` : ''}`
+    : `Le camion est attendu au quai de <b>${siteName(t.toSite)}</b> pour déchargement physique et entrée en stock.`
+  }
+ ];
+
+ const actBtn = !isDone
+  ? `<button type="button" class="btn primary${lockCls('entrepot')}" onclick="closeModal();confirmReceptionTransfert('${t.id}')" style="background:#15803D;border-color:#166534;color:#FFF;font-weight:700">✓ Réceptionner</button>`
+  : `<span class="badge b-ok" style="padding:6px 14px;font-size:12.5px;font-weight:700">✓ Transfert réceptionné & clôturé</span>`;
+
  openModal(`Bon de Transfert Inter-Sites · ${t.id}`,
-  `<div style="font-size:13.5px;line-height:1.6">
-    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid var(--line);padding-bottom:10px;margin-bottom:12px">
-     <div><h3 style="margin:0;color:var(--blue)">GOOD TRUCK LOGISTICS</h3><small class="muted">Bordereau officiel de transfert inter-sites Abidjan ⇄ San Pedro</small></div>
-     <div style="text-align:right"><b class="ref" style="font-size:16px">${t.id}</b><br><small class="muted">Date : ${fmt(t.dateDep)}</small></div>
-    </div>
-    <div class="grid g2" style="margin-bottom:14px">
-     <div style="background:var(--surface-2);padding:10px 12px;border-radius:8px">
-      <small class="muted" style="text-transform:uppercase;font-weight:700">Origine (Site Expéditeur)</small><br>
-      <b style="font-size:15px">${siteIcon(t.fromSite)} ${siteName(t.fromSite)}</b><br>
-      <span class="muted">${t.fromSite==='abidjan'?'Entrepôt Vridi · Port autonome d’Abidjan':'Dépôt San-Pedro · Zone Portuaire'}</span>
+  `<div class="full" style="display:flex;flex-direction:column;gap:14px;font-size:13.5px">
+   
+   <!-- En-tête mission / transfert -->
+   <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:16px 20px;background:linear-gradient(135deg,var(--surface-2) 0%,var(--surface) 100%);border-radius:12px;border:1px solid var(--line);box-shadow:0 2px 6px rgba(0,0,0,0.03)">
+    <div>
+     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <h2 style="margin:0;font-size:22px;display:flex;align-items:center;gap:8px">🚚 ${esc(t.id)}</h2>
+      ${destSiteBadge(t.toSite)}
+      ${isDone ? badge('ok','✓ Réceptionné','✓') : badge('warn','🚚 En transit','◷')}
      </div>
-     <div style="background:var(--surface-2);padding:10px 12px;border-radius:8px">
-      <small class="muted" style="text-transform:uppercase;font-weight:700">Destination (Site Récepteur)</small><br>
-      <b style="font-size:15px">${siteIcon(t.toSite)} ${siteName(t.toSite)}</b><br>
-      <span class="muted">${t.toSite==='abidjan'?'Entrepôt Vridi · Port autonome d’Abidjan':'Dépôt San-Pedro · Zone Portuaire'}</span>
+     <div class="muted" style="font-size:13px;margin-top:6px">
+      Transporteur : <b>${esc(t.trans||'Non affecté')}</b> · Camion : <b class="num" style="color:var(--blue)">${esc(t.veh||'—')}</b> · Chauffeur : <b>${esc(t.driver||'—')}</b> ${t.driverPhone ? '· Tél : <a href="tel:'+esc(t.driverPhone)+'" style="color:var(--blue);text-decoration:none;font-weight:700">'+esc(t.driverPhone)+'</a>' : ''}
      </div>
     </div>
-    <div style="background:var(--surface);border:1.5px solid var(--line);border-radius:8px;padding:12px;margin-bottom:14px">
-     <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:6px">
-      <span>Catégorie : <b>${catL(t.cat)} (${esc(t.model||'MB5')})</b></span>
-      <span>Quantité expédiée : <b class="num" style="font-size:16px;color:var(--blue)">${n0(t.qty)} palettes</b></span>
-     </div>
-     <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:6px">
-      <span>N° de ITR : <b>${esc(t.itr)}</b></span>
-      <span>N° de PO (Bon de Commande) : <b>${esc(t.po)}</b></span>
-     </div>
-     <div style="display:flex;justify-content:space-between">
-      <span>Transporteur : <b>${esc(t.trans)}</b> · Immat : <b>${esc(t.veh)}</b></span>
-      <span>Chauffeur : <b>${esc(t.driver)}</b> (${esc(t.driverPhone)})</span>
-     </div>
+    <div style="text-align:right">
+     <div style="font-size:24px;font-weight:800;color:var(--blue)">${n0(t.qty)} <small style="font-size:13px;font-weight:600;color:var(--text)">palettes (${catL(t.cat)} · ${esc(t.model||'MB5')})</small></div>
+     <small class="muted">${isDone ? '✓ Palettes intégrées en stock' : '🚚 En cours d’acheminement sur la route'}</small>
     </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;background:var(--surface-2);padding:10px 12px;border-radius:8px;margin-bottom:10px">
-     <div>
-      Statut : <b>${t.status==='Réceptionné'?`<span class="badge b-ok">✓ Réceptionné le ${fmt(t.dateArrR)} par ${user(t.recBy).name}</span>`:`<span class="badge b-warn pulse-badge">🚚 En transit (Arrivée estimée le ${fmt(t.dateArrP)})</span>`}</b>
-      ${t.obs?`<br><small class="muted">${esc(t.obs)}</small>`:''}
-     </div>
-     ${t.status==='En transit'?`<button type="button" class="btn small primary" data-act="confirmReceptionTransfert" data-id="${t.id}">Réceptionner</button>`:''}
+   </div>
+
+   <!-- Grille des fiches d'informations synthétiques (proportionnelles à la fiche de recap) -->
+   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+    
+    <!-- Fiche 1 : Trajet & Sites -->
+    <div style="padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);display:flex;flex-direction:column;gap:4px">
+     <b class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px">Trajet & Sites</b>
+     <div style="margin-top:4px;font-size:13px">Origine (Départ) : <b>${siteIcon(t.fromSite)} ${siteName(t.fromSite)}</b></div>
+     <div style="color:var(--blue);font-size:13px">Destination (Arrivée) : <b>${siteIcon(t.toSite)} ${siteName(t.toSite)}</b></div>
+     <div style="font-size:11.5px;color:var(--muted);margin-top:2px">${t.fromSite==='abidjan'?'Entrepôt Vridi ➔ Dépôt San-Pedro':'Dépôt San-Pedro ➔ Entrepôt Vridi'}</div>
     </div>
-   </div>`,
-  'Fermer',()=>closeModal(),{wide:true}
+
+    <!-- Fiche 2 : Calendrier & Dates -->
+    <div style="padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);display:flex;flex-direction:column;gap:3px">
+     <b class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Calendrier & Horaires</b>
+     <div>Date d’expédition : <b>${fmt(t.dateDep)||'—'}</b></div>
+     <div>Arrivée prévue : <b>${fmt(t.dateArrP)||'—'}</b></div>
+     <div>Arrivée effective : <b style="color:${t.dateArrR?'var(--ok)':'var(--text)'}">${t.dateArrR ? fmt(t.dateArrR) : 'En route'}</b></div>
+    </div>
+
+    <!-- Fiche 3 : Références & Commandes -->
+    <div style="padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);display:flex;flex-direction:column;gap:3px">
+     <b class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Références & Commandes</b>
+     <div>Numéro ITR : <b class="num" style="color:var(--blue)">${esc(t.itr||'—')}</b></div>
+     <div>Purchase Order (PO) : <b class="num">${esc(t.po||'—')}</b></div>
+     <div>Bordereau Transfert : <b class="ref">${esc(t.id)}</b></div>
+    </div>
+
+    <!-- Fiche 4 : Marchandise & Stock -->
+    <div style="padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);display:flex;flex-direction:column;gap:3px">
+     <b class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Marchandise & Stock</b>
+     <div>Catégorie : <b style="color:${catCol}">${catL(t.cat)}</b></div>
+     <div>Modèle de palette : <span class="badge b-info">${esc(t.model||'MB5')}</span></div>
+     <div>Quantité expédiée : <b class="num" style="color:var(--blue);font-size:14px">${n0(t.qty)}</b></div>
+     ${t.damaged ? `<div style="color:var(--bad)">Avarie constatée : <b>${n0(t.damaged)} palette(s)</b></div>` : ''}
+    </div>
+
+   </div>
+
+   <!-- Frise chronologique séquentielle (exactement proportionnelle à la fiche de recap) -->
+   <div style="border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden">
+    <div style="background:var(--surface-2);padding:10px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between">
+      <b style="font-size:13.5px;color:var(--text);display:flex;align-items:center;gap:6px">
+        📍 Déroulement séquentiel du transfert (De l’expédition à la réception en stock)
+      </b>
+      <span class="badge b-info" style="font-size:11px">4 étapes tracées</span>
+    </div>
+    <div style="padding:14px 18px;display:flex;flex-direction:column;gap:12px">
+      ${stepsFlow.map((s, idx) => `
+        <div style="display:flex;gap:14px;align-items:flex-start;position:relative">
+          <div style="display:flex;flex-direction:column;align-items:center;margin-top:2px">
+            <span style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:${s.done?'#10B981':'#CBD5E1'};color:#FFF;font-size:12px;font-weight:800">
+              ${s.done ? '✓' : (idx + 1)}
+            </span>
+            ${idx < stepsFlow.length - 1 ? '<div style="width:2px;height:38px;background:'+(s.done?'#A7F3D0':'#E2E8F0')+';margin:4px 0"></div>' : ''}
+          </div>
+          <div style="flex:1;min-width:0;padding-bottom:4px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">
+              <div style="font-weight:700;font-size:14px;color:${s.done?'var(--text)':'var(--muted)'}">${s.title}</div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="muted" style="font-size:12px">${s.date}</span>
+                ${s.statusTag}
+              </div>
+            </div>
+            <div style="font-size:12.5px;color:var(--muted);margin-top:2px">${s.sub}</div>
+            <div style="font-size:13px;color:var(--text);margin-top:4px;padding:6px 10px;background:var(--surface-2);border-radius:6px;border-left:3px solid ${s.done?'var(--ok)':'var(--line)'}">
+              ${s.detail}
+            </div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+   </div>
+
+   ${t.obs ? `<div style="background:#F8FAFC;border:1px solid #CBD5E1;border-radius:10px;padding:12px 16px;font-size:13px">
+     <b>Motif & Observations :</b><br>
+     <span class="muted">${esc(t.obs)}</span>
+   </div>` : ''}
+
+   <!-- Actions en bas de modale -->
+   <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:6px">
+    ${actBtn}
+   </div>
+
+  </div>`,
+  'Fermer',
+  () => closeModal(),
+  {wide: true}
  );
 }
 
