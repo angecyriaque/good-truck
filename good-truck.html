@@ -6992,7 +6992,7 @@ function vFacturation() {
            <td class="right num"><b style="font-size:15px;color:var(--ink)">${n0(qDep)}</b></td>
            <td><b>${esc(client)}</b></td>
            <td><span class="badge b-ok">✓ Dépotage validé</span></td>
-           <td style="white-space:nowrap" onclick="event.stopPropagation()">
+           <td style="white-space:nowrap">
             <button class="btn small primary${lockCls('facturation')}" data-act="facturerDossierTransit" data-id="${d.num}">Facturer</button>
            </td>
           </tr>`;
@@ -7011,7 +7011,7 @@ function vFacturation() {
            <td class="right num"><b style="font-size:15px;color:var(--ink)">${n0(r.qty)}</b></td>
            <td><b>SKCI</b><br><small class="muted">Entrepôt GoodPack</small></td>
            <td><span class="badge b-ok">✓ Prestation Réalisée</span></td>
-           <td style="white-space:nowrap" onclick="event.stopPropagation()">
+           <td style="white-space:nowrap">
             <button class="btn small primary${lockCls('facturation')}" data-act="facturerEntrepot" data-id="${r.id}">Facturer</button>
            </td>
           </tr>`;
@@ -7034,7 +7034,7 @@ function vFacturation() {
            <td><b>${esc(t.trans||'—')}</b><br><small class="muted num">${esc(t.veh||'—')} (${esc(t.driver||'—')})</small></td>
            <td class="right num"><b style="font-size:15px;color:var(--ink)">${n0(t.qty)}</b></td>
            <td><span class="badge b-ok">✓ Livraison Effectuée</span></td>
-           <td style="white-space:nowrap" onclick="event.stopPropagation()">
+           <td style="white-space:nowrap">
             <button class="btn small primary${lockCls('facturation')}" data-act="facturerTransport" data-id="${t.id}">Facturer</button>
            </td>
           </tr>`;
@@ -7334,12 +7334,12 @@ function vRecouvrement() {
 
 function facturerDossierTransit(num){
   if(!guard('facturation')) return;
-  const cS = curSite();
+  const cS = curSite(), sObj = curSiteObj();
   const d = siteDossiers(cS).find(x => x.num === num || x.id === num);
   if(!d){ toast('Dossier de transit introuvable.','bad'); return; }
 
   const dDate = d.D6 || d.depotage?.date || d.D5 || d.D3 || TODAY_ISO;
-  const qDep = d.depotage?.total || 140;
+  const qDep = d.depotage?.total || d.qty || 140;
   const client = d.client || (d.trans?.includes('SKCI') ? 'SKCI' : 'SKCI');
   const existingInv = getInvoiceForDossier(d.num);
 
@@ -7348,29 +7348,90 @@ function facturerDossierTransit(num){
   const defDate = existingInv ? existingInv.date : TODAY_ISO;
   const initDelai = calcDelaiFacture(dDate, defDate) || 0;
 
-  openModal(`📋 Enregistrer la Facturation · Dossier Transit ${d.num}`,
-    `<div class="panel" style="margin-bottom:14px;background:var(--surface-2);border-left:4px solid var(--blue);padding:12px 14px">
-      <div style="font-weight:700;color:var(--text);margin-bottom:8px;font-size:13.5px">🔍 Éléments de contrôle du dossier (vérification) :</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;font-size:12.5px">
-        <div><small class="muted">N° Dossier :</small><br><b class="num" style="color:var(--blue);font-size:13.5px">${esc(d.num)}</b></div>
-        <div><small class="muted">Conteneur (TC) :</small><br><b class="num">${esc(d.cont)}</b></div>
-        <div><small class="muted">Armateur / B/L :</small><br><b>${esc(d.lam || '—')}</b> · <span class="muted">${esc(d.bl || '—')}</span></div>
-        <div><small class="muted">Date Dépotage (D6) :</small><br><b style="color:#059669">${fmt(dDate)}</b></div>
-        <div><small class="muted">Palettes dépotées :</small><br><b>${n0(qDep)} palettes</b></div>
-        <div><small class="muted">Client destinataire :</small><br><b>${esc(client)}</b></div>
+  openModal(`Facturation · Dossier Transit ${d.num}`,
+    `<!-- Fiche Détaillée de l'Opération de Transit -->
+    <div style="background:#F8FAFC;border:1px solid #CBD5E1;border-left:5px solid var(--blue);border-radius:10px;padding:16px 18px;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #E2E8F0;padding-bottom:10px;flex-wrap:wrap;gap:8px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:24px">🚢</span>
+          <div>
+            <div style="font-size:16px;font-weight:800;color:#0F172A">Dossier de Transit ${esc(d.num)}</div>
+            <div style="font-size:12px;color:#64748B">Conteneur (TC) : <b class="num" style="color:#1E1B4B;font-size:13.5px">${esc(d.cont)}</b> · Hub ${esc(sObj.name)}</div>
+          </div>
+        </div>
+        <span class="badge b-ok" style="font-weight:700;font-size:12.5px;padding:4px 10px">✓ Dépotage validé</span>
       </div>
-    </div>` +
-    fld('Numéro de Facture associé', 'num', 'text', { req: 1, value: defFacNum, ph: 'Ex. FAC-2026-005, FAC-SKCI-889...' }) +
-    fld('Date effective de Facturation', 'date', 'date', { req: 1, value: defDate }) +
-    `<div class="full" style="padding:10px 14px;border-radius:8px;background:#F0FDF4;border:1px solid #BBF7D0;margin:10px 0;display:flex;align-items:center;gap:10px">
-      <span style="font-size:22px">⏱️</span>
-      <div>
-        <b style="font-size:13px;color:#166534">Durée mise pour réaliser la facturation :</b><br>
-        <span id="fac_delai_text" style="font-size:13.5px;color:#15803D;font-weight:700">${initDelai} jour${initDelai > 1 ? 's' : ''} après dépotage</span>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;font-size:13px">
+        <div style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:8px;padding:10px 12px">
+          <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748B">⚓ Armateur & Expédition</span>
+          <div style="font-size:13.5px;font-weight:700;color:#1E293B;margin-top:2px">${esc(d.lam || '—')}</div>
+          <div class="muted" style="font-size:12px">B/L : <b class="num">${esc(d.bl || '—')}</b></div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:8px;padding:10px 12px">
+          <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748B">📦 Dépotage & Palettes</span>
+          <div style="font-size:13.5px;font-weight:700;color:#059669;margin-top:2px">${n0(qDep)} palettes dépotées</div>
+          <div class="muted" style="font-size:12px">Modèle : <b>${esc(d.depotage?.model || 'MB5')}</b> · En stock</div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:8px;padding:10px 12px">
+          <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748B">📅 Date de Fin de Dépotage (D6)</span>
+          <div style="font-size:14px;font-weight:800;color:#0F172A;margin-top:2px">${fmt(dDate)}</div>
+          <div class="muted" style="font-size:12px">Arrivée port (D3) : ${fmt(d.D3) || '—'}</div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:8px;padding:10px 12px">
+          <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748B">🏢 Client Donneur d'Ordre</span>
+          <div style="font-size:14px;font-weight:800;color:#1E1B4B;margin-top:2px">${esc(client)}</div>
+          <div class="muted" style="font-size:12px">Transporteur : ${esc(d.trans || 'Traction GoodTruck')}</div>
+        </div>
       </div>
-    </div>` +
-    fld('Client facturé', 'client', 'text', { req: 1, value: client }) +
-    fld('Observations / Références internes', 'obs', 'textarea', { full: 1, value: existingInv?.obs || '', ph: 'Notes de facturation, bon de commande client...' }),
+    </div>
+
+    <!-- Section Saisie des Références de Facturation -->
+    <div style="background:#FFFFFF;border:1.5px solid #CBD5E1;border-radius:10px;padding:16px 18px;margin-bottom:14px">
+      <div style="font-size:14px;font-weight:800;color:#0F172A;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+        <span>📝</span> Attribution des Références de Facturation
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:700;color:#334155;margin-bottom:4px">N° de Facture associé <span style="color:#DC2626">*</span></label>
+          <input type="text" name="num" value="${esc(defFacNum)}" placeholder="Ex. FAC-2026-005, FAC-SKCI-889..." required style="width:100%;padding:9px 12px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:14px;font-weight:700;color:#0F172A">
+        </div>
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:700;color:#334155;margin-bottom:4px">Date effective de Facturation <span style="color:#DC2626">*</span></label>
+          <input type="date" name="date" value="${defDate}" required style="width:100%;padding:9px 12px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:14px;font-weight:600;color:#0F172A">
+        </div>
+      </div>
+
+      <div style="margin-top:12px">
+        <label style="display:block;font-size:12.5px;font-weight:700;color:#334155;margin-bottom:4px">Client Facturé <span style="color:#DC2626">*</span></label>
+        <input type="text" name="client" value="${esc(client)}" placeholder="Nom de l'entreprise cliente" required style="width:100%;padding:9px 12px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:13.5px;font-weight:600;color:#0F172A">
+      </div>
+
+      <div style="margin-top:12px">
+        <label style="display:block;font-size:12.5px;font-weight:700;color:#334155;margin-bottom:4px">Observations / Références internes (optionnel)</label>
+        <textarea name="obs" rows="2" placeholder="Mention interne, bon de commande client, instructions particulières..." style="width:100%;padding:8px 12px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:13px;resize:vertical">${esc(existingInv?.obs || '')}</textarea>
+      </div>
+    </div>
+
+    <!-- Boîte Dynamique du Temps Mis pour Facturer -->
+    <div id="fac_delai_box" style="padding:14px 16px;border-radius:10px;background:#F0FDF4;border:1.5px solid #BBF7D0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:26px">⏱️</span>
+        <div>
+          <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:#166534">Durée mise pour réaliser la facturation :</div>
+          <div id="fac_delai_text" style="font-size:16px;font-weight:900;color:#15803D">${initDelai} jour${initDelai > 1 ? 's' : ''} après dépotage</div>
+        </div>
+      </div>
+      <div id="fac_delai_badge">
+        <span class="badge ${initDelai <= 3 ? 'b-ok' : initDelai <= 7 ? 'b-info' : 'b-warn'}" style="font-weight:700;font-size:12.5px;padding:5px 12px">
+          ${initDelai <= 3 ? '⚡ Réactivité Excellente (≤ 3j)' : initDelai <= 7 ? '⏱️ Délai Standard' : '⚠️ Traitement différé (> 7j)'}
+        </span>
+      </div>
+    </div>
+
+    <div style="margin-top:10px;font-size:12px;color:#64748B;display:flex;align-items:center;gap:6px">
+      <span>ℹ️</span> <span>En cliquant sur <b>Facturer</b>, ce dossier est enregistré dans les opérations facturées et <b>automatiquement transmis au Recouvrement</b>.</span>
+    </div>`,
     'Facturer',
     (data) => {
       const e = req(data, ['num', 'date', 'client']);
@@ -7442,26 +7503,32 @@ function facturerDossierTransit(num){
     if (dateInput) {
       dateInput.addEventListener('input', () => {
         const val = dateInput.value;
-        const dDays = calcDelaiFacture(dDate, val);
+        const dDays = calcDelaiFacture(dDate, val) || 0;
         const tSpan = $('#fac_delai_text');
+        const bSpan = $('#fac_delai_badge');
         if (tSpan) {
-          tSpan.textContent = dDays != null ? `${dDays} jour${dDays > 1 ? 's' : ''} après dépotage` : '—';
+          tSpan.textContent = `${dDays} jour${dDays > 1 ? 's' : ''} après dépotage`;
+        }
+        if (bSpan) {
+          const cls = dDays <= 3 ? 'b-ok' : dDays <= 7 ? 'b-info' : 'b-warn';
+          const txt = dDays <= 3 ? '⚡ Réactivité Excellente (≤ 3j)' : dDays <= 7 ? '⏱️ Délai Standard' : '⚠️ Traitement différé (> 7j)';
+          bSpan.innerHTML = `<span class="badge ${cls}" style="font-weight:700;font-size:12.5px;padding:5px 12px">${txt}</span>`;
         }
       });
     }
-  }, 100);
+  }, 80);
 }
 
 function facturerTransport(transId){
   if(!guard('facturation')) return;
-  const cS = curSite();
+  const cS = curSite(), sObj = curSiteObj();
   const t = (S.transports || []).find(x => x.id === transId) || (S.planifications || []).find(x => x.id === transId || x.transport === transId);
   if(!t){ toast('Transport introuvable.','bad'); return; }
 
   const pln = (S.planifications || []).find(p => p.transport === t.id);
   const lv = (S.deliveries || []).find(l => l.id === t.liv || l.transport === t.id);
-  const refItr = t.itr || pln?.itr || lv?.itr || '';
-  const refPo = t.po || pln?.po || lv?.po || '';
+  const refItr = t.itr || pln?.itr || lv?.itr || '—';
+  const refPo = t.po || pln?.po || lv?.po || '—';
   const destName = t.to || 'Client Transport';
   const clientName = destName.split('·')[0].trim() || 'SKCI';
   const dateLiv = t.arrR || t.arrP || TODAY_ISO;
@@ -7473,29 +7540,90 @@ function facturerTransport(transId){
   const defDate = existingInv ? existingInv.date : TODAY_ISO;
   const initDelai = calcDelaiFacture(dateLiv, defDate) || 0;
 
-  openModal(`📋 Enregistrer la Facturation · Transport ${t.id}`,
-    `<div class="panel" style="margin-bottom:14px;background:var(--surface-2);border-left:4px solid var(--blue);padding:12px 14px">
-      <div style="font-weight:700;color:var(--text);margin-bottom:8px;font-size:13.5px">🔍 Éléments de contrôle du transport (vérification) :</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;font-size:12.5px">
-        <div><small class="muted">Réf. Transport :</small><br><b class="num" style="color:var(--blue);font-size:13.5px">${esc(t.id)}</b></div>
-        <div><small class="muted">N° ITR / PO :</small><br><b>${esc(refItr)}</b> <span class="muted">/ ${esc(refPo)}</span></div>
-        <div><small class="muted">Trajet & Destination :</small><br><b>${esc(t.from)} → ${esc(destName)}</b></div>
-        <div><small class="muted">Date Livraison :</small><br><b style="color:#059669">${fmt(dateLiv)}</b></div>
-        <div><small class="muted">Palettes livrées :</small><br><b>${n0(t.qty)} palettes</b></div>
-        <div><small class="muted">Chauffeur & Véhicule :</small><br><b>${esc(t.driver || '—')}</b> (${esc(t.veh || '—')})</div>
+  openModal(`Facturation · Transport ${t.id}`,
+    `<!-- Fiche Détaillée de l'Opération de Transport -->
+    <div style="background:#F8FAFC;border:1px solid #CBD5E1;border-left:5px solid #0284C7;border-radius:10px;padding:16px 18px;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #E2E8F0;padding-bottom:10px;flex-wrap:wrap;gap:8px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:24px">🚚</span>
+          <div>
+            <div style="font-size:16px;font-weight:800;color:#0F172A">Transport Routier ${esc(t.id)}</div>
+            <div style="font-size:12px;color:#64748B">Trajet : <b style="color:#0284C7">${esc(t.from)} → ${esc(destName)}</b></div>
+          </div>
+        </div>
+        <span class="badge b-ok" style="font-weight:700;font-size:12.5px;padding:4px 10px">✓ Livraison effectuée</span>
       </div>
-    </div>` +
-    fld('Numéro de Facture associé', 'num', 'text', { req: 1, value: defFacNum, ph: 'Ex. FAC-2026-TR-01...' }) +
-    fld('Date effective de Facturation', 'date', 'date', { req: 1, value: defDate }) +
-    `<div class="full" style="padding:10px 14px;border-radius:8px;background:#F0FDF4;border:1px solid #BBF7D0;margin:10px 0;display:flex;align-items:center;gap:10px">
-      <span style="font-size:22px">⏱️</span>
-      <div>
-        <b style="font-size:13px;color:#166534">Durée mise pour réaliser la facturation :</b><br>
-        <span id="fac_delai_text" style="font-size:13.5px;color:#15803D;font-weight:700">${initDelai} jour${initDelai > 1 ? 's' : ''} après livraison</span>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;font-size:13px">
+        <div style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:8px;padding:10px 12px">
+          <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748B">📑 Références Commandes</span>
+          <div style="font-size:13.5px;font-weight:700;color:#1E293B;margin-top:2px">ITR : <b class="num" style="color:#0284C7">${esc(refItr)}</b></div>
+          <div class="muted" style="font-size:12px">PO : <b class="num">${esc(refPo)}</b></div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:8px;padding:10px 12px">
+          <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748B">📦 Marchandises Livrées</span>
+          <div style="font-size:13.5px;font-weight:700;color:#059669;margin-top:2px">${n0(t.qty)} palettes</div>
+          <div class="muted" style="font-size:12px">Réception confirmée</div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:8px;padding:10px 12px">
+          <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748B">📅 Date de Livraison Effective</span>
+          <div style="font-size:14px;font-weight:800;color:#0F172A;margin-top:2px">${fmt(dateLiv)}</div>
+          <div class="muted" style="font-size:12px">Accusé de réception validé</div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:8px;padding:10px 12px">
+          <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748B">🚛 Camion & Chauffeur</span>
+          <div style="font-size:13.5px;font-weight:700;color:#1E1B4B;margin-top:2px">${esc(t.driver || '—')}</div>
+          <div class="muted" style="font-size:12px">Véhicule : ${esc(t.veh || '—')} (${esc(t.trans || 'Transporteur')})</div>
+        </div>
       </div>
-    </div>` +
-    fld('Client facturé', 'client', 'text', { req: 1, value: clientName }) +
-    fld('Observations / Références internes', 'obs', 'textarea', { full: 1, value: existingInv?.obs || '', ph: 'Notes de facturation transport...' }),
+    </div>
+
+    <!-- Section Saisie des Références de Facturation -->
+    <div style="background:#FFFFFF;border:1.5px solid #CBD5E1;border-radius:10px;padding:16px 18px;margin-bottom:14px">
+      <div style="font-size:14px;font-weight:800;color:#0F172A;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+        <span>📝</span> Attribution des Références de Facturation
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:700;color:#334155;margin-bottom:4px">N° de Facture associé <span style="color:#DC2626">*</span></label>
+          <input type="text" name="num" value="${esc(defFacNum)}" placeholder="Ex. FAC-2026-TR-01..." required style="width:100%;padding:9px 12px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:14px;font-weight:700;color:#0F172A">
+        </div>
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:700;color:#334155;margin-bottom:4px">Date effective de Facturation <span style="color:#DC2626">*</span></label>
+          <input type="date" name="date" value="${defDate}" required style="width:100%;padding:9px 12px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:14px;font-weight:600;color:#0F172A">
+        </div>
+      </div>
+
+      <div style="margin-top:12px">
+        <label style="display:block;font-size:12.5px;font-weight:700;color:#334155;margin-bottom:4px">Client Facturé <span style="color:#DC2626">*</span></label>
+        <input type="text" name="client" value="${esc(clientName)}" placeholder="Nom de l'entreprise cliente" required style="width:100%;padding:9px 12px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:13.5px;font-weight:600;color:#0F172A">
+      </div>
+
+      <div style="margin-top:12px">
+        <label style="display:block;font-size:12.5px;font-weight:700;color:#334155;margin-bottom:4px">Observations / Références internes (optionnel)</label>
+        <textarea name="obs" rows="2" placeholder="Mention interne, bordereau de livraison, bon de commande..." style="width:100%;padding:8px 12px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:13px;resize:vertical">${esc(existingInv?.obs || '')}</textarea>
+      </div>
+    </div>
+
+    <!-- Boîte Dynamique du Temps Mis pour Facturer -->
+    <div id="fac_delai_box" style="padding:14px 16px;border-radius:10px;background:#F0FDF4;border:1.5px solid #BBF7D0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:26px">⏱️</span>
+        <div>
+          <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:#166534">Durée mise pour réaliser la facturation :</div>
+          <div id="fac_delai_text" style="font-size:16px;font-weight:900;color:#15803D">${initDelai} jour${initDelai > 1 ? 's' : ''} après livraison</div>
+        </div>
+      </div>
+      <div id="fac_delai_badge">
+        <span class="badge ${initDelai <= 3 ? 'b-ok' : initDelai <= 7 ? 'b-info' : 'b-warn'}" style="font-weight:700;font-size:12.5px;padding:5px 12px">
+          ${initDelai <= 3 ? '⚡ Réactivité Excellente (≤ 3j)' : initDelai <= 7 ? '⏱️ Délai Standard' : '⚠️ Traitement différé (> 7j)'}
+        </span>
+      </div>
+    </div>
+
+    <div style="margin-top:10px;font-size:12px;color:#64748B;display:flex;align-items:center;gap:6px">
+      <span>ℹ️</span> <span>En cliquant sur <b>Facturer</b>, ce transport est enregistré dans les factures émises et <b>automatiquement transmis au Recouvrement</b>.</span>
+    </div>`,
     'Facturer',
     (data) => {
       const e = req(data, ['num', 'date', 'client']);
@@ -7559,19 +7687,25 @@ function facturerTransport(transId){
     if (dateInput) {
       dateInput.addEventListener('input', () => {
         const val = dateInput.value;
-        const dDays = calcDelaiFacture(dateLiv, val);
+        const dDays = calcDelaiFacture(dateLiv, val) || 0;
         const tSpan = $('#fac_delai_text');
+        const bSpan = $('#fac_delai_badge');
         if (tSpan) {
-          tSpan.textContent = dDays != null ? `${dDays} jour${dDays > 1 ? 's' : ''} après livraison` : '—';
+          tSpan.textContent = `${dDays} jour${dDays > 1 ? 's' : ''} après livraison`;
+        }
+        if (bSpan) {
+          const cls = dDays <= 3 ? 'b-ok' : dDays <= 7 ? 'b-info' : 'b-warn';
+          const txt = dDays <= 3 ? '⚡ Réactivité Excellente (≤ 3j)' : dDays <= 7 ? '⏱️ Délai Standard' : '⚠️ Traitement différé (> 7j)';
+          bSpan.innerHTML = `<span class="badge ${cls}" style="font-weight:700;font-size:12.5px;padding:5px 12px">${txt}</span>`;
         }
       });
     }
-  }, 100);
+  }, 80);
 }
 
 function facturerEntrepot(repId){
   if(!guard('facturation')) return;
-  const cS = curSite();
+  const cS = curSite(), sObj = curSiteObj();
   const r = (S.reparations || []).find(x => x.id === repId);
   if(!r){ toast('Opération entrepôt introuvable.','bad'); return; }
 
@@ -7586,29 +7720,90 @@ function facturerEntrepot(repId){
   const defDate = existingInv ? existingInv.date : TODAY_ISO;
   const initDelai = calcDelaiFacture(dateOp, defDate) || 0;
 
-  openModal(`📋 Enregistrer la Facturation · ${r.id} (${r.kind})`,
-    `<div class="panel" style="margin-bottom:14px;background:var(--surface-2);border-left:4px solid var(--blue);padding:12px 14px">
-      <div style="font-weight:700;color:var(--text);margin-bottom:8px;font-size:13.5px">🔍 Éléments de contrôle de l’intervention (vérification) :</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;font-size:12.5px">
-        <div><small class="muted">Réf. Intervention :</small><br><b class="num" style="color:var(--blue);font-size:13.5px">${esc(r.id)}</b></div>
-        <div><small class="muted">Type d’opération :</small><br><b>${isSwap ? '⇄ DOOR SWAP' : '🔧 Soudure'}</b></div>
-        <div><small class="muted">Lot Entrepôt :</small><br><b class="num">${esc(r.lot)}</b></div>
-        <div><small class="muted">Date de réalisation :</small><br><b style="color:#059669">${fmt(dateOp)}</b></div>
-        <div><small class="muted">Palettes traitées :</small><br><b>${n0(r.qty)} palettes</b></div>
-        <div><small class="muted">Client destinataire :</small><br><b>${clientName}</b></div>
+  openModal(`Facturation · Entrepôt ${r.id} (${r.kind})`,
+    `<!-- Fiche Détaillée de l'Opération d'Entrepôt -->
+    <div style="background:#F8FAFC;border:1px solid #CBD5E1;border-left:5px solid ${isSwap ? '#D97706' : '#8B5CF6'};border-radius:10px;padding:16px 18px;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #E2E8F0;padding-bottom:10px;flex-wrap:wrap;gap:8px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:24px">${isSwap ? '⇄' : '🔧'}</span>
+          <div>
+            <div style="font-size:16px;font-weight:800;color:#0F172A">Intervention Entrepôt · ${r.kind}</div>
+            <div style="font-size:12px;color:#64748B">Réf : <b class="num" style="color:#1E1B4B;font-size:13.5px">${esc(r.id)}</b> · Hub ${esc(sObj.name)}</div>
+          </div>
+        </div>
+        <span class="badge b-ok" style="font-weight:700;font-size:12.5px;padding:4px 10px">✓ Prestation réalisée</span>
       </div>
-    </div>` +
-    fld('Numéro de Facture associé', 'num', 'text', { req: 1, value: defFacNum, ph: 'Ex. FAC-2026-ENT-01...' }) +
-    fld('Date effective de Facturation', 'date', 'date', { req: 1, value: defDate }) +
-    `<div class="full" style="padding:10px 14px;border-radius:8px;background:#F0FDF4;border:1px solid #BBF7D0;margin:10px 0;display:flex;align-items:center;gap:10px">
-      <span style="font-size:22px">⏱️</span>
-      <div>
-        <b style="font-size:13px;color:#166534">Durée mise pour réaliser la facturation :</b><br>
-        <span id="fac_delai_text" style="font-size:13.5px;color:#15803D;font-weight:700">${initDelai} jour${initDelai > 1 ? 's' : ''} après réalisation</span>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;font-size:13px">
+        <div style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:8px;padding:10px 12px">
+          <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748B">🏷️ Type d'Intervention</span>
+          <div style="font-size:13.5px;font-weight:700;color:#1E293B;margin-top:2px">${isSwap ? 'Door Swapping (Échange)' : 'Reconditionnement & Soudure'}</div>
+          <div class="muted" style="font-size:12px">Lot : <b class="num">${esc(r.lot)}</b></div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:8px;padding:10px 12px">
+          <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748B">📦 Volume Traité</span>
+          <div style="font-size:13.5px;font-weight:700;color:#059669;margin-top:2px">${n0(r.qty)} palettes traitées</div>
+          <div class="muted" style="font-size:12px">Affectation conforme</div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:8px;padding:10px 12px">
+          <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748B">📅 Date d'Exécution</span>
+          <div style="font-size:14px;font-weight:800;color:#0F172A;margin-top:2px">${fmt(dateOp)}</div>
+          <div class="muted" style="font-size:12px">Clôture des travaux validée</div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:8px;padding:10px 12px">
+          <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748B">🏢 Client Donneur d'Ordre</span>
+          <div style="font-size:14px;font-weight:800;color:#1E1B4B;margin-top:2px">${clientName}</div>
+          <div class="muted" style="font-size:12px">Entrepôt GoodPack CI</div>
+        </div>
       </div>
-    </div>` +
-    fld('Client facturé', 'client', 'text', { req: 1, value: clientName }) +
-    fld('Observations / Références internes', 'obs', 'textarea', { full: 1, value: existingInv?.obs || '', ph: 'Notes de facturation entrepôt...' }),
+    </div>
+
+    <!-- Section Saisie des Références de Facturation -->
+    <div style="background:#FFFFFF;border:1.5px solid #CBD5E1;border-radius:10px;padding:16px 18px;margin-bottom:14px">
+      <div style="font-size:14px;font-weight:800;color:#0F172A;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+        <span>📝</span> Attribution des Références de Facturation
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:700;color:#334155;margin-bottom:4px">N° de Facture associé <span style="color:#DC2626">*</span></label>
+          <input type="text" name="num" value="${esc(defFacNum)}" placeholder="Ex. FAC-2026-ENT-01..." required style="width:100%;padding:9px 12px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:14px;font-weight:700;color:#0F172A">
+        </div>
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:700;color:#334155;margin-bottom:4px">Date effective de Facturation <span style="color:#DC2626">*</span></label>
+          <input type="date" name="date" value="${defDate}" required style="width:100%;padding:9px 12px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:14px;font-weight:600;color:#0F172A">
+        </div>
+      </div>
+
+      <div style="margin-top:12px">
+        <label style="display:block;font-size:12.5px;font-weight:700;color:#334155;margin-bottom:4px">Client Facturé <span style="color:#DC2626">*</span></label>
+        <input type="text" name="client" value="${esc(clientName)}" placeholder="Nom de l'entreprise cliente" required style="width:100%;padding:9px 12px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:13.5px;font-weight:600;color:#0F172A">
+      </div>
+
+      <div style="margin-top:12px">
+        <label style="display:block;font-size:12.5px;font-weight:700;color:#334155;margin-bottom:4px">Observations / Références internes (optionnel)</label>
+        <textarea name="obs" rows="2" placeholder="Mention interne, bon de commande, instructions particulières..." style="width:100%;padding:8px 12px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:13px;resize:vertical">${esc(existingInv?.obs || '')}</textarea>
+      </div>
+    </div>
+
+    <!-- Boîte Dynamique du Temps Mis pour Facturer -->
+    <div id="fac_delai_box" style="padding:14px 16px;border-radius:10px;background:#F0FDF4;border:1.5px solid #BBF7D0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:26px">⏱️</span>
+        <div>
+          <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:#166534">Durée mise pour réaliser la facturation :</div>
+          <div id="fac_delai_text" style="font-size:16px;font-weight:900;color:#15803D">${initDelai} jour${initDelai > 1 ? 's' : ''} après réalisation</div>
+        </div>
+      </div>
+      <div id="fac_delai_badge">
+        <span class="badge ${initDelai <= 3 ? 'b-ok' : initDelai <= 7 ? 'b-info' : 'b-warn'}" style="font-weight:700;font-size:12.5px;padding:5px 12px">
+          ${initDelai <= 3 ? '⚡ Réactivité Excellente (≤ 3j)' : initDelai <= 7 ? '⏱️ Délai Standard' : '⚠️ Traitement différé (> 7j)'}
+        </span>
+      </div>
+    </div>
+
+    <div style="margin-top:10px;font-size:12px;color:#64748B;display:flex;align-items:center;gap:6px">
+      <span>ℹ️</span> <span>En cliquant sur <b>Facturer</b>, cette opération entrepôt est enregistrée dans les factures et <b>automatiquement transmise au Recouvrement</b>.</span>
+    </div>`,
     'Facturer',
     (data) => {
       const e = req(data, ['num', 'date', 'client']);
@@ -7672,14 +7867,20 @@ function facturerEntrepot(repId){
     if (dateInput) {
       dateInput.addEventListener('input', () => {
         const val = dateInput.value;
-        const dDays = calcDelaiFacture(dateOp, val);
+        const dDays = calcDelaiFacture(dateOp, val) || 0;
         const tSpan = $('#fac_delai_text');
+        const bSpan = $('#fac_delai_badge');
         if (tSpan) {
-          tSpan.textContent = dDays != null ? `${dDays} jour${dDays > 1 ? 's' : ''} après réalisation` : '—';
+          tSpan.textContent = `${dDays} jour${dDays > 1 ? 's' : ''} après réalisation`;
+        }
+        if (bSpan) {
+          const cls = dDays <= 3 ? 'b-ok' : dDays <= 7 ? 'b-info' : 'b-warn';
+          const txt = dDays <= 3 ? '⚡ Réactivité Excellente (≤ 3j)' : dDays <= 7 ? '⏱️ Délai Standard' : '⚠️ Traitement différé (> 7j)';
+          bSpan.innerHTML = `<span class="badge ${cls}" style="font-weight:700;font-size:12.5px;padding:5px 12px">${txt}</span>`;
         }
       });
     }
-  }, 100);
+  }, 80);
 }
 
 function validerRecouvrement(invId){
