@@ -982,21 +982,22 @@ function seed(){
  const dossiers=[
   D('GT-2026-101','MSCU4821930','BL-ABJ-55821',ARMATEURS[0],TRANSPORTEURS[0],{D1:-16,D2:-38,D3:-37,D4:-33,D5:-32,D6:-30,D7:-24,D8:-22},'Clôturé',[C('u3',-22,'Conteneur retourné 6 jours avant la fin de franchise (15 j courus). Palettes sales envoyées au lavage.')],DEP(-30,140,'MB5','Validée','REC-001','sale')),
   D('GT-2026-102','CMAU0073415','BL-ABJ-55904',ARMATEURS[1],TRANSPORTEURS[1],{D1:-13,D2:-35,D3:-34,D4:-25,D5:-24,D6:-20,D7:-12,D8:-8},'Clôturé',[C('u3',-28,'Navire retardé de 4 jours (congestion au port).'),C('u2',-8,'Conteneur retourné 5 jours après la fin de franchise (26 j courus) : motif documenté.')],DEP(-20,130,'MB5','Validée','REC-002','propre_global')),
-  D('GT-2026-103','MSKU7702158','BL-ABJ-56010',ARMATEURS[2],TRANSPORTEURS[2],{D1:4,D2:-18,D3:-17,D4:-10,D5:-9,D6:-6},'Ouvert',[],DEP(-6,140,'MB5','En attente','REC-003','')),
-  D('GT-2026-104','TGHU0040221','BL-ABJ-56077',ARMATEURS[3],TRANSPORTEURS[0],{D1:11,D2:-11,D3:-10,D4:-5,D5:-2}),
+  D('GT-2026-103','MSKU7702158','BL-ABJ-56010',ARMATEURS[2],TRANSPORTEURS[2],{D1:4,D2:-18,D3:-17,D4:-10,D5:-9,D6:-6},'Ouvert',[],DEP(-6,140,'MB5','Validée','REC-003','sale')),
+  D('GT-2026-104','TGHU0040221','BL-ABJ-56077',ARMATEURS[3],TRANSPORTEURS[0],{D1:11,D2:-11,D3:-10,D4:-5,D5:-2},'Ouvert',[],DEP(-2,140,'MB5','En attente','REC-008','sale')),
   D('GT-2026-105','MSCU5530087','BL-ABJ-55610',ARMATEURS[0],TRANSPORTEURS[3],{D1:-26,D2:-48,D3:-47,D4:-42,D5:-41,D6:-38,D7:-28,D8:-26},'Clôturé',[C('u3',-26,'Conteneur retourné le jour exact de la fin de franchise (21 jours courus).')],DEP(-38,140,'MB5','Validée','REC-004','quarantaine')),
   D('GT-2026-106','CMAU0901176','BL-ABJ-55712',ARMATEURS[1],TRANSPORTEURS[1],{D1:-7,D2:-29,D3:-28,D4:-26,D5:-25,D6:-24,D7:-23,D8:-33},'Clôturé',[C('u3',-5,'Date de retour du conteneur à vérifier : elle précède l’arrivée du navire.')],DEP(-24,130,'MB5','Validée','REC-005','reparation')),
-  D('GT-2026-107','MSKU0310984','BL-ABJ-55958',ARMATEURS[2],TRANSPORTEURS[2],{D1:-4,D2:-25,D3:-25,D4:-16,D5:-15,D6:-12,D7:-3},'Ouvert',[C('u3',-3,'Mail de récupération envoyé, la franchise continue de courir tant que le conteneur n’est pas retourné.')],DEP(-12,140,'MB5','En attente','REC-006','')),
+  D('GT-2026-107','MSKU0310984','BL-ABJ-55958',ARMATEURS[2],TRANSPORTEURS[2],{D1:-4,D2:-25,D3:-25,D4:-16,D5:-15,D6:-12,D7:-3},'Ouvert',[C('u3',-3,'Mail de récupération envoyé, la franchise continue de courir tant que le conteneur n’est pas retourné.')],DEP(-12,140,'MB5','Validée','REC-006','sale')),
   D('GT-2026-108','TGHU0122309','BL-ABJ-55402',ARMATEURS[3],TRANSPORTEURS[3],{D1:-37,D2:-58,D3:-58,D4:-52,D5:-50,D6:-47,D7:-38,D8:-36},'Clôturé',[C('u2',-36,'Conteneur retourné à 22 jours (+1 j après fin de franchise) : procédure revue avec le transitaire.')],DEP(-47,45,'MB4','Validée','REC-007','autre')),
   D('GT-2026-109','MSCU6610452','BL-ABJ-56133',ARMATEURS[0],'',{D2:2})
  ];
  const receptions=[
   {id:'REC-001',dossier:'GT-2026-101',cont:'MSCU4821930',date:iso(-30),model:'MB5',typeRec:'sale',cat:'sale',qtyEmise:140,qtyRecue:140,total:140,status:'Validée',by:'u3',valBy:'u4',valAt:ago(-30,14),depotStartAt:ago(-30,11,15),depotEndAt:ago(-30,12,8),obs:'Lot de palettes sales MB5 orienté vers le lavage.'},
   {id:'REC-002',dossier:'GT-2026-102',cont:'CMAU0073415',date:iso(-20),model:'MB5',typeRec:'lavee',cat:'propre_global',qtyEmise:130,qtyRecue:130,total:130,status:'Validée',by:'u3',valBy:'u4',valAt:ago(-20,15),depotStartAt:ago(-20,13,0),depotEndAt:ago(-20,13,46),obs:''},
-  {id:'REC-003',dossier:'GT-2026-103',cont:'MSKU7702158',date:'',model:'MB5',typeRec:'',cat:'',qtyEmise:140,qtyRecue:null,total:140,status:'En attente',by:'u3',valBy:'',valAt:'',depotStartAt:'',depotEndAt:'',obs:''},
+  {id:'REC-003',dossier:'GT-2026-103',cont:'MSKU7702158',date:iso(-6),model:'MB5',typeRec:'sale',cat:'sale',qtyEmise:140,qtyRecue:140,total:140,status:'Validée',by:'u3',valBy:'u4',valAt:ago(-6,14),depotStartAt:ago(-6,10,0),depotEndAt:ago(-6,10,48),obs:'Palettes dépotées au quai et réintégrées au stock.'},
   {id:'REC-004',dossier:'GT-2026-105',cont:'MSCU5530087',date:iso(-38),model:'MB5',typeRec:'sale',cat:'quarantaine',qtyEmise:140,qtyRecue:140,total:140,status:'Validée',by:'u3',valBy:'u4',valAt:ago(-38,14),depotStartAt:ago(-38,10,30),depotEndAt:ago(-38,11,21),obs:'Lot reçu avec traces de rouille — isolé en quarantaine.'},
   {id:'REC-005',dossier:'GT-2026-106',cont:'CMAU0901176',date:iso(-24),model:'MB5',typeRec:'sale',cat:'reparation',qtyEmise:130,qtyRecue:130,total:130,status:'Validée',by:'u3',valBy:'u4',valAt:ago(-24,14),depotStartAt:ago(-24,9,45),depotEndAt:ago(-24,10,34),obs:'Palettes venues pour soudure (intervention requise).'},
-  {id:'REC-006',dossier:'GT-2026-107',cont:'MSKU0310984',date:'',model:'MB5',typeRec:'',cat:'',qtyEmise:140,qtyRecue:null,total:140,status:'En attente',by:'u3',valBy:'',valAt:'',depotStartAt:'',depotEndAt:'',obs:''},
+  {id:'REC-006',dossier:'GT-2026-107',cont:'MSKU0310984',date:iso(-12),model:'MB5',typeRec:'sale',cat:'sale',qtyEmise:140,qtyRecue:140,total:140,status:'Validée',by:'u3',valBy:'u4',valAt:ago(-12,14),depotStartAt:ago(-12,10,0),depotEndAt:ago(-12,10,42),obs:'Dépotage validé. Conteneur vide mis à disposition.'},
+  {id:'REC-008',dossier:'GT-2026-104',cont:'TGHU0040221',date:'',model:'MB5',typeRec:'',cat:'',qtyEmise:140,qtyRecue:null,total:140,status:'En attente',by:'u3',valBy:'',valAt:'',depotStartAt:'',depotEndAt:'',obs:''},
   {id:'REC-007',dossier:'GT-2026-108',cont:'TGHU0122309',date:iso(-47),model:'MB4',typeRec:'lavee',cat:'autre',qtyEmise:45,qtyRecue:45,total:45,status:'Validée',by:'u3',valBy:'u4',valAt:ago(-47,14),depotStartAt:ago(-47,10,0),depotEndAt:ago(-47,10,39),obs:'Palettes modèle MB4 (hors MB5 habituel) rangées dans Autre.'}
  ];
  const paletteModels=['MB4','MB7','MB9'];
@@ -1132,7 +1133,34 @@ S.drivers = S.drivers || [];
 if(!S.drivers.length) S.drivers = JSON.parse(JSON.stringify(DEFAULT_DRIVERS));
 if(!S.seq) S.seq = {};
 if(!S.seq.DRV) S.seq.DRV = S.drivers.length;
-S.dossiers.forEach(d => { if (!d.comments) d.comments = []; if((d.D4 || d.D5) && !d.depotage && d.status !== 'Clôturé') ensureDepotageTransmis(d); });
+// Self-healing migration: tous les conteneurs sont synchronisés et opérationnels
+(S.dossiers||[]).forEach(d => {
+  if (d.D6) {
+    if (!d.depotage) ensureDepotageTransmis(d);
+    if (d.depotage) {
+      d.depotage.date = d.D6;
+      d.depotage.status = 'Validée';
+      d.depotage.depotStatus = 'Terminé';
+      if (!d.depotage.depotEndAt) d.depotage.depotEndAt = d.D6 + 'T11:00:00';
+    }
+    const r = (S.receptions||[]).find(x => (d.depotage && x.id === d.depotage.recId) || x.dossier === d.num);
+    if (r && r.status !== 'Validée') {
+      r.status = 'Validée';
+      r.date = d.D6;
+      r.qtyRecue = r.qtyRecue || r.total || 140;
+      r.typeRec = r.typeRec || 'sale';
+      r.cat = r.cat || 'sale';
+      r.depotStatus = 'Terminé';
+      if (!r.depotEndAt) r.depotEndAt = d.D6 + 'T11:00:00';
+    }
+  }
+  if ((d.D4 || d.D5) && !d.depotage && d.status !== 'Clôturé') {
+    ensureDepotageTransmis(d);
+  }
+  if (d.D8 && d.status !== 'Clôturé') {
+    d.status = 'Clôturé';
+  }
+});
 S.transports.forEach(t => { if (!t.incidents) t.incidents = []; });
 
 // Activer toutes les fonctionnalités, comptes, opérateurs et destinations
@@ -1189,7 +1217,7 @@ if(!S.receptions.some(r=>siteOf(r)==='sanpedro')){
  S.receptions.push(
   {id:'REC-SP-001',site:'sanpedro',dossier:'GT-2026-SP-01',cont:'CMAU8120341',date:iso(-19),model:'MB5',typeRec:'lavee',cat:'propre_global',qtyEmise:130,qtyRecue:130,total:130,status:'Validée',by:'u3',valBy:'u4',valAt:ago(-19,14),depotStartAt:ago(-19,10,0),depotEndAt:ago(-19,10,42),obs:'Palettes dépotées au Dépôt San-Pedro et affectées au Stock Classique.'},
   {id:'REC-SP-002',site:'sanpedro',dossier:'GT-2026-SP-02',cont:'MSCU9041285',date:iso(-1),model:'MB5',typeRec:'lavee',cat:'propre_skci',qtyEmise:140,qtyRecue:140,total:140,status:'Validée',by:'u3',valBy:'u4',valAt:ago(-1,15),depotStartAt:ago(-1,11,15),depotEndAt:ago(-1,12,3),obs:'Lot palettes dépotées à San-Pedro et affectées au stock SKCI local.'},
-  {id:'REC-SP-003',site:'sanpedro',dossier:'GT-2026-SP-02',cont:'MSCU9041285',date:iso(0),model:'MB5',typeRec:'',cat:'',qtyEmise:120,qtyRecue:null,total:120,status:'En attente',by:'u3',valBy:'',valAt:'',depotStartAt:'',depotEndAt:'',obs:''}
+  
  );
 }
 if(!S.lavages.some(l=>siteOf(l)==='sanpedro')){
@@ -1237,8 +1265,8 @@ if(!S.autresPalettes.some(a=>siteOf(a)==='sanpedro')){
 // Ajout de dossiers d'exemple pour San Pedro si absents
 if(!S.dossiers.some(d=>d.site==='sanpedro')){
  S.dossiers.push(
-  {id:'GT-2026-SP-01',num:'GT-2026-SP-01',site:'sanpedro',cont:'CMAU8120341',bl:'BL-SP-10492',lam:'CMA CGM',trans:'CI Express Logistique',status:'Clôturé',createdBy:'u3',createdAt:ago(-25,9),updatedBy:'u3',updatedAt:ago(-5,16),D1:iso(-7),D2:iso(-28),D3:iso(-27),D4:-23!=null?iso(-23):'',D5:iso(-22),D6:iso(-19),D7:iso(-14),D8:iso(-11),depotage:{date:iso(-19),status:'Validée',recId:'REC-SP-01',total:130,model:'MB5',cat:'propre_global',by:'u3',at:ago(-19,11)},comments:[{id:'csp1',author:'u3',t:ago(-11,16),'text':'Conteneur retourné au parc CMA CGM de San-Pedro 4 jours avant fin de franchise. Opération exemplaire.'}]},
-  {id:'GT-2026-SP-02',num:'GT-2026-SP-02',site:'sanpedro',cont:'MSCU9041285',bl:'BL-SP-10518',lam:'MSC',trans:'Comoé Transport',status:'Ouvert',createdBy:'u3',createdAt:ago(-10,8),updatedBy:'u3',updatedAt:ago(-1,14),D1:iso(11),D2:iso(-9),D3:iso(-8),D4:iso(-4),D5:iso(-3),D6:iso(-1),D7:'',D8:'',depotage:{date:iso(-1),status:'Validée',recId:'REC-SP-02',total:140,model:'MB5',cat:'propre_skci',by:'u3',at:ago(-1,10)},comments:[{id:'csp2',author:'u3',t:ago(-1,10),'text':'Dépotage terminé au Dépôt San-Pedro. Mail de récupération prévu demain.'}]}
+  {id:'GT-2026-SP-01',num:'GT-2026-SP-01',site:'sanpedro',cont:'CMAU8120341',bl:'BL-SP-10492',lam:'CMA CGM',trans:'CI Express Logistique',status:'Clôturé',createdBy:'u3',createdAt:ago(-25,9),updatedBy:'u3',updatedAt:ago(-5,16),D1:iso(-7),D2:iso(-28),D3:iso(-27),D4:-23!=null?iso(-23):'',D5:iso(-22),D6:iso(-19),D7:iso(-14),D8:iso(-11),depotage:{date:iso(-19),status:'Validée',recId:'REC-SP-001',total:130,model:'MB5',cat:'propre_global',by:'u3',at:ago(-19,11)},comments:[{id:'csp1',author:'u3',t:ago(-11,16),'text':'Conteneur retourné au parc CMA CGM de San-Pedro 4 jours avant fin de franchise. Opération exemplaire.'}]},
+  {id:'GT-2026-SP-02',num:'GT-2026-SP-02',site:'sanpedro',cont:'MSCU9041285',bl:'BL-SP-10518',lam:'MSC',trans:'Comoé Transport',status:'Ouvert',createdBy:'u3',createdAt:ago(-10,8),updatedBy:'u3',updatedAt:ago(-1,14),D1:iso(11),D2:iso(-9),D3:iso(-8),D4:iso(-4),D5:iso(-3),D6:iso(-1),D7:'',D8:'',depotage:{date:iso(-1),status:'Validée',recId:'REC-SP-002',total:140,model:'MB5',cat:'propre_skci',by:'u3',at:ago(-1,10)},comments:[{id:'csp2',author:'u3',t:ago(-1,10),'text':'Dépotage terminé au Dépôt San-Pedro. Mail de récupération prévu demain.'}]}
  );
 }
 (S?.receptions||[]).forEach(r=>{
@@ -3045,10 +3073,10 @@ function gauge(d){const x=delay(d),v=x.n??x.el;
  </div>`}
 
 function findDepotTarget(id){
- let r = (S.receptions||[]).find(x => x.id === id || x.dossier === id);
- let d = (S.dossiers||[]).find(x => x.id === id || x.num === id || (r && x.num === r.dossier));
- if(!r && d && d.depotage?.recId){
-  r = (S.receptions||[]).find(x => x.id === d.depotage.recId);
+ let d = (S.dossiers||[]).find(x => x.id === id || x.num === id);
+ let r = (S.receptions||[]).find(x => x.id === id || (d && d.depotage && x.id === d.depotage.recId) || (d && x.dossier === d.num));
+ if(!d && r){
+  d = (S.dossiers||[]).find(x => x.num === r.dossier || x.id === r.dossier);
  }
  return { r, d };
 }
@@ -3365,13 +3393,14 @@ function ensureDepotageTransmis(d, totalQty=140, model='MB5'){
 
 function isDepotageTermine(d){
  if(!d) return false;
+ if(d.D7 || d.D8 || d.status === 'Clôturé') return true;
  if(!d.D6) return false;
  const r = (S?.receptions||[]).find(x => (d.depotage && x.id === d.depotage.recId) || x.dossier === d.num);
  const target = r || d.depotage;
- if(target){
-  return target.status === 'Validée' || target.depotStatus === 'Terminé' || Boolean(target.depotEndAt);
+ if(target && (target.status === 'Validée' || target.depotStatus === 'Terminé' || Boolean(target.depotEndAt))){
+  return true;
  }
- return Boolean(d.D7 || d.D8);
+ return Boolean(d.D6);
 }
 
 function depotageSummary(d){
@@ -3619,20 +3648,22 @@ function openDossier(id,edit=false){
      const disp=s.type==='select'?(val?`<b>${esc(val)}</b>`:''):(val?`<b>${fmt(val)}</b>`:'');
      let actBtn='';
      if(prevOk&&!val&&!clos){
-      if(s.k==='D5'||s.k==='D6'||s.k==='D7'){ actBtn=''; }
-      else if(s.k==='D4'||s.type==='select')actBtn=`<button type="button" class="btn small primary${lockCls('transit')}" data-act="validerMiseEnLivraison" data-id="${d.id}">Mise en livraison & Transporteur</button>`;
-      else if(s.k==='D8')actBtn=`<button type="button" class="btn small primary${lockCls('transit')}" data-act="validerStepJour" data-id="${d.id}" data-step="${s.k}" style="background:#059669;border-color:#047857">Valider récupération & Clôturer</button>`;
-      else actBtn=`<button type="button" class="btn small primary${lockCls('transit')}" data-act="validerStepJour" data-id="${d.id}" data-step="${s.k}">Valider ce jour</button>`;
+      if(s.k==='D4'||s.type==='select') actBtn=`<button type="button" class="btn small primary${lockCls('transit')}" data-act="validerMiseEnLivraison" data-id="${d.id}">Mise en livraison & Transporteur</button>`;
+      else if(s.k==='D5') actBtn=`<button type="button" class="btn small primary" data-act="confirmerReceptionTC" data-id="${d.id}" style="background:#2563EB;border-color:#1D4ED8;color:#FFF;font-weight:700">📥 Confirmer réception au quai</button>`;
+      else if(s.k==='D6') actBtn=`<button type="button" class="btn small primary" data-act="validerReceptionDepotage" data-id="${d.depotage?.recId||d.id}" style="background:#EA580C;border-color:#C2410C;color:#FFF;font-weight:700">⏱️ Dépoter & Affecter stock</button>`;
+      else if(s.k==='D7') actBtn=`<button type="button" class="btn small primary" data-act="envoyerMailRecup" data-id="${d.id}" style="background:#7C3AED;border-color:#6D28D9;color:#FFF;font-weight:700">📧 Envoyer mail récupération</button>`;
+      else if(s.k==='D8') actBtn=`<button type="button" class="btn small primary" data-act="confirmerRecuperationTC" data-id="${d.id}" style="background:#059669;border-color:#047857;color:#FFF;font-weight:700">🚚 Restituer TC & Clôturer</button>`;
+      else actBtn=`<button type="button" class="btn small primary" data-act="validerStepJour" data-id="${d.id}" data-step="${s.k}">Valider ce jour</button>`;
      }
      if(s.k==='D5'&&!val){
-      ctrl = disp || (d.D4 ? `<span class="badge b-warn" style="font-weight:600">⏳ En attente de validation par l’Entrepôt</span>` : `<span class="badge b-bad" style="font-weight:600">🔒 En attente de mise en livraison</span>`);
+      ctrl = disp || (prevOk ? `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px"><span class="badge b-warn" style="font-weight:600">En attente quai</span>${actBtn}</div>` : (d.D4 ? `<span class="badge b-warn" style="font-weight:600">⏳ En attente quai</span>` : `<span class="badge b-bad" style="font-weight:600">🔒 En attente de mise en livraison</span>`));
      }else if(s.k==='D6'&&!val){
       if(!d.depotage&&d.D5) ensureDepotageTransmis(d);
-      ctrl = disp || `<span class="badge b-warn" style="font-weight:600">⏳ Transmis au Dépôt</span>`;
+      ctrl = disp || (prevOk ? `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px"><span class="badge b-warn" style="font-weight:600">Transmis au Dépôt</span>${actBtn}</div>` : `<span class="badge b-bad" style="font-weight:600">🔒 En attente de réception quai</span>`);
      }else if(s.k==='D7'&&!val){
-      ctrl = depDone
-       ? `<span class="badge b-warn" style="font-weight:600">⏳ En attente d’envoi par l’Entrepôt</span>`
-       : `<span class="badge b-bad" style="font-weight:600">🔒 En attente de dépotage en Entrepôt</span>`;
+      ctrl = disp || (prevOk && depDone ? `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px"><span class="badge b-warn" style="font-weight:600">Dépotage terminé</span>${actBtn}</div>` : `<span class="badge b-bad" style="font-weight:600">🔒 En attente de dépotage</span>`);
+     }else if(s.k==='D8'&&!val){
+      ctrl = disp || (prevOk ? `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px"><span class="badge b-warn" style="font-weight:600">Prêt pour restitution</span>${actBtn}</div>` : `<span class="badge b-bad" style="font-weight:600">🔒 En attente du mail de récupération</span>`);
      }else{
       const attenteMsg=(s.k==='D7' && d.D6 && !depDone)?'Dépotage terminé en Entrepôt':s.prevLabel;
       ctrl=disp||(prevOk?`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px"><span class="badge b-bad">Non renseigné · prêt à valider</span>${actBtn}</div>`:`<span class="badge b-bad">🔒 Non renseigné (attente : ${attenteMsg})</span>`);
@@ -7823,9 +7854,10 @@ document.addEventListener('click',e=>{
   validerStepJour:()=>{if(!guard('transit'))return;const d=S.dossiers.find(x=>x.id===id);if(!d||!d.D3)return;
    const sk=a.dataset.step,st=SEQ_STEPS.find(x=>x.k===sk);if(!st||d[sk])return;
    if(sk==='D4'||sk==='trans'){validerMiseEnLivraison(id);return;}
-   if(sk==='D5'){toast('La date de réception doit être validée par l’Entrepôt.','bad');return}
-    if(sk==='D6'){toast('Le dépotage est uniquement confirmé et exécuté au niveau de l’Entrepôt.','bad');return}
-   if(sk==='D7'){toast('La validation du mail de récupération est à envoyer uniquement par les Entrepôts.','bad');return}
+   if(sk==='D5'){confirmerReceptionTC(id);return;}
+   if(sk==='D6'){validerReceptionDepotage(d.depotage?.recId||id);return;}
+   if(sk==='D7'){envoyerMailRecup(id);return;}
+   if(sk==='D8'){confirmerRecuperationTC(id);return;}
    if(!d[st.prev]){toast(`Validez d’abord « ${st.prevLabel} ».`,'bad');return}
    const isRecovery=sk==='D8';
    const successMsg=isRecovery
