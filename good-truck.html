@@ -6521,7 +6521,7 @@ function vLivraisons(){
   `<div><b>${n0(expedieesLivrees.length)}</b>expédiée${expedieesLivrees.length>1?'s':''}/livrée${expedieesLivrees.length>1?'s':''}</div>`+
   `<div><b>${n0(activeDeliveries.length)}</b>total opérations actives</div>`)+
  `<div class="toolbar"><div class="chips grow">${sts.map(s=>`<button class="chip" data-lf="${s}" aria-pressed="${lvFilter===s}">${s}</button>`).join('')}</div><button class="btn primary${lockCls('livraisons')}" data-act="newLivraison">${plus()}Programmer un transport</button></div>
- <div class="tablewrap"><table><thead><tr><th>Réf. Planning</th><th>Numéro ITR</th><th>Purchase Order (PO)</th><th>Date planification</th><th>Destination</th><th class="right">Quantité</th><th class="right">Expédiée / Livrée</th><th>Transport</th><th>Statut</th><th>Action</th></tr></thead><tbody>
+ <div class="tablewrap"><table><thead><tr><th>Réf. Planning</th><th>Numéro ITR</th><th>Purchase Order (PO)</th><th>Date planification</th><th>Destination</th><th class="right">Quantité</th><th class="right">Expédiée / Livrée</th><th>Statut</th><th>Action</th></tr></thead><tbody>
  ${list.map(l=>{const pl=l.pool||destPool(l.to);return `<tr><td><span class="ref">${l.id}</span></td><td><b class="num" style="color:var(--blue)">${esc(l.itr||'—')}</b></td><td><b class="num">${esc(l.po||'—')}</b></td><td><b>${fmt(l.dateP)}</b>${lvLate(l)?'<br>'+badge('warn','En retard','◷'):''}</td><td><b style="color:var(--text);font-size:13.5px">${esc(l.to)}</b></td>
   <td class="right num"><b style="font-size:15px">${n0(l.qty)}</b></td>
   <td class="right num">${(()=>{
@@ -6535,7 +6535,7 @@ function vLivraisons(){
    const diffSign = diff > 0 ? `-${n0(diff)}` : `+${n0(Math.abs(diff))}`;
    return `<span style="white-space:nowrap"><b class="num" style="font-size:14px">${ship}</b> <span style="color:#DC2626;font-weight:700;margin-left:4px" title="Quantité livrée : ${rec} (Écart : ${diffSign})">(${rec})</span></span>`;
   })()}</td>
-  <td>${l.transport?`<span class="ref">${l.transport}</span>`:'<span class="muted">À affecter</span>'}</td><td>${badge(kind(l.status),l.status)}</td><td style="white-space:nowrap">
+  <td>${badge(kind(l.status),l.status)}</td><td style="white-space:nowrap">
    ${(()=>{
     const isClosed = l.status === 'Clôturée' || (l.transport && (S.transports||[]).some(t => t.id === l.transport && t.status === 'Clôturé'));
     const isCancelled = l.status === 'Annulée';
@@ -6552,7 +6552,7 @@ function vLivraisons(){
     }
     return `<button class="btn small primary${lockCls('transport')}" data-act="programmerTransportPlanif" data-id="${l.id}">Programmer Transport</button> <button class="btn small danger${lockCls('livraisons')}" data-act="cancelPlanif" data-id="${l.id}" title="Annuler la demande (motif obligatoire)">Annuler</button>`;
    })()}
-  </td></tr>`}).join('')||'<tr><td colspan="10" class="empty">Aucune opération pour ce filtre.</td></tr>'}</tbody></table></div>
+  </td></tr>`}).join('')||'<tr><td colspan="9" class="empty">Aucune opération pour ce filtre.</td></tr>'}</tbody></table></div>
  ${(lvFilter==='Tous'||lvFilter==='Annulées') && cancelledDeliveries.length ? `
  <div style="margin-top:24px;border:1px solid #FECDD3;border-left:5px solid var(--bad);border-radius:12px;background:#FFF;padding:16px 18px;box-shadow:0 2px 8px rgba(239,68,68,0.06)">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
