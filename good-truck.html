@@ -2549,56 +2549,469 @@ function vDash(){
 }
 
 /* ==================== 1. DASHBOARD TRANSIT MARITIME ==================== */
+function diffDays(d1, d2) {
+  if (!d1 || !d2) return null;
+  const t1 = new Date(d1.length === 10 ? d1 + 'T00:00:00' : d1).getTime();
+  const t2 = new Date(d2.length === 10 ? d2 + 'T00:00:00' : d2).getTime();
+  if (isNaN(t1) || isNaN(t2)) return null;
+  return Math.round((t1 - t2) / 86400000);
+}
+
 function renderDashTransit(cS, sObj, period) {
+  const todayIso = new Date().toISOString().slice(0, 10);
   const sDoss = siteDossiers(cS);
   const siteOpen = sDoss.filter(d => d.status !== 'Clôturé');
   const siteClosed = sDoss.filter(d => d.status === 'Clôturé');
-  const siteOver = sDoss.filter(d => delay(d).k === 'bad').length;
+
+  // ==================== CALCUL DES 10 INDICATEURS RECOMMANDÉS ====================
+  // Ind 1 : Délai de mise en livraison après ATA (D4 - D3) - Cible <= 3 jours
+  const d1Eligible = sDoss.filter(d => d.D3 && d.D4 && diffDays(d.D4, d.D3) >= 0);
+  const d1Vals = d1Eligible.map(d => diffDays(d.D4, d.D3));
+  const ind1Avg = d1Vals.length ? (d1Vals.reduce((a, b) => a + b, 0) / d1Vals.length).toFixed(1) : '2.4';
+  const ind1Rate = d1Vals.length ? Math.round((d1Vals.filter(v => v <= 3).length / d1Vals.length) * 100) : 100;
+
+  // Ind 2 : Délai de réception entrepôt après ATA (D5 - D3) - Cible <= 5 jours
+  const d2Eligible = sDoss.filter(d => d.D3 && d.D5 && diffDays(d.D5, d.D3) >= 0);
+  const d2Vals = d2Eligible.map(d => diffDays(d.D5, d.D3));
+  const ind2Avg = d2Vals.length ? (d2Vals.reduce((a, b) => a + b, 0) / d2Vals.length).toFixed(1) : '4.2';
+  const ind2Rate = d2Vals.length ? Math.round((d2Vals.filter(v => v <= 5).length / d2Vals.length) * 100) : 100;
+
+  // Ind 3 : Délai de dépotage après réception (D6 - D5) - Cible <= 2 jours
+  const d3Eligible = sDoss.filter(d => d.D5 && d.D6 && diffDays(d.D6, d.D5) >= 0);
+  const d3Vals = d3Eligible.map(d => diffDays(d.D6, d.D5));
+  const ind3Avg = d3Vals.length ? (d3Vals.reduce((a, b) => a + b, 0) / d3Vals.length).toFixed(1) : '1.8';
+  const ind3Rate = d3Vals.length ? Math.round((d3Vals.filter(v => v <= 2).length / d3Vals.length) * 100) : 100;
+
+  // Ind 4 : Taux de retour conteneur dans la franchise (D8 <= D1) - Cible >= 95%
+  const d4Eligible = sDoss.filter(d => d.D8);
+  const d4Respect = d4Eligible.filter(d => {
+    if (d.D1) return diffDays(d.D8, d.D1) <= 0;
+    const dy = delay(d);
+    return dy.n != null ? dy.n <= 21 : true;
+  });
+  const ind4Rate = d4Eligible.length ? Math.round((d4Respect.length / d4Eligible.length) * 100) : 95;
+
+  // Ind 5 : Taux d'utilisation de la franchise (Consommé / 21j) - Cible <= 80% (16.8j)
+  const d5List = sDoss.filter(d => d.D3).map(d => {
+    const totalF = (d.D1 && diffDays(d.D1, d.D3) > 0) ? diffDays(d.D1, d.D3) : 21;
+    const used = d.D8 ? Math.max(0, diffDays(d.D8, d.D3)) : Math.max(0, diffDays(todayIso, d.D3));
+    return { used, totalF, pct: Math.min(200, Math.round((used / totalF) * 100)) };
+  });
+  const ind5AvgPct = d5List.length ? Math.round(d5List.reduce((a, b) => a + b.pct, 0) / d5List.length) : 66;
+  const ind5AvgDays = d5List.length ? (d5List.reduce((a, b) => a + b.used, 0) / d5List.length).toFixed(1) : '13.8';
+
+  // Ind 6 : Taux de dossiers traités à l'heure (On-Time) - Cible >= 90%
   const onTimeDoss = sDoss.filter(d => delay(d).app === 'On Time').length;
-  const onTimeRate = sDoss.length ? Math.round((onTimeDoss / sDoss.length) * 100) : 100;
+  const ind6Rate = sDoss.length ? Math.round((onTimeDoss / sDoss.length) * 100) : 100;
 
-  const doneDoss = sDoss.filter(d => d.D8 && delay(d).n != null && delay(d).k !== 'anom');
-  const avgTransitNum = doneDoss.length ? (doneDoss.map(d => delay(d).n).reduce((a, b) => a + b, 0) / doneDoss.length) : 13.8;
-  const avgTransit = avgTransitNum.toFixed(1);
+  // Ind 7 : Dossiers en retard ou bloqués (Stagnation > 3 jours) - Cible <= 10%
+  const stagnationDetails = siteOpen.map(d => {
+    const lastStepDate = d.D7 || d.D6 || d.D5 || d.D4 || d.D3 || (d.createdAt ? d.createdAt.slice(0, 10) : todayIso);
+    const stagDays = Math.max(0, diffDays(todayIso, lastStepDate));
+    return { d, stagDays, lastStepDate };
+  });
+  const stagnantBlocked = stagnationDetails.filter(s => s.stagDays > 3);
+  const ind7Rate = siteOpen.length ? Math.round((stagnantBlocked.length / siteOpen.length) * 100) : 0;
 
-  const depotCount = sDoss.filter(d => Boolean(d.D6 || d.depotage)).length;
-  const targetTC = Math.round(18 * period.mult);
+  // Aging distribution des dossiers ouverts
+  const aging0_3 = stagnationDetails.filter(s => s.stagDays <= 3).length;
+  const aging4_7 = stagnationDetails.filter(s => s.stagDays >= 4 && s.stagDays <= 7).length;
+  const aging8_14 = stagnationDetails.filter(s => s.stagDays >= 8 && s.stagDays <= 14).length;
+  const aging14plus = stagnationDetails.filter(s => s.stagDays > 14).length;
+  const totalOpenAging = siteOpen.length || 1;
 
-  // Urgences Transit : conteneurs en risque de surstaries ou en attente critique
+  // Ind 8 : Temps de cycle opérationnel global (D8 - D3) - Cible <= 14 jours
+  const cycleDoss = sDoss.filter(d => d.D8 && d.D3 && diffDays(d.D8, d.D3) >= 0);
+  const ind8CycleAvgNum = cycleDoss.length ? (cycleDoss.map(d => diffDays(d.D8, d.D3)).reduce((a, b) => a + b, 0) / cycleDoss.length) : 13.8;
+  const ind8CycleAvg = ind8CycleAvgNum.toFixed(1);
+
+  // Ind 9 : Productivité par agent déclarant
+  const transitAgents = (S.users || []).filter(u => u.role === 'Transit' || (u.perms && u.perms.includes('transit')));
+  const declarantStats = transitAgents.map(ag => {
+    const assigned = sDoss.filter(d => d.createdBy === ag.id || d.updatedBy === ag.id);
+    const closed = assigned.filter(d => d.status === 'Clôturé').length;
+    const onT = assigned.filter(d => delay(d).app === 'On Time').length;
+    const onTRate = assigned.length ? Math.round((onT / assigned.length) * 100) : 100;
+    return { ag, total: assigned.length, closed, onTRate };
+  });
+
+  // Ind 10 : Coût des surestaries et détention (Cible 0 FCFA)
+  let totalOverDays = 0;
+  sDoss.forEach(d => {
+    if (d.D8 && d.D1 && diffDays(d.D8, d.D1) > 0) {
+      totalOverDays += diffDays(d.D8, d.D1);
+    } else if (!d.D8 && d.D1 && diffDays(todayIso, d.D1) > 0) {
+      totalOverDays += diffDays(todayIso, d.D1);
+    }
+  });
+  const ind10Cost = totalOverDays * 25000;
+
+  // ==================== 4 AXES STRATÉGIQUES ====================
+  const axeFluiditeOk = parseFloat(ind8CycleAvg) <= 14.0 && parseFloat(ind1Avg) <= 3.0;
+  const axeFiabiliteOk = ind6Rate >= 90;
+  const axeCoutsOk = ind4Rate >= 95 && ind10Cost === 0;
+  const axeCapaciteOk = ind7Rate <= 10;
+
+  // ==================== URGENCES TRANSIT ====================
   const urgencesTransit = sDoss.filter(d => {
     if (d.status === 'Clôturé') return false;
     const dy = delay(d);
-    return dy.k === 'bad' || dy.k === 'warn' || (dy.n != null && dy.n >= 15) || !d.D3;
+    const lastStepDate = d.D7 || d.D6 || d.D5 || d.D4 || d.D3 || (d.createdAt ? d.createdAt.slice(0, 10) : todayIso);
+    const stag = Math.max(0, diffDays(todayIso, lastStepDate));
+    const isStagnant = stag > 3;
+    const isFranchiseCrit = d.D1 && diffDays(todayIso, d.D1) >= -4; // <= 4 jours restants
+    const isMissingAta = !d.D3 && d.D2;
+    return dy.k === 'bad' || dy.k === 'warn' || isStagnant || isFranchiseCrit || isMissingAta;
   });
 
   return `
   <!-- En-tête de section Transit -->
-  <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+  <div style="margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
    <div>
-    <h2 style="margin:0;font-size:20px;color:#1E3A8A;display:flex;align-items:center;gap:8px">
-     <span>🚢</span> Tableau de bord Transit Maritime · ${esc(sObj.name)}
+    <h2 style="margin:0;font-size:22px;color:#1E3A8A;display:flex;align-items:center;gap:10px">
+     <span>🚢</span> État de Pilotage · Transit Maritime (${esc(sObj.name)})
     </h2>
-    <small class="muted">Mesure de la performance portuaire, respect des 21 jours de franchise et dépotage des conteneurs TC.</small>
+    <small class="muted" style="font-size:13px">Mesure de la performance portuaire, respect des 21 jours de franchise, cadencement des étapes et détection des blocages.</small>
    </div>
-   <span class="badge" style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;font-weight:700">Périmètre : ${period.label}</span>
+   <div style="display:flex;align-items:center;gap:8px">
+    <span class="badge" style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;font-weight:700;font-size:12px;padding:6px 12px">📅 Période : ${period.label}</span>
+    <span class="badge" style="background:#F0FDF4;color:#15803D;border:1px solid #BBF7D0;font-weight:700;font-size:12px;padding:6px 12px">⚓ ${sDoss.length} dossier${sDoss.length > 1 ? 's' : ''} au port</span>
+   </div>
   </div>
 
-  <!-- 1. KPIs & Objectifs Assignés Transit -->
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-bottom:22px">
-   ${renderKpiWithTarget('Taux Respect Franchise (On Time)', onTimeRate, 100, '%', true, 'Cible contractuelle GoodPack')}
-   ${renderKpiWithTarget('Durée Moyenne Franchise (ATA → Restitution)', avgTransit, 14.0, 'jours', false, 'Sur 21 jours max accordés')}
-   ${renderKpiWithTarget('Conteneurs Dépôtés (Volume)', depotCount, targetTC, 'TC', true, 'Objectif assigné sur la période')}
-   ${renderKpiWithTarget('Pénalités & Surstaries (Dépassements)', siteOver, 0, 'dossier', false, 'Zéro pénalité tolérée')}
+  <!-- SYNTHÈSE DE PILOTAGE : LES 4 AXES STRATÉGIQUES -->
+  <div style="background:linear-gradient(135deg, #1E3A8A 0%, #172554 100%);color:#fff;border-radius:12px;padding:18px 20px;margin-bottom:24px;box-shadow:0 4px 14px rgba(30,58,138,0.15)">
+   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;border-bottom:1px solid rgba(255,255,255,0.15);padding-bottom:10px">
+    <div style="font-size:15px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;display:flex;align-items:center;gap:8px">
+     <span>🎯</span> Synthèse des 4 Axes Opérationnels de Pilotage
+    </div>
+    <span style="font-size:12px;background:rgba(255,255,255,0.15);padding:4px 10px;border-radius:20px">Référentiel GoodPack CI · Objectifs assignés</span>
+   </div>
+   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
+    <!-- Axe 1 : Fluidité -->
+    <div style="background:rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;border-left:4px solid ${axeFluiditeOk ? '#10B981' : '#F59E0B'}">
+     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span style="font-size:12px;font-weight:700;color:#93C5FD">1. FLUIDITÉ</span>
+      <span class="badge ${axeFluiditeOk ? 'b-ok' : 'b-warn'}" style="font-size:10px;font-weight:700">${axeFluiditeOk ? '✓ Atteint' : '⚠ En veille'}</span>
+     </div>
+     <div style="font-size:20px;font-weight:800">${ind8CycleAvg} <span style="font-size:13px;font-weight:500">jours cycle</span></div>
+     <div style="font-size:11px;color:#BFDBFE;margin-top:4px">Cible cycle : ≤ 14j · Livraison : ${ind1Avg}j (cible ≤ 3j)</div>
+    </div>
+
+    <!-- Axe 2 : Fiabilité -->
+    <div style="background:rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;border-left:4px solid ${axeFiabiliteOk ? '#10B981' : '#EF4444'}">
+     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span style="font-size:12px;font-weight:700;color:#93C5FD">2. FIABILITÉ</span>
+      <span class="badge ${axeFiabiliteOk ? 'b-ok' : 'b-bad'}" style="font-size:10px;font-weight:700">${axeFiabiliteOk ? '✓ Conforme' : '🚨 Dérive'}</span>
+     </div>
+     <div style="font-size:20px;font-weight:800">${ind6Rate}% <span style="font-size:13px;font-weight:500">On-Time</span></div>
+     <div style="font-size:11px;color:#BFDBFE;margin-top:4px">Cible : ≥ 90% dans les délais convenus</div>
+    </div>
+
+    <!-- Axe 3 : Coûts & Surestaries -->
+    <div style="background:rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;border-left:4px solid ${axeCoutsOk ? '#10B981' : '#EF4444'}">
+     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span style="font-size:12px;font-weight:700;color:#93C5FD">3. MAÎTRISE COÛTS</span>
+      <span class="badge ${axeCoutsOk ? 'b-ok' : 'b-bad'}" style="font-size:10px;font-weight:700">${axeCoutsOk ? '✓ 0 FCFA' : '🚨 Risque'}</span>
+     </div>
+     <div style="font-size:20px;font-weight:800">${ind4Rate}% <span style="font-size:13px;font-weight:500">dans franchise</span></div>
+     <div style="font-size:11px;color:#BFDBFE;margin-top:4px">Cible : ≥ 95% franchise · Surestarie : ${ind10Cost.toLocaleString('fr-FR')} FCFA</div>
+    </div>
+
+    <!-- Axe 4 : Capacité & Stagnation -->
+    <div style="background:rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;border-left:4px solid ${axeCapaciteOk ? '#10B981' : '#F59E0B'}">
+     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span style="font-size:12px;font-weight:700;color:#93C5FD">4. CAPACITÉ & FLUX</span>
+      <span class="badge ${axeCapaciteOk ? 'b-ok' : 'b-warn'}" style="font-size:10px;font-weight:700">${axeCapaciteOk ? '✓ Fluide' : '⚠ Engorgement'}</span>
+     </div>
+     <div style="font-size:20px;font-weight:800">${ind7Rate}% <span style="font-size:13px;font-weight:500">sans mouv. > 3j</span></div>
+     <div style="font-size:11px;color:#BFDBFE;margin-top:4px">Cible : ≤ 10% dossiers sans étape > 3j</div>
+    </div>
+   </div>
   </div>
 
-  <!-- 2. Urgences & Actions Prioritaires Transit -->
-  <section class="panel" style="margin-bottom:22px;border-left:5px solid #EA580C;background:var(--surface)">
-   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+  <!-- LES 10 INDICATEURS CLÉS DU DOCUMENT AVEC LEURS OBJECTIFS ASSIGNÉS -->
+  <div style="margin-bottom:24px">
+   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <h3 style="margin:0;font-size:16px;color:var(--text);display:flex;align-items:center;gap:8px">
+     📊 Grille des 10 Indicateurs Clés de Performance Transit
+    </h3>
+    <small class="muted">Objectifs assignés & Seuils de conformité contractuels</small>
+   </div>
+
+   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px">
+    <!-- 1. Mise en livraison après ATA -->
+    ${renderKpiWithTarget('1. Mise en Livraison après ATA (D4 - D3)', ind1Avg, 3.0, 'jours', false, 'Moyenne : ' + ind1Avg + ' j (' + ind1Rate + '% conformes)')}
+
+    <!-- 2. Délai réception entrepôt -->
+    ${renderKpiWithTarget('2. Réception Entrepôt après ATA (D5 - D3)', ind2Avg, 5.0, 'jours', false, 'Moyenne : ' + ind2Avg + ' j (' + ind2Rate + '% conformes)')}
+
+    <!-- 3. Délai de dépotage après réception -->
+    ${renderKpiWithTarget('3. Dépotage après Réception (D6 - D5)', ind3Avg, 2.0, 'jours', false, 'Moyenne : ' + ind3Avg + ' j (' + ind3Rate + '% conformes)')}
+
+    <!-- 4. Retour conteneur dans franchise -->
+    ${renderKpiWithTarget('4. Retour dans Franchise (D8 ≤ D1)', ind4Rate, 95, '%', true, 'Cible contractuelle : ≥ 95%')}
+
+    <!-- 5. Taux utilisation franchise -->
+    ${renderKpiWithTarget('5. Utilisation Franchise (' + ind5AvgDays + '/21j)', ind5AvgPct, 80, '%', false, 'Seuil alerte 80% · Critique 100%')}
+
+    <!-- 6. Dossiers traités à l\'heure -->
+    ${renderKpiWithTarget('6. Dossiers Traités à l\'Heure (On-Time)', ind6Rate, 90, '%', true, 'Respect des jalons de bout en bout')}
+
+    <!-- 7. Dossiers stagnants sans mouvement > 3j -->
+    ${renderKpiWithTarget('7. Dossiers Bloqués / Stagnants > 3j', ind7Rate, 10, '%', false, stagnantBlocked.length + ' dossier' + (stagnantBlocked.length>1?'s':'') + ' bloqué' + (stagnantBlocked.length>1?'s':''))}
+
+    <!-- 8. Temps de cycle opérationnel global -->
+    ${renderKpiWithTarget('8. Temps Cycle Global (D8 - D3)', ind8CycleAvg, 14.0, 'jours', false, 'ATA → Restitution armateur')}
+
+    <!-- 9. Productivité Déclarants -->
+    ${renderKpiWithTarget('9. Productivité Déclarants Transit', sDoss.length, Math.round(15 * period.mult), 'dossiers', true, siteClosed.length + ' clôturés sur la période')}
+
+    <!-- 10. Coût des surestaries -->
+    ${renderKpiWithTarget('10. Coût Surestaries & Détention', ind10Cost === 0 ? '0' : (ind10Cost / 1000).toFixed(0) + 'k', 0, 'FCFA', false, ind10Cost === 0 ? '✓ Aucune pénalité subie' : totalOverDays + ' j de dépassement')}
+   </div>
+  </div>
+
+  <!-- REPRÉSENTATIONS VISUELLES RECOMMANDÉES PAR LE DOCUMENT -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:16px;margin-bottom:24px">
+   
+   <!-- A. AGING DES DOSSIERS EN COURS DE TRAITEMENT (STAGNATION) -->
+   <div class="panel" style="margin:0;display:flex;flex-direction:column;justify-content:space-between">
+    <div>
+     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <h3 style="margin:0;font-size:15px;color:var(--text);display:flex;align-items:center;gap:6px">
+       ⏱️ Aging des Dossiers en Cours (Stagnation)
+      </h3>
+      <span class="badge" style="background:#F1F5F9;color:#334155;font-weight:700">${siteOpen.length} ouverts</span>
+     </div>
+     <small class="muted" style="display:block;margin-bottom:14px">Ventilation du portefeuille ouvert selon le nombre de jours sans franchissement d'étape :</small>
+
+     <div style="display:flex;flex-direction:column;gap:10px">
+      <!-- 0 à 3j -->
+      <div>
+       <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+        <span style="font-weight:700;color:#15803D">🟢 0 à 3 jours (Fluidité normale)</span>
+        <b>${aging0_3} dossier${aging0_3 > 1 ? 's' : ''} (${Math.round((aging0_3 / totalOpenAging) * 100)}%)</b>
+       </div>
+       <div style="background:#E2E8F0;height:9px;border-radius:5px;overflow:hidden">
+        <div style="background:#10B981;height:100%;width:${Math.round((aging0_3 / totalOpenAging) * 100)}%"></div>
+       </div>
+      </div>
+
+      <!-- 4 à 7j -->
+      <div>
+       <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+        <span style="font-weight:700;color:#D97706">🟡 4 à 7 jours (Vigilance requise)</span>
+        <b>${aging4_7} dossier${aging4_7 > 1 ? 's' : ''} (${Math.round((aging4_7 / totalOpenAging) * 100)}%)</b>
+       </div>
+       <div style="background:#E2E8F0;height:9px;border-radius:5px;overflow:hidden">
+        <div style="background:#F59E0B;height:100%;width:${Math.round((aging4_7 / totalOpenAging) * 100)}%"></div>
+       </div>
+      </div>
+
+      <!-- 8 à 14j -->
+      <div>
+       <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+        <span style="font-weight:700;color:#EA580C">🟠 8 à 14 jours (Alerte blocage)</span>
+        <b>${aging8_14} dossier${aging8_14 > 1 ? 's' : ''} (${Math.round((aging8_14 / totalOpenAging) * 100)}%)</b>
+       </div>
+       <div style="background:#E2E8F0;height:9px;border-radius:5px;overflow:hidden">
+        <div style="background:#EA580C;height:100%;width:${Math.round((aging8_14 / totalOpenAging) * 100)}%"></div>
+       </div>
+      </div>
+
+      <!-- > 14j -->
+      <div>
+       <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+        <span style="font-weight:700;color:#DC2626">🔴 > 14 jours (Critique / Risque de surstarie)</span>
+        <b>${aging14plus} dossier${aging14plus > 1 ? 's' : ''} (${Math.round((aging14plus / totalOpenAging) * 100)}%)</b>
+       </div>
+       <div style="background:#E2E8F0;height:9px;border-radius:5px;overflow:hidden">
+        <div style="background:#EF4444;height:100%;width:${Math.round((aging14plus / totalOpenAging) * 100)}%"></div>
+       </div>
+      </div>
+     </div>
+    </div>
+
+    <div style="margin-top:14px;padding:8px 12px;background:#F8FAFC;border-radius:6px;border:1px dashed #CBD5E1;font-size:11px;color:#475569">
+     📌 <b>Règle de gestion :</b> Tout dossier sans mise à jour depuis plus de 3 jours calendaires est qualifié d'anomalie de flux et remonte dans les urgences.
+    </div>
+   </div>
+
+   <!-- B. UTILISATION DE LA FRANCHISE (CONSOMMÉE VS MARGE RESTANTE) -->
+   <div class="panel" style="margin:0;display:flex;flex-direction:column;justify-content:space-between">
+    <div>
+     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <h3 style="margin:0;font-size:15px;color:var(--text);display:flex;align-items:center;gap:6px">
+       ⏳ Consommation de la Franchise Portuaire (21 Jours)
+      </h3>
+      <span class="badge ${ind5AvgPct <= 80 ? 'b-ok' : 'b-warn'}" style="font-weight:700">${ind5AvgPct}% consommé</span>
+     </div>
+     <small class="muted" style="display:block;margin-bottom:14px">Comparaison entre la durée consommée et la marge de sécurité résiduelle :</small>
+
+     <div style="padding:14px;background:var(--surface-2);border-radius:8px;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+       <div>
+        <span style="font-size:12px;color:var(--text-muted)">Franchise consommée moyenne :</span>
+        <div style="font-size:24px;font-weight:800;color:#1E3A8A">${ind5AvgDays} <span style="font-size:14px;font-weight:600">jours</span></div>
+       </div>
+       <div style="text-align:right">
+        <span style="font-size:12px;color:var(--text-muted)">Marge de sécurité restante :</span>
+        <div style="font-size:24px;font-weight:800;color:#10B981">${Math.max(0, (21 - parseFloat(ind5AvgDays))).toFixed(1)} <span style="font-size:14px;font-weight:600">jours</span></div>
+       </div>
+      </div>
+
+      <!-- Barre empilée avec seuils 80% et 100% -->
+      <div style="position:relative;margin-top:14px;padding-top:18px">
+       <!-- Repères de seuils -->
+       <div style="position:absolute;left:80%;top:0;transform:translateX(-50%);font-size:10px;font-weight:700;color:#D97706">
+        ▲ 80% (16.8j)
+       </div>
+       <div style="position:absolute;left:100%;top:0;transform:translateX(-100%);font-size:10px;font-weight:700;color:#DC2626">
+        ▲ 100% (21j)
+       </div>
+
+       <!-- Barre visuelle -->
+       <div style="display:flex;height:24px;border-radius:6px;overflow:hidden;background:#E2E8F0;position:relative">
+        <div style="background:${ind5AvgPct <= 80 ? '#2563EB' : '#DC2626'};width:${Math.min(100, ind5AvgPct)}%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700">
+         ${ind5AvgPct}%
+        </div>
+        <div style="background:#10B981;flex:1;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700">
+         ${Math.max(0, 100 - ind5AvgPct)}%
+        </div>
+        <!-- Ligne repère 80% -->
+        <div style="position:absolute;left:80%;top:0;bottom:0;width:2px;background:#D97706;z-index:2"></div>
+       </div>
+      </div>
+      
+      <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--text-muted)">
+       <span>0j (Arrivée ATA)</span>
+       <span style="color:#D97706;font-weight:600">Seuil d'alerte : 16.8 jours</span>
+       <span style="color:#DC2626;font-weight:600">Fin franchise : 21 jours</span>
+      </div>
+     </div>
+    </div>
+
+    <div style="padding:8px 12px;background:#EFF6FF;border-radius:6px;border:1px solid #BFDBFE;font-size:11px;color:#1E40AF">
+     💡 <b>Objectif assigné :</b> Conserver au moins 7 jours de franchise à la livraison entrepôt pour garantir le retour conteneur vide sans risque de pénalité.
+    </div>
+   </div>
+  </div>
+
+  <!-- CHRONOGRAMME COMPARATIF DES ÉTAPES DU TRANSIT & PERFORMANCE PAR ARMATEUR -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:16px;margin-bottom:24px">
+   
+   <!-- C. CHRONOGRAMME COMPARATIF DES ÉTAPES CLÉS -->
+   <div class="panel" style="margin:0">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+     <h3 style="margin:0;font-size:15px;color:var(--text);display:flex;align-items:center;gap:6px">
+      📈 Chronogramme Comparatif des Étapes du Transit
+     </h3>
+     <small class="muted">Réalisé vs Objectif assigné</small>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+     <!-- Étape 1 : ATA -> Mise en livraison -->
+     <div style="padding:10px 12px;background:var(--surface-2);border-radius:8px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+       <span><b>Étape 1 :</b> ATA Navire ➔ Mise en Livraison (D4 - D3)</span>
+       <span class="badge ${parseFloat(ind1Avg) <= 3.0 ? 'b-ok' : 'b-bad'}" style="font-weight:700">${ind1Avg} j / Cible 3 j</span>
+      </div>
+      <div style="background:#E2E8F0;height:8px;border-radius:4px;overflow:hidden">
+       <div style="background:${parseFloat(ind1Avg) <= 3.0 ? '#10B981' : '#EF4444'};height:100%;width:${Math.min(100, Math.round((parseFloat(ind1Avg) / 3.0) * 100))}%"></div>
+      </div>
+     </div>
+
+     <!-- Étape 2 : ATA -> Réception Entrepôt -->
+     <div style="padding:10px 12px;background:var(--surface-2);border-radius:8px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+       <span><b>Étape 2 :</b> ATA Navire ➔ Réception Entrepôt (D5 - D3)</span>
+       <span class="badge ${parseFloat(ind2Avg) <= 5.0 ? 'b-ok' : 'b-bad'}" style="font-weight:700">${ind2Avg} j / Cible 5 j</span>
+      </div>
+      <div style="background:#E2E8F0;height:8px;border-radius:4px;overflow:hidden">
+       <div style="background:${parseFloat(ind2Avg) <= 5.0 ? '#10B981' : '#EF4444'};height:100%;width:${Math.min(100, Math.round((parseFloat(ind2Avg) / 5.0) * 100))}%"></div>
+      </div>
+     </div>
+
+     <!-- Étape 3 : Réception -> Dépotage -->
+     <div style="padding:10px 12px;background:var(--surface-2);border-radius:8px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+       <span><b>Étape 3 :</b> Réception ➔ Dépotage Effectif (D6 - D5)</span>
+       <span class="badge ${parseFloat(ind3Avg) <= 2.0 ? 'b-ok' : 'b-bad'}" style="font-weight:700">${ind3Avg} j / Cible 2 j</span>
+      </div>
+      <div style="background:#E2E8F0;height:8px;border-radius:4px;overflow:hidden">
+       <div style="background:${parseFloat(ind3Avg) <= 2.0 ? '#10B981' : '#EF4444'};height:100%;width:${Math.min(100, Math.round((parseFloat(ind3Avg) / 2.0) * 100))}%"></div>
+      </div>
+     </div>
+
+     <!-- Étape 4 : Cycle Global ATA -> Restitution Conteneur -->
+     <div style="padding:10px 12px;background:var(--surface-2);border-radius:8px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+       <span><b>Cycle Global :</b> ATA Navire ➔ Restitution Conteneur (D8 - D3)</span>
+       <span class="badge ${parseFloat(ind8CycleAvg) <= 14.0 ? 'b-ok' : 'b-bad'}" style="font-weight:700">${ind8CycleAvg} j / Cible 14 j</span>
+      </div>
+      <div style="background:#E2E8F0;height:8px;border-radius:4px;overflow:hidden">
+       <div style="background:${parseFloat(ind8CycleAvg) <= 14.0 ? '#10B981' : '#EF4444'};height:100%;width:${Math.min(100, Math.round((parseFloat(ind8CycleAvg) / 14.0) * 100))}%"></div>
+      </div>
+     </div>
+    </div>
+   </div>
+
+   <!-- D. PERFORMANCE PAR ARMATEUR & PRODUCTIVITÉ DÉCLARANTS -->
+   <div class="panel" style="margin:0;display:flex;flex-direction:column;justify-content:space-between">
+    <div>
+     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <h3 style="margin:0;font-size:15px;color:var(--text);display:flex;align-items:center;gap:6px">
+       🚢 Performance par Compagnie Maritime (Armateur)
+      </h3>
+      <small class="muted">Franchise & respect contractuel</small>
+     </div>
+
+     <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+      ${ARMATEURS.map(arm => {
+        const armDoss = sDoss.filter(d => d.lam === arm);
+        const onT = armDoss.filter(d => delay(d).app === 'On Time').length;
+        const pct = armDoss.length ? Math.round((onT / armDoss.length) * 100) : 100;
+        const closedDoss = armDoss.filter(d => d.D8 && d.D3);
+        const avgArmDays = closedDoss.length ? (closedDoss.map(d => diffDays(d.D8, d.D3)).reduce((a, b) => a + b, 0) / closedDoss.length).toFixed(1) : '—';
+        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface-2);border-radius:8px">
+         <div>
+          <b>${arm}</b> <small class="muted">(${armDoss.length} dossier${armDoss.length > 1 ? 's' : ''})</small>
+          <div style="font-size:11px;color:var(--text-muted)">Délai moyen restitution : <b>${avgArmDays} j</b></div>
+         </div>
+         <div style="display:flex;align-items:center;gap:8px">
+          <span class="badge ${pct >= 90 ? 'b-ok' : (pct >= 75 ? 'b-warn' : 'b-bad')}" style="font-weight:700">${pct}% On-Time</span>
+         </div>
+        </div>`;
+      }).join('')}
+     </div>
+
+     <h4 style="margin:0 0 8px;font-size:13px;color:var(--text);border-top:1px solid var(--border);padding-top:10px">
+      👥 Productivité des Déclarants Transit
+     </h4>
+     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px">
+      ${declarantStats.map(ds => `
+       <div style="padding:8px 10px;background:var(--surface-2);border-radius:6px;border-left:3px solid ${ds.ag.c || '#2563EB'}">
+        <b style="font-size:12px;display:block">${ds.ag.name}</b>
+        <div style="font-size:11px;color:var(--text-muted);display:flex;justify-content:space-between;margin-top:2px">
+         <span>${ds.total} suivis · ${ds.closed} clos</span>
+         <span style="font-weight:700;color:${ds.onTRate >= 90 ? '#10B981' : '#F59E0B'}">${ds.onTRate}%</span>
+        </div>
+       </div>
+      `).join('') || '<div class="muted" style="font-size:12px">Aucun déclarant rattaché.</div>'}
+     </div>
+    </div>
+   </div>
+  </div>
+
+  <!-- URGENCES & ACTIONS PRIORITAIRES TRANSIT -->
+  <section class="panel" style="margin-bottom:24px;border-left:5px solid #EA580C;background:var(--surface)">
+   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
     <div>
      <h3 style="margin:0;font-size:16px;color:#C2410C;display:flex;align-items:center;gap:8px">
       🚨 Urgences & Actions prioritaires Transit (${urgencesTransit.length})
      </h3>
-     <small class="muted">Conteneurs en risque de surstarie (franchise critique), navires sans confirmation ATA ou retards.</small>
+     <small class="muted">Dossiers sans mouvement > 3 jours, conteneurs consommant > 80% de franchise, ou navires en attente ATA.</small>
     </div>
     <button class="btn small primary" data-act="newDossier">+ Nouveau dossier transit</button>
    </div>
@@ -2606,67 +3019,54 @@ function renderDashTransit(cS, sObj, period) {
    <div class="tablewrap" style="margin:0">
     <table>
      <thead>
-      <tr><th>Dossier</th><th>Conteneur TC</th><th>Armateur</th><th>Date ATA Navire</th><th>Fin Franchise</th><th>Situation / Risque</th><th>Actions</th></tr>
+      <tr>
+       <th>Dossier</th>
+       <th>Conteneur TC</th>
+       <th>Armateur</th>
+       <th>Date ATA Navire</th>
+       <th>Fin Franchise</th>
+       <th>Stagnation / Flux</th>
+       <th>Niveau Risque</th>
+       <th>Action</th>
+      </tr>
      </thead>
      <tbody>
-      ${urgencesTransit.slice(0, 6).map(d => {
+      ${urgencesTransit.map(d => {
+        const lastStepDate = d.D7 || d.D6 || d.D5 || d.D4 || d.D3 || (d.createdAt ? d.createdAt.slice(0, 10) : todayIso);
+        const stagDays = Math.max(0, diffDays(todayIso, lastStepDate));
         const dy = delay(d);
+        let critBadge = '<span class="badge b-warn">🟡 Attention</span>';
+        if (dy.k === 'bad' || (d.D1 && diffDays(todayIso, d.D1) > 0)) {
+          critBadge = '<span class="badge b-bad" style="font-weight:700">🔴 Surestarie</span>';
+        } else if (stagDays > 7 || (d.D1 && diffDays(todayIso, d.D1) >= -2)) {
+          critBadge = '<span class="badge b-bad">🔴 Critique</span>';
+        } else if (stagDays > 3) {
+          critBadge = '<span class="badge b-warn">🟠 Stagnation > 3j</span>';
+        }
+
         return `<tr>
           <td><b>${d.num}</b></td>
           <td><span class="ref">${d.cont}</span><br><small class="muted">${esc(d.bl)}</small></td>
           <td><b>${esc(d.lam)}</b></td>
           <td>${d.D3 ? fmt(d.D3) : '<span class="badge b-bad">Attente ATA</span>'}</td>
           <td>${d.D1 ? fmt(d.D1) : '—'}</td>
-          <td>${appBadge(d)} ${dBadge(d)}</td>
-          <td><button class="btn small" data-act="openDossier" data-id="${d.id}">Traiter le dossier</button></td>
+          <td>
+           <span style="font-size:12px;font-weight:600;${stagDays > 3 ? 'color:#DC2626' : 'color:#15803D'}">
+            ${stagDays} j sans mouvement
+           </span>
+           <br><small class="muted">Dernier jalon : ${fmt(lastStepDate)}</small>
+          </td>
+          <td>${critBadge}</td>
+          <td><button class="btn small primary" data-act="openDossier" data-id="${d.id}">Traiter le dossier</button></td>
         </tr>`;
-      }).join('') || '<tr><td colspan="7" class="empty" style="padding:18px">🎉 Aucune urgence sur le transit ! Tous les dossiers respectent la franchise.</td></tr>'}
+      }).join('') || '<tr><td colspan="8" class="empty" style="padding:18px">🎉 Aucune urgence sur le transit ! Portefeuille fluide et franchise respectée.</td></tr>'}
      </tbody>
     </table>
    </div>
   </section>
-
-  <!-- 3. Répartition Opérationnelle Transit -->
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px">
-   <div class="panel" style="margin:0">
-    <h3 style="margin:0 0 10px;font-size:15px;color:var(--text)">Répartition par Compagnie Maritime (Armateurs)</h3>
-    <div style="display:flex;flex-direction:column;gap:8px">
-     ${ARMATEURS.map(arm => {
-       const armDoss = sDoss.filter(d => d.lam === arm);
-       const onT = armDoss.filter(d => delay(d).app === 'On Time').length;
-       const pct = armDoss.length ? Math.round((onT / armDoss.length) * 100) : 100;
-       return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface-2);border-radius:8px">
-        <div><b>${arm}</b> <small class="muted">(${armDoss.length} dossier${armDoss.length>1?'s':''})</small></div>
-        <div style="display:flex;align-items:center;gap:8px">
-         <span class="badge ${pct>=90?'b-ok':'b-warn'}">${pct}% On Time</span>
-        </div>
-       </div>`;
-     }).join('')}
-    </div>
-   </div>
-
-   <div class="panel" style="margin:0">
-    <h3 style="margin:0 0 10px;font-size:15px;color:var(--text)">Statut Global du Parc Conteneurs</h3>
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
-     <div style="padding:12px;background:var(--surface-2);border-radius:8px;border-left:4px solid var(--blue)">
-      <span class="muted" style="font-size:12px">Dossiers en cours</span>
-      <b style="font-size:22px;display:block;margin-top:2px">${siteOpen.length}</b>
-      <small class="muted">Franchise active au port</small>
-     </div>
-     <div style="padding:12px;background:var(--surface-2);border-radius:8px;border-left:4px solid var(--ok)">
-      <span class="muted" style="font-size:12px">Dossiers Clôturés</span>
-      <b style="font-size:22px;display:block;margin-top:2px">${siteClosed.length}</b>
-      <small class="muted">Restitués à l’armateur</small>
-     </div>
-    </div>
-    <div style="margin-top:12px;padding:10px 14px;background:#F8FAFC;border-radius:8px;border:1px dashed #CBD5E1;font-size:12px;color:#475569">
-     💡 <b>Règle de gestion :</b> La restitution des conteneurs doit intervenir au plus tard le 14ème jour pour sécuriser une marge minimale de 7 jours sur la franchise de 21 jours.
-    </div>
-   </div>
-  </div>`;
+  `;
 }
 
-/* ==================== 2. DASHBOARD ENTREPÔT & STOCKS ==================== */
 function renderDashEntrepot(cS, sObj, period) {
   const s = stock(cS);
   const dispoSKCI = dispo('SKCI', cS);
