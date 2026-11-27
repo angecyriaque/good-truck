@@ -1910,7 +1910,7 @@ const TABS=[
  {k:'utilisateurs',l:'Utilisateurs',ic:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c.8-4 3.6-6 7-6s6.2 2 7 6"/><g class="a-wave"><circle cx="17.5" cy="7" r="2.5"/><path d="M16 13.5c2.6-.4 5 1.3 5.8 4.5"/></g></svg>`}];
 
 /* ===================== Navigation ===================== */
-let tab='dashboard', ent='stock', recValSort='desc', facSub='transit', facHistQ='', recHistQ='', depHistQ='', repHistQ='', lavHistQ='', trfHistQ='', trDoneQ='', cancelPlnQ='', prodDate=TODAY_ISO, poolFilter='Tous', trSub='missions', drvFilter='Tous', drvQ='', trFilter='Tous', fFilter='tous', fTrans='', fQ='', lvFilter='Tous', facFilter='Tous', facQ='', recFilter='Tous', recQ='', recSub='echeancier', opFilter='Tous', opQ='', usub='comptes', chatF='tous', chatQ='', curConv=null, charts=[];
+let tab='dashboard', dashAct='transit', dashPeriod='mois', ent='stock', recValSort='desc', facSub='transit', facHistQ='', recHistQ='', depHistQ='', repHistQ='', lavHistQ='', trfHistQ='', trDoneQ='', cancelPlnQ='', prodDate=TODAY_ISO, poolFilter='Tous', trSub='missions', drvFilter='Tous', drvQ='', trFilter='Tous', fFilter='tous', fTrans='', fQ='', lvFilter='Tous', facFilter='Tous', facQ='', recFilter='Tous', recQ='', recSub='echeancier', opFilter='Tous', opQ='', usub='comptes', chatF='tous', chatQ='', curConv=null, charts=[];
 function goTab(t){tab=t;try{history.replaceState(null,'','#'+t)}catch(e){}closeDrawer();render();window.scrollTo({top:0})}
 function renderTabs(){
  const unread=S.convs.reduce((a,c)=>a+(c.unread||0),0);
@@ -2358,864 +2358,695 @@ function viewTransfertBon(trfId){
 }
 
 /* ===================== Tableau de bord ===================== */
+/* ===================== TABLEAU DE BORD MODULAIRE PAR ACTIVITÉ ===================== */
+function getPeriodRange(period = 'mois') {
+  const now = new Date();
+  const end = new Date(now);
+  const start = new Date(now);
+  let days = 30;
+  let mult = 1;
+  let label = 'Ce Mois (30 derniers jours)';
+
+  if (period === 'semaine') {
+    days = 7;
+    mult = 0.25;
+    start.setDate(now.getDate() - 7);
+    label = 'Cette Semaine (7 derniers jours)';
+  } else if (period === 'mois') {
+    days = 30;
+    mult = 1.0;
+    start.setDate(now.getDate() - 30);
+    label = 'Ce Mois (30 derniers jours)';
+  } else if (period === 'trimestre') {
+    days = 90;
+    mult = 3.0;
+    start.setDate(now.getDate() - 90);
+    label = 'Ce Trimestre (90 jours)';
+  } else if (period === 'semestre') {
+    days = 180;
+    mult = 6.0;
+    start.setDate(now.getDate() - 180);
+    label = 'Ce Semestre (180 jours)';
+  } else if (period === 'annee') {
+    days = 365;
+    mult = 12.0;
+    start.setDate(now.getDate() - 365);
+    label = 'Cette Année (365 jours)';
+  }
+
+  return {
+    start: start.toISOString().slice(0, 10),
+    end: end.toISOString().slice(0, 10),
+    days,
+    mult,
+    label
+  };
+}
+
+function renderKpiWithTarget(title, value, target, unit, higherIsBetter = true, subtext = '') {
+  const valNum = parseFloat(String(value).replace(/[^0-9.-]/g, ''));
+  const targetNum = parseFloat(String(target).replace(/[^0-9.-]/g, ''));
+  let rate = 100;
+  let statusBadge = '';
+  let barColor = '#10B981';
+  let barWidth = 100;
+
+  if (!isNaN(valNum) && !isNaN(targetNum) && targetNum > 0) {
+    if (higherIsBetter) {
+      rate = Math.round((valNum / targetNum) * 100);
+      if (rate >= 100) {
+        statusBadge = '<span class="badge b-ok" style="font-size:11px;font-weight:700">✓ Cible Atteinte (' + rate + '%)</span>';
+        barColor = '#10B981';
+        barWidth = 100;
+      } else if (rate >= 75) {
+        statusBadge = '<span class="badge b-info" style="font-size:11px;font-weight:700">⏳ En bonne voie (' + rate + '%)</span>';
+        barColor = '#3B82F6';
+        barWidth = Math.min(100, Math.max(12, rate));
+      } else {
+        statusBadge = '<span class="badge b-warn" style="font-size:11px;font-weight:700">⚠️ Sous-objectif (' + rate + '%)</span>';
+        barColor = '#EF4444';
+        barWidth = Math.min(100, Math.max(12, rate));
+      }
+    } else {
+      if (valNum <= targetNum) {
+        statusBadge = '<span class="badge b-ok" style="font-size:11px;font-weight:700">✓ Objectif Maîtrisé</span>';
+        barColor = '#10B981';
+        barWidth = 100;
+      } else {
+        const excess = Math.round(((valNum - targetNum) / targetNum) * 100);
+        statusBadge = '<span class="badge b-bad" style="font-size:11px;font-weight:700">🚨 Dépassement (+' + excess + '%)</span>';
+        barColor = '#EF4444';
+        barWidth = 100;
+      }
+    }
+  } else if (!isNaN(valNum) && valNum === 0 && targetNum === 0 && !higherIsBetter) {
+    statusBadge = '<span class="badge b-ok" style="font-size:11px;font-weight:700">✓ Zéro Défaut</span>';
+    barColor = '#10B981';
+    barWidth = 100;
+  }
+
+  return `
+  <div class="kpi-target-card" style="background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:0 2px 10px rgba(0,0,0,0.03);display:flex;flex-direction:column;justify-content:space-between">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px">
+      <span style="font-size:13px;font-weight:700;color:var(--muted)">${title}</span>
+      ${statusBadge}
+    </div>
+    <div style="display:flex;align-items:baseline;gap:8px;margin:4px 0">
+      <b style="font-size:32px;font-family:var(--cond);color:var(--text);line-height:1">${value} <small style="font-size:16px;font-weight:600;color:var(--muted)">${unit}</small></b>
+      <span style="font-size:12.5px;color:var(--muted)">/ Cible : <b>${target} ${unit}</b></span>
+    </div>
+    <div style="margin-top:10px">
+      <div style="height:7px;width:100%;background:var(--surface-2);border-radius:4px;overflow:hidden">
+        <div style="height:100%;width:${Math.min(100, Math.max(5, barWidth))}%;background:${barColor};border-radius:4px;transition:width .3s"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:5px;font-size:11.5px;color:var(--muted)">
+        <span>${subtext || 'Performance période'}</span>
+        <span>${higherIsBetter ? 'Cible : ≥ ' + target + ' ' + unit : 'Seuil max : ≤ ' + target + ' ' + unit}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
 function vDash(){
  const cS=curSite(), sObj=curSiteObj();
- 
- /* Métriques Transit */
- const sDoss=siteDossiers(cS);
- const siteOpen=sDoss.filter(d=>d.status!=='Clôturé');
- const siteClosed=sDoss.filter(d=>d.status==='Clôturé');
- const siteOver=sDoss.filter(d=>delay(d).k==='bad').length;
- const onTimeDoss=sDoss.filter(d=>delay(d).app==='On Time').length;
- const onTimeRate=sDoss.length?Math.round((onTimeDoss/sDoss.length)*100):100;
- const doneDoss=sDoss.filter(d=>d.D8&&delay(d).n!=null&&delay(d).k!=='anom');
- const avgTransitNum=doneDoss.length?(doneDoss.map(d=>delay(d).n).reduce((a,b)=>a+b,0)/doneDoss.length):13.8;
- const avgTransit=avgTransitNum.toFixed(1);
- const daysSaved=Math.max(0,(21-avgTransitNum).toFixed(1));
- const watchTransit=siteOpen.filter(d=>{const n=delay(d).n;return n>=15&&n<=21}).length;
- const totalTC=sDoss.reduce((sum,d)=>sum+(+d.cont||1),0);
+ if(!['transit','entrepot','transport','facturation','recouvrement'].includes(dashAct)) dashAct='transit';
+ if(!['semaine','mois','trimestre','semestre','annee'].includes(dashPeriod)) dashPeriod='mois';
 
- /* Métriques Entrepôt */
- const s=stock(cS);
- const dispoSKCI=dispo('SKCI',cS);
- const resSKCI=reserved('SKCI',cS);
- const dispoGlobal=dispo('Global',cS);
- const resGlobal=reserved('Global',cS);
- const totalDispo=dispoSKCI+dispoGlobal;
- const totalStock=s.propre+s.sale+s.reparation+s.quarantaine+s.autre;
- const dispoRate=totalStock?Math.round((totalDispo/totalStock)*100):85;
- const trTransitCount=(S.transfers||[]).filter(t=>t.status==='En transit').length;
- const qualiteRate=totalStock?((1-(s.quarantaine/totalStock))*100).toFixed(1):'98.5';
+ const period = getPeriodRange(dashPeriod);
 
- /* Métriques Transport */
- const siteTr=siteTransports(cS);
- const siteTrRun=siteTr.filter(t=>t.status==='En cours').length;
- const waitLoadTrs=siteTr.filter(t=>t.status==='Planifié');
- const sitePlns=sitePlanifs(cS);
- const pendPlns=sitePlns.filter(p=>p.status==='En attente Entrepôt');
- const eligDeliveries=siteDeliveries(cS).filter(l=>['Livrée','Clôturée'].includes(l.status));
- const onTimeTr=eligDeliveries.length?Math.round(eligDeliveries.filter(l=>{const t=siteTr.find(x=>x.id===l.transport);return t&&t.arrR&&t.arrR<=t.arrP}).length/eligDeliveries.length*100):96;
- const otifRate=Math.min(100,Math.round(onTimeTr*0.98));
- const globalOEE=Math.round((onTimeRate*0.4)+(dispoRate*0.3)+(otifRate*0.3));
- const incidentsCount=siteTr.filter(t=>t.incidents&&t.incidents.length).length;
- const activeDestinations=siteDestinations(cS).length;
+ // Libellés et thèmes par activité
+ const actMeta = {
+  transit: { name: 'Transit Maritime', icon: '🚢', color: '#2563EB', bg: '#EFF6FF', desc: 'Suivi des franchises portuaires, conteneurs TC, escales navires et dépotages.' },
+  entrepot: { name: 'Entrepôt & Stocks', icon: '🏭', color: '#16A34A', bg: '#F0FDF4', desc: 'Disponibilité des stocks propres, cadence de lavage, dépotages et transferts.' },
+  transport: { name: 'Transport & Livraisons', icon: '🚚', color: '#D97706', bg: '#FFFBEB', desc: 'Missions de transport, ponctualité des livraisons usines et gestion de la flotte.' },
+  facturation: { name: 'Facturation', icon: '💳', color: '#0284C7', bg: '#F0F9FF', desc: 'Délais de facturation, attribution des dates et n° facture sans saisie de montants.' },
+  recouvrement: { name: 'Recouvrement', icon: '💰', color: '#7C3AED', bg: '#F5F3FF', desc: 'Suivi des créances clients, délais d’encaissement et rapprochements des règlements.' }
+ };
+ const curMeta = actMeta[dashAct];
 
- const a=alerts();
+ let activityContent = '';
+ if (dashAct === 'transit') activityContent = renderDashTransit(cS, sObj, period);
+ else if (dashAct === 'entrepot') activityContent = renderDashEntrepot(cS, sObj, period);
+ else if (dashAct === 'transport') activityContent = renderDashTransport(cS, sObj, period);
+ else if (dashAct === 'facturation') activityContent = renderDashFacturation(cS, sObj, period);
+ else if (dashAct === 'recouvrement') activityContent = renderDashRecouvrement(cS, sObj, period);
 
- return siteBanner(`Vue d’ensemble des 3 activités pour ${sObj.name} (${sObj.hub})`)+
- hero('port',`Tableau de bord · ${sObj.icon} ${sObj.name}`,`Situation opérationnelle ${sObj.id==='sanpedro'?'de San Pedro':"d’Abidjan"}.`)+
- `<!-- Conteneur principal inspiré du modèle de référence UI -->
- <div class="ui-dash-wrap">
-  
-  <!-- ==================== RANGÉE 1 : 4 CARTES KPI STATISTIQUES ==================== -->
-  <div class="ui-top-cards">
-   <!-- Carte 1 : Transit Maritime -->
-   <div class="ui-stat-card" data-go="transit" style="cursor:pointer">
-    <div class="ui-stat-left">
-     <div class="ui-stat-icon blue">🚢</div>
-     <div>
-      <div class="ui-stat-label">Transit Maritime</div>
-      <div class="ui-stat-val">${sDoss.length} <small style="font-size:16px;color:#64748B">dossiers</small></div>
-     </div>
-    </div>
-    <span class="ui-stat-more" title="Plus de détails">•••</span>
-   </div>
-
-   <!-- Carte 2 : Entrepôt & Palettes -->
-   <div class="ui-stat-card" data-go="entrepot" style="cursor:pointer">
-    <div class="ui-stat-left">
-     <div class="ui-stat-icon pink">📦</div>
-     <div>
-      <div class="ui-stat-label">Disponibilité Entrepôt</div>
-      <div class="ui-stat-val">${n0(totalDispo)} <small style="font-size:16px;color:#64748B">pal.</small></div>
-     </div>
-    </div>
-    <span class="ui-stat-more" title="Plus de détails">•••</span>
-   </div>
-
-   <!-- Carte 3 : Transport & Livraisons -->
-   <div class="ui-stat-card" data-go="transport" style="cursor:pointer">
-    <div class="ui-stat-left">
-     <div class="ui-stat-icon green">🚚</div>
-     <div>
-      <div class="ui-stat-label">Expéditions Usines</div>
-      <div class="ui-stat-val">${otifRate}% <small style="font-size:16px;color:#64748B">OTIF</small></div>
-     </div>
-    </div>
-    <span class="ui-stat-more" title="Plus de détails">•••</span>
-   </div>
-
-   <!-- Carte 4 : Surestaries & Risque -->
-   <div class="ui-stat-card" data-kpi="transit:ok" style="cursor:pointer">
-    <div class="ui-stat-left">
-     <div class="ui-stat-icon amber">🛡</div>
-     <div>
-      <div class="ui-stat-label">Surestaries Évitées</div>
-      <div class="ui-stat-val">0 F CFA <small style="font-size:16px;color:#10B981">sécurisé</small></div>
-     </div>
-    </div>
-    <span class="ui-stat-more" title="Plus de détails">•••</span>
-   </div>
-  </div>
-
-  <!-- ==================== RANGÉE 2 : CARTE HERO PRINCIPALE + COLONNE DROITE ==================== -->
-  <div class="ui-main-grid">
-   
-   <!-- Gauche : Carte Hero avec Grand Graphique Spline -->
-   <div class="ui-hero-card">
-    <div class="ui-hero-head">
-     <h2 class="ui-hero-title">Gestion Intégrée des Opérations · ${esc(sObj.name)}</h2>
-     <div class="ui-hero-actions">
-      <select class="ui-select-filter" aria-label="Période">
-       <option>Derniers 30 jours</option>
-       <option>Cette semaine</option>
-       <option>Ce mois</option>
-      </select>
-      <button class="ui-btn-export" onclick="window.print()">
-       <span>📥</span> Exporter
-      </button>
-     </div>
-    </div>
-
-    <!-- 3 Sous-Indicateurs alignés avec badges vert/rouge comme sur le modèle -->
-    <div class="ui-hero-kpis">
-     <div class="ui-hero-kpi-item">
-      <span class="ui-hero-kpi-label">Délai Moyen Dépotage</span>
-      <div class="ui-hero-kpi-row">
-       <span class="ui-hero-kpi-val">${avgTransit} j</span>
-       <span class="ui-badge-pill green">+ ${daysSaved} j avance</span>
-      </div>
-     </div>
-     <div class="ui-hero-kpi-item">
-      <span class="ui-hero-kpi-label">Cadence Atelier Lavage</span>
-      <div class="ui-hero-kpi-row">
-       <span class="ui-hero-kpi-val">340 pal./j</span>
-       <span class="ui-badge-pill green">+ 18% productivité</span>
-      </div>
-     </div>
-     <div class="ui-hero-kpi-item">
-      <span class="ui-hero-kpi-label">Ponctualité Usines Caoutchouc</span>
-      <div class="ui-hero-kpi-row">
-       <span class="ui-hero-kpi-val">${otifRate}%</span>
-       <span class="ui-badge-pill ${otifRate>=95?'green':'red'}">${otifRate>=95?'Cible atteinte':'-1.2%'}</span>
-      </div>
-     </div>
-    </div>
-
-    <!-- Grand Graphique Spline Fluide (Hero Spline Chart) -->
-    <div style="position:relative;height:310px;width:100%">
-     <canvas id="chHero" aria-label="Évolution des opérations"></canvas>
-    </div>
-   </div>
-
-   <!-- Droite : 3 Cartes empilées comme sur le modèle de référence -->
-   <div class="ui-right-col">
+ return siteBanner(`Tableau de bord opérationnel & pilotage par activité · ${sObj.name} (${sObj.hub})`) +
+  `
+  <!-- ==================== BARRE DE CONTRÔLE PRINCIPALE DU DASHBOARD ==================== -->
+  <div class="dash-controls-panel" style="background:var(--surface);border:2px solid var(--line);border-radius:16px;padding:16px 20px;margin-bottom:22px;box-shadow:0 3px 12px rgba(0,0,0,0.04)">
+   <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
     
-    <!-- Carte 1 Droite : Barres bicolores empilées (Data Company Progress) -->
-    <div class="ui-right-card">
-     <div class="ui-card-head">
+    <!-- Sélecteur d'Activité Spécifique -->
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+     <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:22px">${curMeta.icon}</span>
       <div>
-       <h3>Flux d'Activité Hebdomadaire</h3>
-       <small>Entrées dépotage vs Sorties expéditions</small>
+       <label for="dashActSel" style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);display:block">Activité Métier</label>
+       <select id="dashActSel" style="font-size:15px;font-weight:800;padding:6px 14px;border-radius:9px;background:var(--surface-2);border:2px solid ${curMeta.color};color:var(--text);cursor:pointer;outline:none">
+        <option value="transit" ${dashAct==='transit'?'selected':''}>🚢 Transit Maritime</option>
+        <option value="entrepot" ${dashAct==='entrepot'?'selected':''}>🏭 Entrepôt & Stocks</option>
+        <option value="transport" ${dashAct==='transport'?'selected':''}>🚚 Transport & Livraisons</option>
+        <option value="facturation" ${dashAct==='facturation'?'selected':''}>💳 Facturation</option>
+        <option value="recouvrement" ${dashAct==='recouvrement'?'selected':''}>💰 Recouvrement</option>
+       </select>
       </div>
-      <span class="ui-tag-pill">Semaine</span>
      </div>
-     <div style="position:relative;height:140px;width:100%">
-      <canvas id="chRightBars" aria-label="Progression hebdomadaire"></canvas>
-     </div>
-    </div>
 
-    <!-- Carte 2 Droite : Grand Donut avec valeur centrale et 3 indicateurs en dessous -->
-    <div class="ui-right-card">
-     <div class="ui-card-head">
+     <div style="width:1px;height:38px;background:var(--line);margin:0 4px"></div>
+
+     <!-- Sélecteur de Référentiel de Temps -->
+     <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:20px">📅</span>
       <div>
-       <h3>Respect de la Franchise</h3>
-       <small>Conformité de la règle des 21 jours</small>
-      </div>
-      <span class="ui-tag-pill">Global</span>
-     </div>
-     <div style="position:relative;height:165px;width:100%">
-      <canvas id="chRightDonut" aria-label="Respect franchise portuaire"></canvas>
-     </div>
-     <div class="ui-donut-sub">
-      <div class="ui-donut-sub-item">
-       <span><span style="color:#3B82F6">●</span> Total Dossiers</span>
-       <b>${sDoss.length}</b>
-      </div>
-      <div class="ui-donut-sub-item">
-       <span><span style="color:#06B6D4">●</span> On Time</span>
-       <b>${onTimeDoss}</b>
-      </div>
-      <div class="ui-donut-sub-item">
-       <span><span style="color:#10B981">●</span> Taux</span>
-       <b>${onTimeRate}%</b>
+       <label for="dashPeriodSel" style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);display:block">Référentiel de Temps</label>
+       <select id="dashPeriodSel" style="font-size:14px;font-weight:700;padding:6px 12px;border-radius:9px;background:var(--surface-2);border:1.5px solid var(--line);color:var(--text);cursor:pointer;outline:none">
+        <option value="semaine" ${dashPeriod==='semaine'?'selected':''}>📅 Semaine (7 jours)</option>
+        <option value="mois" ${dashPeriod==='mois'?'selected':''}>📅 Mois (30 jours)</option>
+        <option value="trimestre" ${dashPeriod==='trimestre'?'selected':''}>📅 Trimestre (90 jours)</option>
+        <option value="semestre" ${dashPeriod==='semestre'?'selected':''}>📅 Semestre (180 jours)</option>
+        <option value="annee" ${dashPeriod==='annee'?'selected':''}>📅 Année (365 jours)</option>
+       </select>
       </div>
      </div>
     </div>
 
-    <!-- Carte 3 Droite : Répartition & Utilisation (Company Spending) -->
-    <div class="ui-right-card">
-     <div class="ui-card-head">
-      <div>
-       <h3>Catégories de Palettes</h3>
-       <small>Ventilation physique du stock</small>
-      </div>
-      <span class="ui-tag-pill">Temps réel</span>
-     </div>
-     
-     <!-- Barre de progression segmentée avec gradient -->
-     <div class="ui-cat-progress">
-      <span style="width:45%;background:#6D28D9" title="SKCI"></span>
-      <span style="width:35%;background:#0D7A5F" title="Stock Classique"></span>
-      <span style="width:12%;background:#F59E0B" title="Lavage"></span>
-      <span style="width:8%;background:#3B82F6" title="Soudure"></span>
-     </div>
-
-     <!-- Grille 2x2 des catégories avec icônes -->
-     <div class="ui-cat-grid">
-      <div class="ui-cat-box" data-go="entrepot">
-       <div class="icon" style="background:#F5F3FF;color:#6D28D9">🟣</div>
-       <div class="info">
-        <small>Stock SKCI</small>
-        <b>${n0(dispoSKCI)}</b>
-       </div>
-      </div>
-      <div class="ui-cat-box" data-go="entrepot">
-       <div class="icon" style="background:#ECFDF5;color:#0D7A5F">🟢</div>
-       <div class="info">
-        <small>Stock Classique</small>
-        <b>${n0(dispoGlobal)}</b>
-       </div>
-      </div>
-      <div class="ui-cat-box" data-go="entrepot">
-       <div class="icon" style="background:#FFFBEB;color:#F59E0B">🟡</div>
-       <div class="info">
-        <small>Sale Lavage</small>
-        <b>${s.sale}</b>
-       </div>
-      </div>
-      <div class="ui-cat-box" data-go="entrepot">
-       <div class="icon" style="background:#EFF6FF;color:#3B82F6">🔧</div>
-       <div class="info">
-        <small>Soudure</small>
-        <b>${s.reparation}</b>
-       </div>
-      </div>
-     </div>
-    </div>
-
-   </div>
-  </div>
-
-  <!-- ==================== RANGÉE 3 : 3 MINI-CARTES DE PRODUCTIVITÉ (289,04) ==================== -->
-  <div class="ui-mini-cards">
-   <!-- Mini Carte 1 -->
-   <div class="ui-mini-card">
-    <div class="ui-mini-top">
-     <div class="icon" style="width:36px;height:36px;border-radius:10px;background:#F5F3FF;color:#6D28D9;display:grid;place-items:center;font-size:18px">🚢</div>
-     <span class="ui-badge-pill green">↗ +5,75%</span>
-    </div>
-    <div class="ui-mini-val">
-     <b>${onTimeRate}%</b>
-     <span style="font-size:13px;color:#64748B">Conformité Transit</span>
-    </div>
-    <div class="ui-mini-desc">Franchise 21j : <b>${onTimeDoss}</b> dossiers On Time respectés</div>
-   </div>
-
-   <!-- Mini Carte 2 -->
-   <div class="ui-mini-card">
-    <div class="ui-mini-top">
-     <div class="icon" style="width:36px;height:36px;border-radius:10px;background:#EFF6FF;color:#3B82F6;display:grid;place-items:center;font-size:18px">📦</div>
-     <span class="ui-badge-pill green">↗ +8,20%</span>
-    </div>
-    <div class="ui-mini-val">
-     <b>${dispoRate}%</b>
-     <span style="font-size:13px;color:#64748B">Disponibilité Entrepôt</span>
-    </div>
-    <div class="ui-mini-desc">Palettes propres prêtes : <b>${n0(totalDispo)}</b> unités</div>
-   </div>
-
-   <!-- Mini Carte 3 -->
-   <div class="ui-mini-card">
-    <div class="ui-mini-top">
-     <div class="icon" style="width:36px;height:36px;border-radius:10px;background:#ECFDF5;color:#10B981;display:grid;place-items:center;font-size:18px">🚚</div>
-     <span class="ui-badge-pill green">↗ +4,10%</span>
-    </div>
-    <div class="ui-mini-val">
-     <b>${otifRate}%</b>
-     <span style="font-size:13px;color:#64748B">Ponctualité OTIF</span>
-    </div>
-    <div class="ui-mini-desc">Usines caoutchouc : <b>${activeDestinations}</b> destinations actives</div>
-   </div>
-  </div>
-
-  <!-- ==================== RANGÉE 4 : 3 CARTES DE GRAPHIQUES INFÉRIEURES ==================== -->
-  <div class="ui-bottom-grid">
-   
-   <!-- Carte A : Bar chart avec barre active en bleu franc (Data Company Report) -->
-   <div class="ui-stat-card" style="display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:22px">
-    <div class="ui-card-head">
-     <div>
-      <h3 style="font-size:15px;font-weight:700">Rapport de Rotation Hebdo</h3>
-      <small style="color:#64748B">Rotations dépotage vs traction</small>
-     </div>
-     <span class="ui-tag-pill">■ Dépotage ■ Traction</span>
-    </div>
-    <div style="position:relative;height:190px;width:100%">
-     <canvas id="chBarReport" aria-label="Rapport de rotation"></canvas>
-    </div>
-   </div>
-
-   <!-- Carte B : Jauge Circulaire 58% / 96% (Data Company) -->
-   <div class="ui-stat-card" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;padding:22px">
-    <div style="width:100%;display:flex;justify-content:space-between;align-items:center">
-     <h3 style="font-size:15px;font-weight:700;margin:0">Efficience Globale</h3>
-     <span class="ui-stat-more">•••</span>
-    </div>
-    <div style="position:relative;width:130px;height:130px;margin:6px 0">
-     <canvas id="chGaugeCircle" aria-label="Efficience globale"></canvas>
-    </div>
-    <div>
-     <div style="font-family:var(--cond);font-size:32px;font-weight:700;color:#0F172A">${globalOEE||95}%</div>
-     <small style="color:#64748B;font-size:12px">Indice de Productivité Consolidé</small>
-    </div>
-   </div>
-
-   <!-- Carte C : Mini Wave Area Chart (Data View) -->
-   <div class="ui-stat-card" style="display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:22px">
-    <div class="ui-card-head">
-     <div>
-      <h3 style="font-size:15px;font-weight:700">Transferts Inter-Sites</h3>
-      <small style="color:#64748B">Flux Abidjan ⇄ San Pedro</small>
-     </div>
-     <span class="ui-badge-pill blue">Data View</span>
-    </div>
-    <div style="position:relative;height:190px;width:100%">
-     <canvas id="chMiniArea" aria-label="Transferts inter-sites"></canvas>
-    </div>
-   </div>
-
-  </div>
-
-  <!-- ==================== SECTION DÉTAILLÉE : LES 3 VOLETS OPÉRATIONNELS ==================== -->
-  
-  <!-- Navigation d'ancrage rapide -->
-  <div class="ui-nav-volets" role="navigation" aria-label="Accès aux trois volets">
-   <a class="ui-nav-pill" href="#v-transit"><span>🚢</span> <span>Volet 1 · <b>Transit Maritime</b></span> <span class="badge">${sDoss.length} dossiers</span></a>
-   <a class="ui-nav-pill" href="#v-entrepot"><span>📦</span> <span>Volet 2 · <b>Entrepôt & Ateliers</b></span> <span class="badge">${n0(totalDispo)} dispo</span></a>
-   <a class="ui-nav-pill" href="#v-transport"><span>🚚</span> <span>Volet 3 · <b>Transport & Expéditions</b></span> <span class="badge">${siteTrRun} en route</span></a>
-  </div>
-
-    <!-- VOLET 1 DÉTAILLÉ -->
-  <section class="ui-volet-panel" id="v-transit">
-   <div class="ui-volet-panel-head">
-    <div class="ui-volet-panel-title">
-     <div class="ui-volet-panel-icon" style="background:#EFF6FF;color:#3B82F6">🚢</div>
-     <div>
-      <h3 style="margin:0;font-size:18px;font-weight:700">Volet 1 · Transit Maritime & Respect de la Franchise</h3>
-      <small style="color:#64748B">Suivi des escales navires, dépotages et règle des 21 jours pour ${sObj.name} (${sObj.port}).</small>
-     </div>
-    </div>
+    <!-- Période active et raccourci métier -->
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-     <span class="ui-badge-pill blue" style="font-size:12px;padding:5px 12px">⏳ ${siteOpen.length} en cours</span>
-     <span class="ui-badge-pill green" style="font-size:12px;padding:5px 12px">✅ ${siteClosed.length} clôturés</span>
-     <button class="btn small primary" data-go="transit">Accéder au module Transit →</button>
-    </div>
-   </div>
-
-   <!-- SOUS-SECTION 1 : DOSSIERS EN COURS DE TRAITEMENT -->
-   <div style="margin-bottom:28px">
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:#EFF6FF;border-left:5px solid #3B82F6;border-radius:12px;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-     <div style="display:flex;align-items:center;gap:10px">
-      <span style="font-size:18px">⏳</span>
-      <div>
-       <b style="color:#1E40AF;font-size:14.5px">Dossiers en cours de traitement</b>
-       <div style="font-size:11.5px;color:#3B82F6">Franchise portuaire active · Opérations en cours (dédouanement, dépotage)</div>
-      </div>
+     <div style="text-align:right">
+      <div style="font-size:12px;font-weight:700;color:${curMeta.color}">${period.label}</div>
+      <small class="muted" style="font-size:11px">Site actif : <b>${esc(sObj.name)}</b></small>
      </div>
-     <span class="badge b-info" style="font-size:12px;font-weight:700">${siteOpen.length} dossier${siteOpen.length>1?'s':''} actif${siteOpen.length>1?'s':''}</span>
+     <button class="btn small" data-go="${dashAct}" style="font-weight:700;background:${curMeta.bg};border:1.5px solid ${curMeta.color};color:${curMeta.color}">Ouvrir l’espace ${curMeta.name} →</button>
     </div>
-    <div class="tablewrap">
-     <table style="min-width:auto;font-size:13px">
-      <thead><tr><th>Dossier</th><th>Conteneur (TC)</th><th>Armateur</th><th>B/L</th><th>Appréciation & Délais</th><th>Statut</th><th>Action</th></tr></thead>
-      <tbody>${siteOpen.map(d=>`<tr class="click" data-dossier="${d.id}" style="border-left:4px solid #3B82F6">
-       <td><span class="ref">${d.num}</span></td>
-       <td><b class="num">${d.cont}</b></td>
-       <td>${esc(d.lam)}</td>
-       <td><span class="muted">${esc(d.bl||'—')}</span></td>
-       <td>${appBadge(d)}</td>
-       <td>${badge(d.status==='Dépoté'?'info':'warn',d.status)}</td>
-       <td><button class="btn small" data-dossier="${d.id}">Fiche</button></td>
-      </tr>`).join('')||'<tr><td colspan="7" class="empty">Aucun dossier en cours de traitement pour ce site.</td></tr>'}
-      </tbody>
-     </table>
-    </div>
-   </div>
 
-   <!-- SOUS-SECTION 2 : DOSSIERS CLÔTURÉS -->
+   </div>
+  </div>
+
+  <!-- Contenu EXCLUSIF de l'activité sélectionnée -->
+  ${activityContent}
+  `;
+}
+
+/* ==================== 1. DASHBOARD TRANSIT MARITIME ==================== */
+function renderDashTransit(cS, sObj, period) {
+  const sDoss = siteDossiers(cS);
+  const siteOpen = sDoss.filter(d => d.status !== 'Clôturé');
+  const siteClosed = sDoss.filter(d => d.status === 'Clôturé');
+  const siteOver = sDoss.filter(d => delay(d).k === 'bad').length;
+  const onTimeDoss = sDoss.filter(d => delay(d).app === 'On Time').length;
+  const onTimeRate = sDoss.length ? Math.round((onTimeDoss / sDoss.length) * 100) : 100;
+
+  const doneDoss = sDoss.filter(d => d.D8 && delay(d).n != null && delay(d).k !== 'anom');
+  const avgTransitNum = doneDoss.length ? (doneDoss.map(d => delay(d).n).reduce((a, b) => a + b, 0) / doneDoss.length) : 13.8;
+  const avgTransit = avgTransitNum.toFixed(1);
+
+  const depotCount = sDoss.filter(d => Boolean(d.D6 || d.depotage)).length;
+  const targetTC = Math.round(18 * period.mult);
+
+  // Urgences Transit : conteneurs en risque de surstaries ou en attente critique
+  const urgencesTransit = sDoss.filter(d => {
+    if (d.status === 'Clôturé') return false;
+    const dy = delay(d);
+    return dy.k === 'bad' || dy.k === 'warn' || (dy.n != null && dy.n >= 15) || !d.D3;
+  });
+
+  return `
+  <!-- En-tête de section Transit -->
+  <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
    <div>
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:#F8FAFC;border-left:5px solid #10B981;border-radius:12px;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-     <div style="display:flex;align-items:center;gap:10px">
-      <span style="font-size:18px">✅</span>
-      <div>
-       <b style="color:#0F172A;font-size:14.5px">Dossiers clôturés</b>
-       <div style="font-size:11.5px;color:#64748B">Conteneurs retournés au port · Franchise terminée · Dossiers archivés</div>
+    <h2 style="margin:0;font-size:20px;color:#1E3A8A;display:flex;align-items:center;gap:8px">
+     <span>🚢</span> Tableau de bord Transit Maritime · ${esc(sObj.name)}
+    </h2>
+    <small class="muted">Mesure de la performance portuaire, respect des 21 jours de franchise et dépotage des conteneurs TC.</small>
+   </div>
+   <span class="badge" style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;font-weight:700">Périmètre : ${period.label}</span>
+  </div>
+
+  <!-- 1. KPIs & Objectifs Assignés Transit -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-bottom:22px">
+   ${renderKpiWithTarget('Taux Respect Franchise (On Time)', onTimeRate, 100, '%', true, 'Cible contractuelle GoodPack')}
+   ${renderKpiWithTarget('Durée Moyenne Franchise (ATA → Restitution)', avgTransit, 14.0, 'jours', false, 'Sur 21 jours max accordés')}
+   ${renderKpiWithTarget('Conteneurs Dépôtés (Volume)', depotCount, targetTC, 'TC', true, 'Objectif assigné sur la période')}
+   ${renderKpiWithTarget('Pénalités & Surstaries (Dépassements)', siteOver, 0, 'dossier', false, 'Zéro pénalité tolérée')}
+  </div>
+
+  <!-- 2. Urgences & Actions Prioritaires Transit -->
+  <section class="panel" style="margin-bottom:22px;border-left:5px solid #EA580C;background:var(--surface)">
+   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <div>
+     <h3 style="margin:0;font-size:16px;color:#C2410C;display:flex;align-items:center;gap:8px">
+      🚨 Urgences & Actions prioritaires Transit (${urgencesTransit.length})
+     </h3>
+     <small class="muted">Conteneurs en risque de surstarie (franchise critique), navires sans confirmation ATA ou retards.</small>
+    </div>
+    <button class="btn small primary" data-act="newDossier">+ Nouveau dossier transit</button>
+   </div>
+
+   <div class="tablewrap" style="margin:0">
+    <table>
+     <thead>
+      <tr><th>Dossier</th><th>Conteneur TC</th><th>Armateur</th><th>Date ATA Navire</th><th>Fin Franchise</th><th>Situation / Risque</th><th>Actions</th></tr>
+     </thead>
+     <tbody>
+      ${urgencesTransit.slice(0, 6).map(d => {
+        const dy = delay(d);
+        return `<tr>
+          <td><b>${d.num}</b></td>
+          <td><span class="ref">${d.cont}</span><br><small class="muted">${esc(d.bl)}</small></td>
+          <td><b>${esc(d.lam)}</b></td>
+          <td>${d.D3 ? fmt(d.D3) : '<span class="badge b-bad">Attente ATA</span>'}</td>
+          <td>${d.D1 ? fmt(d.D1) : '—'}</td>
+          <td>${appBadge(d)} ${dBadge(d)}</td>
+          <td><button class="btn small" data-act="openDossier" data-id="${d.id}">Traiter le dossier</button></td>
+        </tr>`;
+      }).join('') || '<tr><td colspan="7" class="empty" style="padding:18px">🎉 Aucune urgence sur le transit ! Tous les dossiers respectent la franchise.</td></tr>'}
+     </tbody>
+    </table>
+   </div>
+  </section>
+
+  <!-- 3. Répartition Opérationnelle Transit -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px">
+   <div class="panel" style="margin:0">
+    <h3 style="margin:0 0 10px;font-size:15px;color:var(--text)">Répartition par Compagnie Maritime (Armateurs)</h3>
+    <div style="display:flex;flex-direction:column;gap:8px">
+     ${ARMATEURS.map(arm => {
+       const armDoss = sDoss.filter(d => d.lam === arm);
+       const onT = armDoss.filter(d => delay(d).app === 'On Time').length;
+       const pct = armDoss.length ? Math.round((onT / armDoss.length) * 100) : 100;
+       return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface-2);border-radius:8px">
+        <div><b>${arm}</b> <small class="muted">(${armDoss.length} dossier${armDoss.length>1?'s':''})</small></div>
+        <div style="display:flex;align-items:center;gap:8px">
+         <span class="badge ${pct>=90?'b-ok':'b-warn'}">${pct}% On Time</span>
+        </div>
+       </div>`;
+     }).join('')}
+    </div>
+   </div>
+
+   <div class="panel" style="margin:0">
+    <h3 style="margin:0 0 10px;font-size:15px;color:var(--text)">Statut Global du Parc Conteneurs</h3>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+     <div style="padding:12px;background:var(--surface-2);border-radius:8px;border-left:4px solid var(--blue)">
+      <span class="muted" style="font-size:12px">Dossiers en cours</span>
+      <b style="font-size:22px;display:block;margin-top:2px">${siteOpen.length}</b>
+      <small class="muted">Franchise active au port</small>
+     </div>
+     <div style="padding:12px;background:var(--surface-2);border-radius:8px;border-left:4px solid var(--ok)">
+      <span class="muted" style="font-size:12px">Dossiers Clôturés</span>
+      <b style="font-size:22px;display:block;margin-top:2px">${siteClosed.length}</b>
+      <small class="muted">Restitués à l’armateur</small>
+     </div>
+    </div>
+    <div style="margin-top:12px;padding:10px 14px;background:#F8FAFC;border-radius:8px;border:1px dashed #CBD5E1;font-size:12px;color:#475569">
+     💡 <b>Règle de gestion :</b> La restitution des conteneurs doit intervenir au plus tard le 14ème jour pour sécuriser une marge minimale de 7 jours sur la franchise de 21 jours.
+    </div>
+   </div>
+  </div>`;
+}
+
+/* ==================== 2. DASHBOARD ENTREPÔT & STOCKS ==================== */
+function renderDashEntrepot(cS, sObj, period) {
+  const s = stock(cS);
+  const dispoSKCI = dispo('SKCI', cS);
+  const dispoGlobal = dispo('Global', cS);
+  const totalDispo = dispoSKCI + dispoGlobal;
+  const resSKCI = reserved('SKCI', cS);
+  const resGlobal = reserved('Global', cS);
+
+  const lavs = siteLavages(cS);
+  const lavDone = lavs.reduce((sum, l) => sum + (+l.qty || 0), 0);
+  const targetLav = Math.round(280 * period.mult);
+
+  const recs = siteReceptions(cS);
+  const pendRecs = recs.filter(r => {
+    const dos = (S.dossiers || []).find(d => d.num === r.dossier || d.id === r.dossier);
+    if (dos) return !dos.D8 && dos.status !== 'Clôturé';
+    return r.status === 'En attente';
+  });
+
+  const reps = siteReparations(cS);
+  const pendReps = reps.filter(r => r.status !== 'Terminée');
+
+  // Urgences Entrepôt
+  const urgencesEntrepot = [];
+  if (pendRecs.length) urgencesEntrepot.push({ t: 'Conteneurs en attente de dépotage au quai', cnt: pendRecs.length + ' conteneurs', badge: 'b-warn', act: 'goTabEntrepot' });
+  if (s.sale > 200) urgencesEntrepot.push({ t: 'Palettes sales en attente urgente de lavage', cnt: n0(s.sale) + ' palettes', badge: 'b-bad', act: 'goTabEntrepot' });
+  if (pendReps.length) urgencesEntrepot.push({ t: 'Opérations de DOOR SWAP / soudure en cours', cnt: pendReps.length + ' lots', badge: 'b-info', act: 'goTabEntrepot' });
+  if (totalDispo < 400) urgencesEntrepot.push({ t: 'Niveau de stock disponible sous le seuil de sécurité', cnt: n0(totalDispo) + ' pal.', badge: 'b-bad', act: 'goTabEntrepot' });
+
+  return `
+  <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+   <div>
+    <h2 style="margin:0;font-size:20px;color:#166534;display:flex;align-items:center;gap:8px">
+     <span>🏭</span> Tableau de bord Entrepôt & Stocks · ${esc(sObj.name)}
+    </h2>
+    <small class="muted">Gestion physique des palettes, cycles de lavage, maintenance DOOR SWAP & soudure, et transferts inter-sites.</small>
+   </div>
+   <span class="badge" style="background:#F0FDF4;color:#15803D;border:1px solid #BBF7D0;font-weight:700">Périmètre : ${period.label}</span>
+  </div>
+
+  <!-- 1. KPIs & Objectifs Assignés Entrepôt -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-bottom:22px">
+   ${renderKpiWithTarget('Stock Propre Disponible (SKCI + Classique)', totalDispo, 600, 'palettes', true, 'Seuil de sécurité opérationnel')}
+   ${renderKpiWithTarget('Cadence de Lavage Réalisée', lavDone, targetLav, 'palettes', true, 'Objectif de reconditionnement')}
+   ${renderKpiWithTarget('Dépotages Quai en Instance', pendRecs.length, 2, 'conteneurs', false, 'Dépôtage prioritaire sous 24h')}
+   ${renderKpiWithTarget('Palettes Sales en Attente Lavage', s.sale, 150, 'palettes', false, 'Flux tendu lavage')}
+  </div>
+
+  <!-- 2. Urgences & Actions Prioritaires Entrepôt -->
+  <section class="panel" style="margin-bottom:22px;border-left:5px solid #16A34A;background:var(--surface)">
+   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <h3 style="margin:0;font-size:16px;color:#166534;display:flex;align-items:center;gap:8px">
+     🚨 Urgences & Points de vigilance Entrepôt
+    </h3>
+    <button class="btn small primary" data-act="newMove">+ Transfert de palettes</button>
+   </div>
+
+   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px">
+    ${urgencesEntrepot.map(u => `
+      <div style="padding:12px 14px;background:var(--surface-2);border-radius:10px;border:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
+       <div>
+        <b style="font-size:13px;display:block">${u.t}</b>
+        <span class="badge ${u.badge}" style="margin-top:4px">${u.cnt}</span>
+       </div>
+       <button class="btn small" onclick="ent='stock';goTab('entrepot')">Gérer</button>
       </div>
-     </div>
-     <span class="badge b-ok" style="font-size:12px;font-weight:700">${siteClosed.length} dossier${siteClosed.length>1?'s':''} clôturé${siteClosed.length>1?'s':''}</span>
-    </div>
-    <div class="tablewrap">
-     <table style="min-width:auto;font-size:13px">
-      <thead><tr><th>Dossier</th><th>Conteneur (TC)</th><th>Armateur</th><th>B/L</th><th>Appréciation & Délais</th><th>Statut</th><th>Action</th></tr></thead>
-      <tbody>${siteClosed.map(d=>`<tr class="click" data-dossier="${d.id}" style="border-left:4px solid #10B981;background:#FAFAFC;opacity:0.92">
-       <td><span class="ref" style="opacity:0.85">${d.num}</span></td>
-       <td><b class="num" style="opacity:0.85">${d.cont}</b></td>
-       <td>${esc(d.lam)}</td>
-       <td><span class="muted">${esc(d.bl||'—')}</span></td>
-       <td>${appBadge(d)}</td>
-       <td>${badge('ok','Clôturé')}</td>
-       <td><button class="btn small" data-dossier="${d.id}">Fiche</button></td>
-      </tr>`).join('')||'<tr><td colspan="7" class="empty">Aucun dossier clôturé enregistré pour ce site.</td></tr>'}
-      </tbody>
-     </table>
-    </div>
+    `).join('') || '<div class="empty" style="grid-column:1/-1;padding:16px">🎉 Stocks stables et aucun point critique en entrepôt !</div>'}
    </div>
   </section>
 
-   <!-- VOLET 2 DÉTAILLÉ -->
-  <section class="ui-volet-panel" id="v-entrepot">
-   <div class="ui-volet-panel-head">
-    <div class="ui-volet-panel-title">
-     <div class="ui-volet-panel-icon" style="background:#ECFDF5;color:#10B981">📦</div>
-     <div>
-      <h3 style="margin:0;font-size:18px;font-weight:700">Volet 2 · Entrepôt & Gestion des Stocks Bi-Sites</h3>
-      <small style="color:#64748B">Disponibilité immédiate du Stock Dédié SKCI et Stock Classique (SAPH, SOGB, CHCI...), lavages et transferts.</small>
-     </div>
+  <!-- 3. Détail des Stocks & Disponibilités -->
+  <div class="panel" style="margin:0">
+   <h3 style="margin:0 0 14px;font-size:15px">État Détaillé des Stocks · ${esc(sObj.entrepot)}</h3>
+   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+    <div style="padding:12px;background:var(--surface-2);border-radius:10px;border-left:4px solid var(--skci)">
+     <span class="muted" style="font-size:12px">Stock Propre SKCI</span>
+     <b style="font-size:24px;display:block;margin:3px 0">${n0(dispoSKCI)}</b>
+     <small class="muted num">Réservé : ${n0(resSKCI)} pal.</small>
     </div>
-    <button class="btn small primary" data-go="entrepot">Accéder à l’Entrepôt →</button>
-   </div>
-   <div class="ui-cat-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-bottom:16px">
-    <div class="ui-cat-box" data-go="entrepot" style="padding:16px">
-     <div class="icon" style="background:#F5F3FF;color:#6D28D9;font-size:20px;width:40px;height:40px">🟣</div>
-     <div class="info">
-      <small>Stock Dédié SKCI (Dispo)</small>
-      <b style="font-size:20px">${n0(dispoSKCI)}</b>
-      <div style="font-size:11px;color:#10B981">Réservé : ${n0(resSKCI)} pal.</div>
-     </div>
+    <div style="padding:12px;background:var(--surface-2);border-radius:10px;border-left:4px solid var(--blue)">
+     <span class="muted" style="font-size:12px">Stock Propre Classique</span>
+     <b style="font-size:24px;display:block;margin:3px 0">${n0(dispoGlobal)}</b>
+     <small class="muted num">Réservé : ${n0(resGlobal)} pal.</small>
     </div>
-    <div class="ui-cat-box" data-go="entrepot" style="padding:16px">
-     <div class="icon" style="background:#ECFDF5;color:#0D7A5F;font-size:20px;width:40px;height:40px">🟢</div>
-     <div class="info">
-      <small>Stock Classique (SAPH, SOGB...)</small>
-      <b style="font-size:20px">${n0(dispoGlobal)}</b>
-      <div style="font-size:11px;color:#64748B">Réservé : ${n0(resGlobal)} pal.</div>
-     </div>
+    <div style="padding:12px;background:var(--surface-2);border-radius:10px;border-left:4px solid var(--warn)">
+     <span class="muted" style="font-size:12px">Palettes Sales (Lavage)</span>
+     <b style="font-size:24px;display:block;margin:3px 0">${n0(s.sale)}</b>
+     <small class="muted">À reconditionner</small>
     </div>
-    <div class="ui-cat-box" data-go="entrepot" style="padding:16px">
-     <div class="icon" style="background:#FFFBEB;color:#F59E0B;font-size:20px;width:40px;height:40px">🟡</div>
-     <div class="info">
-      <small>Atelier de Lavage</small>
-      <b style="font-size:20px">${s.sale}</b>
-      <div style="font-size:11px;color:#F59E0B">Cadence : ~340 pal./jour</div>
-     </div>
-    </div>
-    <div class="ui-cat-box" data-go="entrepot" style="padding:16px">
-     <div class="icon" style="background:#EFF6FF;color:#3B82F6;font-size:20px;width:40px;height:40px">🔧</div>
-     <div class="info">
-      <small>Soudure & Door Swap</small>
-      <b style="font-size:20px">${s.reparation}</b>
-      <div style="font-size:11px;color:#3B82F6">Remise en conformité</div>
-     </div>
+    <div style="padding:12px;background:var(--surface-2);border-radius:10px;border-left:4px solid var(--bad)">
+     <span class="muted" style="font-size:12px">Soudure & Réparation</span>
+     <b style="font-size:24px;display:block;margin:3px 0">${n0(s.reparation)}</b>
+     <small class="muted">DOOR SWAP / Soudure</small>
     </div>
    </div>
-  </section>
+  </div>`;
+}
 
-  <!-- VOLET 3 DÉTAILLÉ -->
-  <section class="ui-volet-panel" id="v-transport">
-   <div class="ui-volet-panel-head">
-    <div class="ui-volet-panel-title">
-     <div class="ui-volet-panel-icon" style="background:#FFFBEB;color:#F59E0B">🚚</div>
-     <div>
-      <h3 style="margin:0;font-size:18px;font-weight:700">Volet 3 · Transport & Expéditions Usines de Caoutchouc</h3>
-      <small style="color:#64748B">Traction routière vers SAPH, SOGB, CHCI, ITCA, SKCI et respect de la ponctualité de livraison.</small>
-     </div>
-    </div>
-    <button class="btn small primary" data-go="transport">Accéder au Transport →</button>
+/* ==================== 3. DASHBOARD TRANSPORT & LIVRAISONS ==================== */
+function renderDashTransport(cS, sObj, period) {
+  const transList = siteTransports(cS);
+  const activeTrans = transList.filter(t => t.status !== 'Clôturé');
+  const deliveredTrans = transList.filter(t => t.status === 'Livré' || t.status === 'Clôturé');
+
+  const incidents = transList.filter(t => t.incidents && t.incidents.length);
+  const totalPalLivr = deliveredTrans.reduce((sum, t) => sum + (+t.qty || 0), 0);
+  const targetTrans = Math.round(450 * period.mult);
+
+  const onTimeLiv = deliveredTrans.filter(t => !t.incidents || !t.incidents.length).length;
+  const onTimeLivRate = deliveredTrans.length ? Math.round((onTimeLiv / deliveredTrans.length) * 100) : 100;
+
+  const plns = sitePlanifications(cS);
+  const pendPlns = plns.filter(p => p.status !== 'Annulée' && p.status !== 'Clôturé' && (!p.camionValAt || !p.transport));
+
+  // Urgences Transport
+  const urgencesTransport = [];
+  incidents.forEach(t => {
+    urgencesTransport.push({ t: `Incident signalé sur mission ${t.id} (${t.trans})`, desc: t.incidents.join(', '), badge: 'b-bad', id: t.id });
+  });
+  pendPlns.forEach(p => {
+    urgencesTransport.push({ t: `Demande ${p.id} vers ${p.to} : En attente camion/chauffeur`, desc: `${n0(p.qty)} palettes réservées · Destination: ${p.to}`, badge: 'b-warn', id: p.id });
+  });
+
+  return `
+  <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+   <div>
+    <h2 style="margin:0;font-size:20px;color:#92400E;display:flex;align-items:center;gap:8px">
+     <span>🚚</span> Tableau de bord Transport & Livraisons · ${esc(sObj.name)}
+    </h2>
+    <small class="muted">Ordres de transport, expéditions vers les usines de caoutchouc, ponctualité des chauffeurs et gestion des incidents.</small>
    </div>
-   <div class="grid g2">
+   <span class="badge" style="background:#FFFBEB;color:#B45309;border:1px solid #FDE68A;font-weight:700">Périmètre : ${period.label}</span>
+  </div>
+
+  <!-- 1. KPIs & Objectifs Assignés Transport -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-bottom:22px">
+   ${renderKpiWithTarget('Taux de Ponctualité des Livraisons', onTimeLivRate, 95, '%', true, 'Livraisons conformes sans incident')}
+   ${renderKpiWithTarget('Volume Palettes Livrées (Usines)', totalPalLivr, targetTrans, 'palettes', true, 'Objectif de livraison sur la période')}
+   ${renderKpiWithTarget('Incidents Trajet & Alertes Route', incidents.length, 0, 'incident', false, 'Objectif Zéro Incident')}
+   ${renderKpiWithTarget('Demandes en Attente Camion/Chauffeur', pendPlns.length, 1, 'demande', false, 'Affectation sous 24h')}
+  </div>
+
+  <!-- 2. Urgences & Actions Prioritaires Transport -->
+  <section class="panel" style="margin-bottom:22px;border-left:5px solid #D97706;background:var(--surface)">
+   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
     <div>
-     <h4 style="margin:0 0 10px;font-size:14px;color:#475569">Missions de transport en cours</h4>
-     <div style="display:flex;flex-direction:column;gap:10px">
-      ${siteTr.slice(0,3).map(t=>`<div class="tcard" data-act="openTransportDetails" data-id="${esc(t.id)}" style="padding:12px;cursor:pointer;margin:0" title="Cliquer pour afficher les détails">
-       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-        <div><b>${t.id}</b> <span class="muted">· ${esc(t.veh)} (${esc(t.driver||'—')})</span></div>
-        <div>${poolBadge(t.pool||destPool(t.to))} ${badge(t.status==='Livré'?'ok':t.status==='En cours'?'info':'mute',t.status)}</div>
-       </div>
-       <div style="margin-top:6px;font-size:13px;display:flex;justify-content:space-between">
-        <span>De : <b>${esc(t.from)}</b></span>
-        <span>Vers : <b style="color:var(--blue)">${esc(t.to)}</b></span>
-       </div>
-      </div>`).join('')||'<p class="empty" style="padding:16px">Aucun transport enregistré pour ce site.</p>'}
-     </div>
+     <h3 style="margin:0;font-size:16px;color:#92400E;display:flex;align-items:center;gap:8px">
+      🚨 Urgences & Actions prioritaires Transport (${urgencesTransport.length})
+     </h3>
+     <small class="muted">Incidents de transport en cours, camions à affecter et retards de livraison.</small>
     </div>
+    <button class="btn small primary" data-act="newLivraison">+ Programmer transport</button>
+   </div>
+
+   <div style="display:flex;flex-direction:column;gap:8px">
+    ${urgencesTransport.slice(0, 5).map(u => `
+      <div style="padding:10px 14px;background:var(--surface-2);border-radius:10px;border:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+       <div>
+        <b style="font-size:13px">${u.t}</b>
+        <div class="muted" style="font-size:12px;margin-top:2px">${u.desc}</div>
+       </div>
+       <button class="btn small" onclick="lvSub='suivi';goTab('transport')">Voir la mission</button>
+      </div>
+    `).join('') || '<div class="empty" style="padding:16px">🎉 Flotte fluide ! Aucun incident ni retard de transport à signaler.</div>'}
+   </div>
+  </section>
+
+  <!-- 3. Flotte et Partenaires Transporteurs -->
+  <div class="panel" style="margin:0">
+   <h3 style="margin:0 0 12px;font-size:15px">Activité par Entreprise de Transport Partenaire</h3>
+   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
+    ${TRANSPORTEURS.map(trans => {
+      const trMissions = transList.filter(t => t.trans === trans);
+      const incCount = trMissions.filter(t => t.incidents && t.incidents.length).length;
+      return `<div style="padding:12px;background:var(--surface-2);border-radius:10px;border:1px solid var(--line)">
+       <b style="font-size:13.5px;color:var(--text);display:block">${trans}</b>
+       <div style="margin-top:6px;display:flex;justify-content:space-between;align-items:center">
+        <span class="muted" style="font-size:12px">${trMissions.length} mission${trMissions.length>1?'s':''}</span>
+        ${incCount ? `<span class="badge b-bad">${incCount} incident${incCount>1?'s':''}</span>` : '<span class="badge b-ok">100% Sûr</span>'}
+       </div>
+      </div>`;
+    }).join('')}
+   </div>
+  </div>`;
+}
+
+/* ==================== 4. DASHBOARD FACTURATION ==================== */
+function renderDashFacturation(cS, sObj, period) {
+  normalizeInvoicesCategory();
+  const allInvoices = siteInvoices(cS);
+
+  // Pipelines
+  const allSiteDoss = siteDossiers(cS);
+  const transitCompleted = allSiteDoss.filter(d => Boolean(d.D6 || d.status === 'Clôturé' || d.depotage));
+  const transitPending = transitCompleted.filter(d => !getInvoiceForDossier(d.num));
+
+  const allSiteReps = siteReparations(cS).filter(r => r.kind === 'DOOR SWAP' || r.kind === 'Soudure');
+  const entrepotPending = allSiteReps.filter(r => !getInvoiceForReparation(r.id, r.lot));
+
+  const allSiteTrs = siteTransports(cS);
+  const transportCompleted = allSiteTrs.filter(t => t.status === 'Livré' || t.status === 'Clôturé' || t.arrR);
+  const transportPending = transportCompleted.filter(t => !getInvoiceForTransport(t.id));
+
+  const totalPending = transitPending.length + entrepotPending.length + transportPending.length;
+
+  const countInvoiced = allInvoices.length;
+  const targetFac = Math.round(35 * period.mult);
+
+  const delaisValides = allInvoices.map(i => i.delaiFacture).filter(d => d != null);
+  const avgDelai = delaisValides.length ? (delaisValides.reduce((a, b) => a + b, 0) / delaisValides.length).toFixed(1) : '1.8';
+
+  const countMoins3j = allInvoices.filter(i => i.delaiFacture != null && i.delaiFacture <= 3).length;
+  const pctMoins3j = countInvoiced ? Math.round((countMoins3j / countInvoiced) * 100) : 92;
+
+  const totalOps = totalPending + countInvoiced;
+  const pctEcoule = totalOps ? Math.round((countInvoiced / totalOps) * 100) : 85;
+
+  return `
+  <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+   <div>
+    <h2 style="margin:0;font-size:20px;color:#0369A1;display:flex;align-items:center;gap:8px">
+     <span>💳</span> Tableau de bord Facturation · ${esc(sObj.name)}
+    </h2>
+    <small class="muted">Délais d’attribution de facture, écoulement du pipeline des opérations clôturées et traçabilité des dossiers facturés.</small>
+   </div>
+   <span class="badge" style="background:#F0F9FF;color:#0284C7;border:1px solid #BAE6FD;font-weight:700">Périmètre : ${period.label}</span>
+  </div>
+
+  <!-- 1. KPIs & Objectifs Assignés Facturation -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-bottom:22px">
+   ${renderKpiWithTarget('Délai Moyen de Facturation', avgDelai, 2.0, 'jours', false, 'Objectif de réactivité GoodPack')}
+   ${renderKpiWithTarget('Facturées sous ≤ 3 Jours', pctMoins3j, 90, '%', true, 'Taux de conformité du délai')}
+   ${renderKpiWithTarget('Taux d’Écoulement du Pipeline', pctEcoule, 85, '%', true, 'Opérations facturées / Réalisées')}
+   ${renderKpiWithTarget('Volume d’Opérations Facturées', countInvoiced, targetFac, 'dossiers', true, 'Objectif de facturation sur la période')}
+  </div>
+
+  <!-- 2. Urgences & Opérations en attente de Facturation -->
+  <section class="panel" style="margin-bottom:22px;border-left:5px solid #0284C7;background:var(--surface)">
+   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
     <div>
-     <h4 style="margin:0 0 10px;font-size:14px;color:#475569">Planning des prochaines expéditions</h4>
-     <div class="tablewrap">
-      <table style="min-width:auto;font-size:13px">
-       <thead><tr><th>Livraison</th><th>Destination</th><th>Stock</th><th class="right">Palettes</th><th>Statut</th></tr></thead>
-       <tbody>${sitePlns.slice(0,4).map(p=>`<tr class="click" data-act="openTransportDetails" data-id="${esc(p.id)}">
-        <td><span class="ref">${p.id}</span></td>
-        <td><b>${esc(p.to)}</b></td>
-        <td>${poolBadge(p.pool||destPool(p.to))}</td>
-        <td class="right num"><b>${n0(p.qty)}</b></td>
-        <td>${badge(p.status==='Camion confirmé'?'ok':p.status==='Stock confirmé'?'info':'warn',p.status)}</td>
-       </tr>`).join('')||'<tr><td colspan="5" class="empty">Aucune livraison planifiée en attente.</td></tr>'}
-       </tbody>
-      </table>
+     <h3 style="margin:0;font-size:16px;color:#0369A1;display:flex;align-items:center;gap:8px">
+      ⏳ 2. Urgences Facturation · Opérations en attente de facture (${totalPending})
+     </h3>
+     <small class="muted">Opérations achevées (dépotées, réparées, livrées) attendant leur date et numéro de facture.</small>
+    </div>
+    <button class="btn small primary" onclick="goTab('facturation')">Ouvrir la Facturation →</button>
+   </div>
+
+   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">
+    <div style="padding:12px 14px;background:var(--surface-2);border-radius:10px;border-left:4px solid #2563EB">
+     <div style="display:flex;justify-content:space-between;align-items:center">
+      <b>🚢 Transit Maritime</b>
+      <span class="badge ${transitPending.length?'b-warn':'b-ok'}">${transitPending.length} à facturer</span>
      </div>
+     <small class="muted" style="display:block;margin-top:4px">Conteneurs dépotés au quai</small>
+     ${transitPending.length ? `<button class="btn small" style="margin-top:8px" onclick="facSub='transit';goTab('facturation')">Facturer Transit</button>` : ''}
+    </div>
+
+    <div style="padding:12px 14px;background:var(--surface-2);border-radius:10px;border-left:4px solid #16A34A">
+     <div style="display:flex;justify-content:space-between;align-items:center">
+      <b>🏭 Entrepôt (Door Swap/Soudure)</b>
+      <span class="badge ${entrepotPending.length?'b-warn':'b-ok'}">${entrepotPending.length} à facturer</span>
+     </div>
+     <small class="muted" style="display:block;margin-top:4px">Lots de reconditionnement achevés</small>
+     ${entrepotPending.length ? `<button class="btn small" style="margin-top:8px" onclick="facSub='entrepot';goTab('facturation')">Facturer Entrepôt</button>` : ''}
+    </div>
+
+    <div style="padding:12px 14px;background:var(--surface-2);border-radius:10px;border-left:4px solid #D97706">
+     <div style="display:flex;justify-content:space-between;align-items:center">
+      <b>🚚 Transport & Tractions</b>
+      <span class="badge ${transportPending.length?'b-warn':'b-ok'}">${transportPending.length} à facturer</span>
+     </div>
+     <small class="muted" style="display:block;margin-top:4px">Livraisons réceptionnées par les usines</small>
+     ${transportPending.length ? `<button class="btn small" style="margin-top:8px" onclick="facSub='transport';goTab('facturation')">Facturer Transport</button>` : ''}
     </div>
    </div>
   </section>
 
-  <!-- Alertes opérationnelles -->
-  <section class="ui-volet-panel" style="border-color:${a.length?'#F59E0B':'#E2E8F0'}">
-   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
-    <h3 style="margin:0;font-size:16px;font-weight:700">Alertes prioritaires transversales</h3>
-    ${a.length?badge('warn',`${a.length} alerte${a.length>1?'s':''} à traiter`,'⚠'):badge('ok','Toutes les opérations sont conformes','✓')}
+  <!-- 3. Règle Métier Facturation -->
+  <div class="panel" style="margin:0;background:#F8FAFC;border:1px dashed #94A3B8">
+   <div style="display:flex;align-items:flex-start;gap:12px">
+    <span style="font-size:22px">ℹ️</span>
+    <div>
+     <b style="color:var(--text)">Principe opérationnel de la Facturation GoodTruck :</b>
+     <div class="muted" style="margin-top:3px;font-size:12.5px;line-height:1.4">
+      L’application ne produit pas de facture financière, mais enregistre l’accomplissement de la facturation en lui associant la <b>date effective</b> et le <b>numéro de facture</b>. Dès validation, le dossier est instantanément reversé dans le volet Recouvrement pour suivi de l’encaissement.
+     </div>
+    </div>
    </div>
-   <div class="alerts">${a.length?a.map((x,i)=>alertRow(x,i)).join(''):'<p class="empty">Aucune anomalie opérationnelle détectée.</p>'}</div>
+  </div>`;
+}
+
+/* ==================== 5. DASHBOARD RECOUVREMENT ==================== */
+function renderDashRecouvrement(cS, sObj, period) {
+  normalizeInvoicesCategory();
+  const allInvoices = siteInvoices(cS);
+
+  const unpaidInvoices = allInvoices.filter(i => i.recStatus !== 'Recouvré');
+  const paidInvoices = allInvoices.filter(i => i.recStatus === 'Recouvré');
+
+  const tauxRec = allInvoices.length ? Math.round((paidInvoices.length / allInvoices.length) * 100) : 80;
+
+  const delaisRec = paidInvoices.map(i => i.delaiRecouvrement).filter(d => d != null);
+  const avgDelaiRec = delaisRec.length ? (delaisRec.reduce((a, b) => a + b, 0) / delaisRec.length).toFixed(1) : '18.5';
+
+  const critiques = unpaidInvoices.filter(i => (i.retardJours || 0) > 30);
+
+  return `
+  <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+   <div>
+    <h2 style="margin:0;font-size:20px;color:#5B21B6;display:flex;align-items:center;gap:8px">
+     <span>💰</span> Tableau de bord Recouvrement · ${esc(sObj.name)}
+    </h2>
+    <small class="muted">Suivi des encaissements des factures émises, délais de perception des règlements et relances prioritaires.</small>
+   </div>
+   <span class="badge" style="background:#F5F3FF;color:#7C3AED;border:1px solid #DDD6FE;font-weight:700">Périmètre : ${period.label}</span>
+  </div>
+
+  <!-- 1. KPIs & Objectifs Assignés Recouvrement -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-bottom:22px">
+   ${renderKpiWithTarget('Taux d’Encaissement Global', tauxRec, 90, '%', true, 'Factures soldées / Total émises')}
+   ${renderKpiWithTarget('Délai Moyen d’Encaissement', avgDelaiRec, 30.0, 'jours', false, 'Temps moyen Facture → Règlement')}
+   ${renderKpiWithTarget('Créances en Retard Critique (> 30j)', critiques.length, 0, 'facture', false, 'Objectif Zéro Impayé Critique')}
+   ${renderKpiWithTarget('Factures Soldées & Encaissées', paidInvoices.length, Math.round(25 * period.mult), 'dossiers', true, 'Volume de clôture financière')}
+  </div>
+
+  <!-- 2. Urgences & Relances Prioritaires Recouvrement -->
+  <section class="panel" style="margin-bottom:22px;border-left:5px solid #7C3AED;background:var(--surface)">
+   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <div>
+     <h3 style="margin:0;font-size:16px;color:#5B21B6;display:flex;align-items:center;gap:8px">
+      🚨 Urgences & Créances prioritaires à recouvrer (${unpaidInvoices.length})
+     </h3>
+     <small class="muted">Factures en attente de virement ou chèque. Validez le recouvrement dès encaissement effectif.</small>
+    </div>
+    <button class="btn small primary" onclick="goTab('recouvrement')">Ouvrir le Recouvrement →</button>
+   </div>
+
+   <div class="tablewrap" style="margin:0">
+    <table>
+     <thead>
+      <tr><th>N° Facture</th><th>Réf. Opération</th><th>Client Débiteur</th><th>Date Facturation</th><th>Échéance</th><th>Retard Constaté</th><th>Actions</th></tr>
+     </thead>
+     <tbody>
+      ${unpaidInvoices.slice(0, 5).map(inv => `
+        <tr>
+         <td><b style="color:var(--blue)">${inv.num || inv.id}</b></td>
+         <td><span class="ref">${inv.dossier || inv.transportId || inv.reparationId || '—'}</span></td>
+         <td><b>${esc(inv.client || 'Client')}</b></td>
+         <td>${fmt(inv.date)}</td>
+         <td>${inv.due ? fmt(inv.due) : '—'}</td>
+         <td>${(inv.retardJours || 0) > 0 ? `<span class="badge b-bad">${inv.retardJours} j de retard</span>` : '<span class="badge b-ok">Dans les délais</span>'}</td>
+         <td><button class="btn small primary" data-act="validerRecouvrement" data-id="${inv.id}">✓ Valider Recouvrement</button></td>
+        </tr>
+      `).join('') || '<tr><td colspan="7" class="empty" style="padding:18px">🎉 Toutes les factures émises ont été recouvrées et soldées !</td></tr>'}
+     </tbody>
+    </table>
+   </div>
   </section>
 
- </div>`;
+  <!-- 3. Répartition Portefeuille Clients -->
+  <div class="panel" style="margin:0">
+   <h3 style="margin:0 0 12px;font-size:15px">Portefeuille d’Encaissement par Client</h3>
+   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
+    ${['SKCI', 'SOGB', 'CHCI', 'SAPH', 'Brassivoire'].map(cl => {
+      const clInvs = allInvoices.filter(i => (i.client || '').includes(cl));
+      const clPaid = clInvs.filter(i => i.recStatus === 'Recouvré');
+      const pct = clInvs.length ? Math.round((clPaid.length / clInvs.length) * 100) : 100;
+      return `<div style="padding:12px;background:var(--surface-2);border-radius:10px;border:1px solid var(--line)">
+       <b style="font-size:13.5px;color:var(--text);display:block">${cl}</b>
+       <div style="margin-top:6px;display:flex;justify-content:space-between;align-items:center">
+        <span class="muted" style="font-size:12px">${clPaid.length}/${clInvs.length} réglées</span>
+        <span class="badge ${pct>=80?'b-ok':'b-warn'}">${pct}%</span>
+       </div>
+      </div>`;
+    }).join('')}
+   </div>
+  </div>`;
 }
 
-/* ===================== Graphiques du Tableau de bord ===================== */
-function drawCharts(){
- const cS=curSite();
- const sDoss=siteDossiers(cS);
- 
- if(!window.Chart){
-  return;
- }
-
- try {
-  Chart.defaults.font.family='-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-  Chart.defaults.color='#64748B';
-  
-  /* ----------------------------------------------------
-     1. Grand Graphique Spline Hero (chHero) : Courbe lissée avec marqueur
-  ---------------------------------------------------- */
-  const elHero=$('#chHero');
-  if(elHero){
-   const labels=['04 Juin','05 Juin','06 Juin','07 Juin','08 Juin','09 Juin','10 Juin','11 Juin','12 Juin'];
-   const currentMonth=[2800, 4900, 3700, 4500, 3900, 7200, 10200, 4800, 4200];
-   const lastMonth=[2100, 3200, 2900, 3800, 3100, 4900, 6800, 3900, 3400];
-
-   charts.push(new Chart(elHero,{
-    type:'line',
-    data:{
-     labels:labels,
-     datasets:[
-      {
-       label:'Ce mois (Opérations réelles)',
-       data:currentMonth,
-       borderColor:'#3B82F6',
-       backgroundColor:'rgba(59, 130, 246, 0.08)',
-       fill:true,
-       tension:0.42,
-       borderWidth:3,
-       pointBackgroundColor:'#FFFFFF',
-       pointBorderColor:'#3B82F6',
-       pointBorderWidth:2.5,
-       pointRadius:4,
-       pointHoverRadius:7
-      },
-      {
-       label:'Mois précédent',
-       data:lastMonth,
-       borderColor:'#06B6D4',
-       backgroundColor:'transparent',
-       borderDash:[4,4],
-       tension:0.42,
-       borderWidth:2,
-       pointRadius:0
-      }
-     ]
-    },
-    options:{
-     responsive:true,
-     maintainAspectRatio:false,
-     interaction:{mode:'index',intersect:false},
-     plugins:{
-      legend:{
-       position:'bottom',
-       labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:16,font:{size:12}}
-      },
-      tooltip:{
-       backgroundColor:'rgba(15, 23, 42, 0.92)',
-       padding:10,
-       cornerRadius:10,
-       titleFont:{weight:'bold'},
-       callbacks:{label:(c)=>` ${c.dataset.label} : ${n0(c.raw)} flux`}
-      }
-     },
-     scales:{
-      x:{grid:{display:false},ticks:{font:{size:11.5}}},
-      y:{
-       grid:{color:'rgba(226, 232, 240, 0.6)'},
-       beginAtZero:true,
-       ticks:{callback:v=>(v/1000)+'K',font:{size:11.5}}
-      }
-     }
-    }
-   }));
-  }
-
-  /* ----------------------------------------------------
-     2. Graphique Barres Bicolores Fines (chRightBars) : Style turquoise / bleu
-  ---------------------------------------------------- */
-  const elRightBars=$('#chRightBars');
-  if(elRightBars){
-   charts.push(new Chart(elRightBars,{
-    type:'bar',
-    data:{
-     labels:['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'],
-     datasets:[
-      {
-       label:'Dépotage (TC)',
-       data:[45, 60, 95, 50, 75, 55, 70],
-       backgroundColor:'#06B6D4',
-       borderRadius:4,
-       maxBarThickness:10,
-       stack:'Stack 0'
-      },
-      {
-       label:'Expéditions Usines',
-       data:[35, 45, 80, 40, 60, 45, 55],
-       backgroundColor:'#3B82F6',
-       borderRadius:4,
-       maxBarThickness:10,
-       stack:'Stack 0'
-      }
-     ]
-    },
-    options:{
-     responsive:true,
-     maintainAspectRatio:false,
-     plugins:{
-      legend:{position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:7,padding:10,font:{size:11}}},
-      tooltip:{backgroundColor:'rgba(15, 23, 42, 0.92)',padding:8,cornerRadius:8}
-     },
-     scales:{
-      x:{grid:{display:false},ticks:{font:{size:11}}},
-      y:{display:false}
-     }
-    }
-   }));
-  }
-
-  /* ----------------------------------------------------
-     3. Grand Donut avec valeur centrale (chRightDonut)
-  ---------------------------------------------------- */
-  const elRightDonut=$('#chRightDonut');
-  if(elRightDonut){
-   const onTimeCount=sDoss.filter(d=>delay(d).app==='On Time').length||12;
-   const enCoursCount=Math.max(1,sDoss.length-onTimeCount);
-   const lateCount=sDoss.filter(d=>delay(d).k==='bad').length||1;
-
-   charts.push(new Chart(elRightDonut,{
-    type:'doughnut',
-    data:{
-     labels:['On Time (56%)','En cours (32%)','Sous surveillance (10%)'],
-     datasets:[{
-      data:[56, 32, 10],
-      backgroundColor:['#3B82F6','#06B6D4','#E2E8F0'],
-      borderWidth:4,
-      borderColor:'#FFFFFF',
-      hoverOffset:4
-     }]
-    },
-    options:{
-     responsive:true,
-     maintainAspectRatio:false,
-     cutout:'74%',
-     plugins:{
-      legend:{display:false},
-      tooltip:{backgroundColor:'rgba(15, 23, 42, 0.92)',padding:8,cornerRadius:8}
-     }
-    }
-   }));
-  }
-
-  /* ----------------------------------------------------
-     4. Bar Chart avec barre active en bleu franc (chBarReport)
-  ---------------------------------------------------- */
-  const elBarReport=$('#chBarReport');
-  if(elBarReport){
-   charts.push(new Chart(elBarReport,{
-    type:'bar',
-    data:{
-     labels:['08/11','09/11','10/11','11/11'],
-     datasets:[{
-      label:'Volume traité',
-      data:[18, 22, 34, 24],
-      backgroundColor:['#E2E8F0','#E2E8F0','#2563EB','#E2E8F0'],
-      borderRadius:6,
-      maxBarThickness:28
-     }]
-    },
-    options:{
-     responsive:true,
-     maintainAspectRatio:false,
-     plugins:{legend:{display:false}},
-     scales:{
-      x:{grid:{display:false},ticks:{font:{size:11}}},
-      y:{grid:{color:'rgba(226, 232, 240, 0.5)'},beginAtZero:true,ticks:{font:{size:11}}}
-     }
-    }
-   }));
-  }
-
-  /* ----------------------------------------------------
-     5. Jauge Circulaire 58% / 96% (chGaugeCircle)
-  ---------------------------------------------------- */
-  const elGaugeCircle=$('#chGaugeCircle');
-  if(elGaugeCircle){
-   charts.push(new Chart(elGaugeCircle,{
-    type:'doughnut',
-    data:{
-     datasets:[{
-      data:[95, 5],
-      backgroundColor:['#2563EB','#F1F5F9'],
-      borderWidth:0
-     }]
-    },
-    options:{
-     responsive:true,
-     maintainAspectRatio:false,
-     cutout:'80%',
-     plugins:{legend:{display:false},tooltip:{enabled:false}}
-    }
-   }));
-  }
-
-  /* ----------------------------------------------------
-     6. Mini Smooth Wave Area Chart (chMiniArea)
-  ---------------------------------------------------- */
-  const elMiniArea=$('#chMiniArea');
-  if(elMiniArea){
-   charts.push(new Chart(elMiniArea,{
-    type:'line',
-    data:{
-     labels:['S-4','S-3','S-2','S-1','Cette sem.'],
-     datasets:[{
-      label:'Transferts inter-sites',
-      data:[12, 19, 14, 26, 22],
-      borderColor:'#3B82F6',
-      backgroundColor:'rgba(59, 130, 246, 0.12)',
-      fill:true,
-      tension:0.45,
-      borderWidth:2.5,
-      pointRadius:3,
-      pointBackgroundColor:'#3B82F6'
-     }]
-    },
-    options:{
-     responsive:true,
-     maintainAspectRatio:false,
-     plugins:{legend:{display:false}},
-     scales:{
-      x:{grid:{display:false},ticks:{font:{size:11}}},
-      y:{display:false}
-     }
-    }
-   }));
-  }
-
- } catch(e) {
-  console.warn('drawCharts error:', e);
- }
-}
-
-function renderPureSvgCharts(cnt, hexOf){
- const total=Object.values(cnt).reduce((a,b)=>a+b,0)||1;
- const r=45,circ=2*Math.PI*r;
- let offset=0;
- const circles=Object.entries(cnt).map(([k,v])=>{
-  const dash=(v/total)*circ;
-  const str=`<circle cx="65" cy="65" r="${r}" fill="none" stroke="${hexOf(k)}" stroke-width="18" stroke-dasharray="${dash.toFixed(1)} ${(circ-dash).toFixed(1)}" stroke-dashoffset="${(-offset).toFixed(1)}" transform="rotate(-90 65 65)"/>`;
-  offset+=dash;
-  return str;
- }).join('');
- const legend=Object.entries(cnt).map(([k,v])=>{
-  const pct=Math.round((v/total)*100);
-  return `<div style="display:flex;align-items:center;gap:7px;font-size:12px;margin:3px 0"><span style="width:10px;height:10px;border-radius:2px;background:${hexOf(k)};flex-shrink:0"></span><span style="white-space:nowrap">${k} : <b>${v}</b> <small class="muted">(${pct}%)</small></span></div>`;
- }).join('');
- const b1=$('#ch1')?.parentElement;
- if(b1)b1.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-around;height:100%;gap:12px;padding:8px">
-  <svg viewBox="0 0 130 130" style="width:130px;height:130px;flex-shrink:0">${circles||`<circle cx="65" cy="65" r="${r}" fill="none" stroke="var(--line)" stroke-width="18"/>`}<text x="65" y="72" text-anchor="middle" font-weight="bold" font-size="20" fill="currentColor">${total}</text></svg>
-  <div style="flex:1;min-width:0">${legend||'<p class="empty">Aucun dossier</p>'}</div>
- </div>`;
-
- const s=stock(curSite());
- const catsLabels=CATS.map(c=>c.label.replace('Palettes ',''));
- const catsVals=CATS.map(c=>s[c.k]||0);
- const catsCols=['#B86700','#1C6FB8','#6D28D9','#17844F'];
- const b2=$('#ch2')?.parentElement;
- if(b2)b2.innerHTML=svgBarChartHtml(catsLabels,catsVals,catsCols);
-
- const wk=[...Array(8)].map((_,i)=>8-i),lab=wk.map(w=>'S-'+(w-1)),inn=wk.map(()=>0),out=wk.map(()=>0);
- siteMovements().filter(m=>!m.tx.startsWith('TXL')&&!m.type.startsWith('Transfert')&&!m.type.startsWith('Mise à part')&&!m.type.startsWith('Contrôle')).forEach(m=>{const ago=Math.floor(days(TODAY_ISO,m.date)/7);const idx=wk.indexOf(ago+1);if(idx>=0)(m.sens>0?inn:out)[idx]+=m.qty});
- lab[lab.length-1]='Cette sem.';
- const b3=$('#ch3')?.parentElement;
- if(b3)b3.innerHTML=svgDualBarChartHtml(lab,inn,out);
-
- const sDoss=siteDossiers();
- const done=sDoss.filter(d=>d.D8&&delay(d).n!=null&&delay(d).k!=='anom').sort((a,b)=>a.D8.localeCompare(b.D8));
- const b4=$('#ch4')?.parentElement;
- if(b4)b4.innerHTML=svgBarChartHtml(done.map(d=>d.num.slice(-3)),done.map(d=>delay(d).n),done.map(d=>delay(d).k==='ok'?'#16A34A':'#DC2626'),21);
-}
-
-function svgBarChartHtml(labels,values,colors,threshLine=null){
- if(!labels.length)return '<p class="empty" style="padding:28px">Aucune donnée disponible</p>';
- const max=Math.max(...values,threshLine||1,1);
- const h=140,w=280;
- const bw=Math.max(12,Math.floor((w-40)/labels.length)-6);
- const bars=values.map((v,i)=>{
-  const bh=Math.max(2,Math.round((v/max)*90));
-  const x=30+i*(bw+6);
-  const y=h-25-bh;
-  const col=Array.isArray(colors)?colors[i%colors.length]:colors;
-  const sl=labels[i].length>8?labels[i].slice(0,7)+'.':labels[i];
-  return `<rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="3" fill="${col}"/>
-   <text x="${x+bw/2}" y="${y-4}" text-anchor="middle" font-size="10.5" font-weight="bold" fill="currentColor">${v}</text>
-   <text x="${x+bw/2}" y="${h-8}" text-anchor="middle" font-size="9.5" fill="var(--muted)">${sl}</text>`;
- }).join('');
- const tLine=threshLine?`<line x1="25" y1="${h-25-Math.round((threshLine/max)*90)}" x2="${w-10}" y2="${h-25-Math.round((threshLine/max)*90)}" stroke="var(--warn)" stroke-width="1.5" stroke-dasharray="4 3"/>
-  <text x="${w-12}" y="${h-28-Math.round((threshLine/max)*90)}" text-anchor="end" font-size="9" fill="var(--warn)">Seuil 21j</text>`:'';
- return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:100%;max-height:160px">
-  <line x1="25" y1="${h-22}" x2="${w-10}" y2="${h-22}" stroke="var(--line)" stroke-width="1"/>
-  ${tLine}${bars}
- </svg>`;
-}
-
-function svgDualBarChartHtml(labels,inn,out){
- const max=Math.max(...inn,...out,1);
- const h=140,w=280;
- const bw=Math.max(8,Math.floor((w-45)/(labels.length*2.2)));
- const bars=labels.map((l,i)=>{
-  const h1=Math.max(1,Math.round((inn[i]/max)*85));
-  const h2=Math.max(1,Math.round((out[i]/max)*85));
-  const gx=28+i*bw*2.3;
-  return `<rect x="${gx}" y="${h-25-h1}" width="${bw}" height="${h1}" rx="2" fill="#0EA5E9"/>
-   <rect x="${gx+bw+2}" y="${h-25-h2}" width="${bw}" height="${h2}" rx="2" fill="#1C6FB8"/>
-   <text x="${gx+bw}" y="${h-8}" text-anchor="middle" font-size="9" fill="var(--muted)">${l}</text>`;
- }).join('');
- return `<div style="display:flex;flex-direction:column;height:100%"><div style="display:flex;gap:12px;font-size:11px;padding:2px 8px"><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:8px;height:8px;background:#0EA5E9;border-radius:2px"></span>Entrées</span><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:8px;height:8px;background:#1C6FB8;border-radius:2px"></span>Sorties</span></div>
- <svg viewBox="0 0 ${w} ${h}" style="width:100%;height:100%;max-height:140px"><line x1="22" y1="${h-22}" x2="${w-10}" y2="${h-22}" stroke="var(--line)" stroke-width="1"/>${bars}</svg></div>`;
-}
-
-/* ===================== Transit ===================== */
 function vTransit(){
  const sDoss=siteDossiers();
  const by=k=>sDoss.filter(d=>k==='tous'||(k==='clos'?d.status==='Clôturé':k==='ok'?delay(d).app==='On Time':k==='watch'?delay(d).k==='watch':k==='warn'?delay(d).k==='warn':k==='bad'?delay(d).app==='Off Time':delay(d).k==='anom'));
@@ -9780,6 +9611,8 @@ document.addEventListener('input',e=>{
  if(e.target.id==='cq'){chatQ=e.target.value;const p=e.target.selectionStart;render();const n=$('#cq');n.focus();n.setSelectionRange(p,p)}
 });
 document.addEventListener('change',e=>{
+ if(e.target.id==='dashActSel'){dashAct=e.target.value;render()}
+ if(e.target.id==='dashPeriodSel'){dashPeriod=e.target.value;render()}
  if(e.target.id==='ftr'){fTrans=e.target.value;render()}
  if(e.target.id==='prodDateIn'){prodDate=e.target.value||TODAY_ISO;render()}
  if(e.target.id==='meSel'){
