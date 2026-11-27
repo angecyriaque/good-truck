@@ -9312,7 +9312,7 @@ function vUsers(){
  const segs=[['comptes','Comptes'],['droits','Matrice des droits'],['audit','Journal d’audit']];
  let body='';
  if(usub==='comptes')body=`<div class="toolbar"><span class="muted grow">Gestion des comptes, profils utilisateurs, fonctions, départements et niveaux d’accès.</span>${admin?`<button class="btn primary" data-act="newUser">${plus()}Créer un compte</button>`:''}</div>
-  <div class="tablewrap"><table><thead><tr><th>Utilisateur (Nom & Prénoms)</th><th>Fonction & Département</th><th>Site d’affectation</th><th>Niveau d’accès</th><th>Onglets modifiables</th><th>État</th><th>Actions</th></tr></thead><tbody>${S.users.map(u=>{
+  <div class="tablewrap"><table><thead><tr><th>Utilisateur (Nom & Prénoms)</th><th>Fonction & Département</th><th>Site d’affectation</th><th>Niveau d’accès</th><th>État</th><th>Actions</th></tr></thead><tbody>${S.users.map(u=>{
    const uSt = userSite(u);
    const sitePill = uSt === 'sanpedro' ? '<span class="badge" style="background:#FEE2E2;color:#991B1B;border:1px solid #FCA5A5;font-weight:700">🌴 San Pedro</span>' : uSt === 'tous' ? '<span class="badge b-info" style="font-weight:700">🌍 Tous les sites</span>' : '<span class="badge" style="background:#EFF6FF;color:#1E40AF;border:1px solid #BFDBFE;font-weight:700">🏢 Abidjan</span>';
    const pList = u.perms || PERMS[u.role] || ['chat'];
@@ -9322,7 +9322,6 @@ function vUsers(){
    <td><b>${esc(u.fonction||'—')}</b><br><small class="muted">${esc(u.dept||'Général')}</small></td>
    <td>${sitePill}</td>
    <td>${badge('warn',esc(u.role))}</td>
-   <td style="max-width:240px;white-space:normal"><div style="display:flex;gap:4px;flex-wrap:wrap">${isAdmin(u)?'<span class="badge b-ok" style="font-weight:700">✓ Pleins pouvoirs (Tous onglets)</span>':(pBadges||'<span class="badge b-mute">Consultation uniquement</span>')} <span class="badge b-ok" style="font-size:10px">💬 Chat</span></div></td>
    <td>${u.active?badge('ok','Actif','✓'):badge('mute','Désactivé')}</td>
    <td style="white-space:nowrap">
     <button class="btn small" data-act="viewUser" data-id="${u.id}">Détails</button>
