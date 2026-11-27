@@ -135,8 +135,23 @@ main{max-width:1440px;margin:0 auto;padding:20px 20px 48px}
 .btn.danger{color:var(--bad);border-color:var(--bad)}
 .btn.small{padding:5px 10px;font-size:13px}
 .btn[disabled]{opacity:.55;cursor:progress}
-.btn.locked{opacity:.6}
-.btn.locked::after{content:"";width:12px;height:12px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 10V7a5 5 0 0110 0v3h1a1 1 0 011 1v10a1 1 0 01-1 1H6a1 1 0 01-1-1V11a1 1 0 011-1zm2 0h6V7a3 3 0 00-6 0z'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 10V7a5 5 0 0110 0v3h1a1 1 0 011 1v10a1 1 0 01-1 1H6a1 1 0 01-1-1V11a1 1 0 011-1zm2 0h6V7a3 3 0 00-6 0z'/%3E%3C/svg%3E") center/contain no-repeat}
+.btn.locked, button.locked {
+  opacity: .55 !important;
+  filter: grayscale(0.35) !important;
+  cursor: not-allowed !important;
+  position: relative;
+}
+.btn.locked::after, button.locked::after {
+  content: "";
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-left: 6px;
+  vertical-align: middle;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 10V7a5 5 0 0110 0v3h1a1 1 0 011 1v10a1 1 0 01-1 1H6a1 1 0 01-1-1V11a1 1 0 011-1zm2 0h6V7a3 3 0 00-6 0z'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 10V7a5 5 0 0110 0v3h1a1 1 0 011 1v10a1 1 0 01-1 1H6a1 1 0 01-1-1V11a1 1 0 011-1zm2 0h6V7a3 3 0 00-6 0z'/%3E%3C/svg%3E") center/contain no-repeat;
+}
 
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
 .panel > h3{margin-bottom:10px}
@@ -830,25 +845,44 @@ const cssv=v=>getComputedStyle(document.documentElement).getPropertyValue(v).tri
 const SEUIL=21, SEUIL_PREV=15, STOCK_MIN=300;
 
 /* ===================== Référentiels ===================== */
-const ROLES=['Administrateur','Responsable des opérations','Agent Transit','Magasinier','Responsable Transport','Consultation'];
+const ROLES=['Administrateur','Transit','Entrepôt','Transport','Planning','Facturation','Recouvrement','Consultation'];
 const DEPARTEMENTS=[
  ['Transit & Douane','Transit & Douane'],
  ['Entrepôt & Stockage','Entrepôt & Stockage'],
  ['Transport Routier & Flotte','Transport Routier & Flotte'],
+ ['Planning & Logistique','Planning & Logistique'],
+ ['Facturation & Comptabilité','Facturation & Comptabilité'],
+ ['Recouvrement & Trésorerie','Recouvrement & Trésorerie'],
  ['Opérations & Logistique','Opérations & Logistique'],
  ['Direction Générale','Direction Générale'],
  ['Administration & Finances','Administration & Finances'],
  ['Informatique & Systèmes','Informatique & Systèmes'],
  ['Tous départements','Tous départements']
 ];
-const ALL_PERMS=['transit','entrepot','transport','livraisons','operateurs','users','utilisateurs','dashboard','chat'];
+const EDITABLE_MODULES=[
+ ['transit','🚢 Transit Maritime','Suivi des conteneurs TC, franchises, dates ATA et dépotages'],
+ ['entrepot','🏭 Entrepôt & Stocks','Réceptions quai, dépotages, lavages, Door Swap et soudures'],
+ ['transport','🚚 Transport & Livraisons','Ordres de transport, expéditions, chauffeurs et réceptions'],
+ ['planning','📅 Planning des Tournées','Programmation des camions, réservations stock et tournées'],
+ ['facturation','💳 Facturation','Attribution date et n° facture, suivi des délais de facturation'],
+ ['recouvrement','💰 Recouvrement','Encaissements, références règlement, relances et clôtures'],
+ ['operateurs','👥 Intervenants','Ajout et modification des armateurs et transporteurs'],
+ ['users','⚙️ Utilisateurs & Accès','Création de comptes, gestion des rôles et des accréditations']
+];
+const ALL_PERMS=['transit','entrepot','transport','planning','facturation','recouvrement','operateurs','users','chat'];
 const PERMS={
  'Administrateur':ALL_PERMS,
+ 'Transit':['transit','operateurs','chat'],
+ 'Entrepôt':['entrepot','chat'],
+ 'Transport':['transport','planning','operateurs','chat'],
+ 'Planning':['planning','chat'],
+ 'Facturation':['facturation','chat'],
+ 'Recouvrement':['recouvrement','chat'],
+ 'Consultation':['chat'],
  'Responsable des opérations':ALL_PERMS,
- 'Agent Transit':ALL_PERMS,
- 'Magasinier':ALL_PERMS,
- 'Responsable Transport':ALL_PERMS,
- 'Consultation':ALL_PERMS
+ 'Agent Transit':['transit','operateurs','chat'],
+ 'Magasinier':['entrepot','chat'],
+ 'Responsable Transport':['transport','planning','operateurs','chat']
 };
 const ARMATEURS=['MSC','CMA CGM','Maersk','Hapag-Lloyd','PIL'];
 const LAMINEURS=ARMATEURS;
@@ -961,12 +995,18 @@ const LSTEPS=['Brouillon','Réservée','Expédiée','Livrée','Clôturée'];
 /* ===================== Données de démonstration ===================== */
 function seed(){
  const users=[
-  {id:'u1',nom:'K.',prenom:'Anderson',name:'Anderson K.',email:'anderson.k@goodpack.ci',fonction:'Directeur des Systèmes & Opérations',dept:'Direction Générale',role:'Administrateur',password:'Admin#2026',active:true,c:'#1C6FB8'},
-  {id:'u2',nom:'Touré',prenom:'Mariam',name:'Mariam Touré',email:'m.toure@goodpack.ci',fonction:'Responsable des Opérations',dept:'Opérations & Logistique',role:'Responsable des opérations',password:'Ops#2026',active:true,c:'#17844F'},
-  {id:'u3',nom:'Yao',prenom:'Koffi',name:'Koffi Yao',email:'k.yao@goodpack.ci',fonction:'Agent Déclarant Transit',dept:'Transit & Douane',role:'Agent Transit',password:'Transit#2026',active:true,c:'#7A4FD0'},
-  {id:'u4',nom:'Bamba',prenom:'Aïcha',name:'Aïcha Bamba',email:'a.bamba@goodpack.ci',fonction:'Magasinier Principal',dept:'Entrepôt & Stockage',role:'Magasinier',password:'Stock#2026',active:true,c:'#B86700'},
-  {id:'u5',nom:'N’Guessan',prenom:'Serge',name:'Serge N’Guessan',email:'s.nguessan@goodpack.ci',fonction:'Responsable Transport Routier',dept:'Transport Routier & Flotte',role:'Responsable Transport',password:'Transport#2026',active:true,c:'#C3302F'},
-  {id:'u6',nom:'Diallo',prenom:'Fatou',name:'Fatou Diallo',email:'f.diallo@goodpack.ci',fonction:'Auditrice & Contrôle Interne',dept:'Direction Générale',role:'Consultation',password:'Audit#2026',active:true,c:'#56697F'}];
+  {id:'u1',nom:'K.',prenom:'Anderson',name:'Anderson K.',email:'anderson.k@goodpack.ci',fonction:'Directeur des Systèmes & Opérations',dept:'Direction Générale',role:'Administrateur',site:'tous',perms:ALL_PERMS,password:'Admin#2026',active:true,c:'#1C6FB8'},
+  {id:'u2',nom:'Touré',prenom:'Mariam',name:'Mariam Touré',email:'m.toure@goodpack.ci',fonction:'Responsable des Opérations',dept:'Opérations & Logistique',role:'Administrateur',site:'tous',perms:ALL_PERMS,password:'Ops#2026',active:true,c:'#17844F'},
+  {id:'u3',nom:'Yao',prenom:'Koffi',name:'Koffi Yao',email:'k.yao@goodpack.ci',fonction:'Agent Déclarant Transit (Abidjan)',dept:'Transit & Douane',role:'Transit',site:'abidjan',perms:['transit','operateurs','chat'],password:'Transit#2026',active:true,c:'#7A4FD0'},
+  {id:'u7',nom:'Bédié',prenom:'Jean-Eudes',name:'Jean-Eudes Bédié',email:'je.bedie@goodpack.ci',fonction:'Déclarant Transit (San Pedro)',dept:'Transit & Douane',role:'Transit',site:'sanpedro',perms:['transit','operateurs','chat'],password:'Transit#SP2026',active:true,c:'#0E7C86'},
+  {id:'u4',nom:'Bamba',prenom:'Aïcha',name:'Aïcha Bamba',email:'a.bamba@goodpack.ci',fonction:'Magasinier Principal (Abidjan)',dept:'Entrepôt & Stockage',role:'Entrepôt',site:'abidjan',perms:['entrepot','chat'],password:'Stock#2026',active:true,c:'#B86700'},
+  {id:'u8',nom:'Koné',prenom:'Souleymane',name:'Souleymane Koné',email:'s.kone@goodpack.ci',fonction:'Chef Dépôt (San Pedro)',dept:'Entrepôt & Stockage',role:'Entrepôt',site:'sanpedro',perms:['entrepot','chat'],password:'Stock#SP2026',active:true,c:'#D97706'},
+  {id:'u5',nom:'N’Guessan',prenom:'Serge',name:'Serge N’Guessan',email:'s.nguessan@goodpack.ci',fonction:'Responsable Transport Routier (Abidjan)',dept:'Transport Routier & Flotte',role:'Transport',site:'abidjan',perms:['transport','planning','operateurs','chat'],password:'Transport#2026',active:true,c:'#C3302F'},
+  {id:'u9',nom:'Dago',prenom:'Marc-Antoine',name:'Marc-Antoine Dago',email:'ma.dago@goodpack.ci',fonction:'Coordinateur Transport (San Pedro)',dept:'Transport Routier & Flotte',role:'Transport',site:'sanpedro',perms:['transport','planning','operateurs','chat'],password:'Transport#SP2026',active:true,c:'#B91C1C'},
+  {id:'u12',nom:'Coulibaly',prenom:'Aminata',name:'Aminata Coulibaly',email:'a.coulibaly@goodpack.ci',fonction:'Gestionnaire Planning & Tournées',dept:'Planning & Logistique',role:'Planning',site:'abidjan',perms:['planning','chat'],password:'Planif#2026',active:true,c:'#4F46E5'},
+  {id:'u10',nom:'Kouamé',prenom:'Patricia',name:'Patricia Kouamé',email:'p.kouame@goodpack.ci',fonction:'Comptable Facturation',dept:'Facturation & Comptabilité',role:'Facturation',site:'abidjan',perms:['facturation','chat'],password:'Facture#2026',active:true,c:'#2563EB'},
+  {id:'u11',nom:'Brou',prenom:'Christian',name:'Christian Brou',email:'c.brou@goodpack.ci',fonction:'Responsable Recouvrement & Contentieux',dept:'Recouvrement & Trésorerie',role:'Recouvrement',site:'abidjan',perms:['recouvrement','chat'],password:'Recouvre#2026',active:true,c:'#7C3AED'},
+  {id:'u6',nom:'Diallo',prenom:'Fatou',name:'Fatou Diallo',email:'f.diallo@goodpack.ci',fonction:'Auditrice & Contrôle Interne',dept:'Direction Générale',role:'Consultation',site:'tous',perms:['chat'],password:'Audit#2026',active:true,c:'#56697F'}];
  const destinations=[
   {id:'DST-01',site:'abidjan',name:'SKCI · Usine Yopougon',client:'SKCI',pool:'SKCI',address:'Zone Industrielle Yopougon, Abidjan',contact:'Kouadio Yao · +225 07 09 11 22 33',active:true},
   {id:'DST-02',site:'abidjan',name:'SKCI · Plateforme Vridi',client:'SKCI',pool:'SKCI',address:'Zone Portuaire de Vridi, Abidjan',contact:'Bintou Koné · +225 07 08 55 44 11',active:true},
@@ -1168,6 +1208,39 @@ S.transports.forEach(t => { if (!t.incidents) t.incidents = []; });
 
 // Activer toutes les fonctionnalités, comptes, opérateurs et destinations
 (S.users || []).forEach(u => { u.active = true; });
+// Migration et synchronisation des utilisateurs avec site et accréditations par onglet
+const DEFAULT_SYSTEM_USERS = [
+  {id:'u1',nom:'K.',prenom:'Anderson',name:'Anderson K.',email:'anderson.k@goodpack.ci',fonction:'Directeur des Systèmes & Opérations',dept:'Direction Générale',role:'Administrateur',site:'tous',perms:ALL_PERMS,password:'Admin#2026',active:true,c:'#1C6FB8'},
+  {id:'u2',nom:'Touré',prenom:'Mariam',name:'Mariam Touré',email:'m.toure@goodpack.ci',fonction:'Responsable des Opérations',dept:'Opérations & Logistique',role:'Administrateur',site:'tous',perms:ALL_PERMS,password:'Ops#2026',active:true,c:'#17844F'},
+  {id:'u3',nom:'Yao',prenom:'Koffi',name:'Koffi Yao',email:'k.yao@goodpack.ci',fonction:'Agent Déclarant Transit (Abidjan)',dept:'Transit & Douane',role:'Transit',site:'abidjan',perms:['transit','operateurs','chat'],password:'Transit#2026',active:true,c:'#7A4FD0'},
+  {id:'u7',nom:'Bédié',prenom:'Jean-Eudes',name:'Jean-Eudes Bédié',email:'je.bedie@goodpack.ci',fonction:'Déclarant Transit (San Pedro)',dept:'Transit & Douane',role:'Transit',site:'sanpedro',perms:['transit','operateurs','chat'],password:'Transit#SP2026',active:true,c:'#0E7C86'},
+  {id:'u4',nom:'Bamba',prenom:'Aïcha',name:'Aïcha Bamba',email:'a.bamba@goodpack.ci',fonction:'Magasinier Principal (Abidjan)',dept:'Entrepôt & Stockage',role:'Entrepôt',site:'abidjan',perms:['entrepot','chat'],password:'Stock#2026',active:true,c:'#B86700'},
+  {id:'u8',nom:'Koné',prenom:'Souleymane',name:'Souleymane Koné',email:'s.kone@goodpack.ci',fonction:'Chef Dépôt (San Pedro)',dept:'Entrepôt & Stockage',role:'Entrepôt',site:'sanpedro',perms:['entrepot','chat'],password:'Stock#SP2026',active:true,c:'#D97706'},
+  {id:'u5',nom:'N’Guessan',prenom:'Serge',name:'Serge N’Guessan',email:'s.nguessan@goodpack.ci',fonction:'Responsable Transport Routier (Abidjan)',dept:'Transport Routier & Flotte',role:'Transport',site:'abidjan',perms:['transport','planning','operateurs','chat'],password:'Transport#2026',active:true,c:'#C3302F'},
+  {id:'u9',nom:'Dago',prenom:'Marc-Antoine',name:'Marc-Antoine Dago',email:'ma.dago@goodpack.ci',fonction:'Coordinateur Transport (San Pedro)',dept:'Transport Routier & Flotte',role:'Transport',site:'sanpedro',perms:['transport','planning','operateurs','chat'],password:'Transport#SP2026',active:true,c:'#B91C1C'},
+  {id:'u12',nom:'Coulibaly',prenom:'Aminata',name:'Aminata Coulibaly',email:'a.coulibaly@goodpack.ci',fonction:'Gestionnaire Planning & Tournées',dept:'Planning & Logistique',role:'Planning',site:'abidjan',perms:['planning','chat'],password:'Planif#2026',active:true,c:'#4F46E5'},
+  {id:'u10',nom:'Kouamé',prenom:'Patricia',name:'Patricia Kouamé',email:'p.kouame@goodpack.ci',fonction:'Comptable Facturation',dept:'Facturation & Comptabilité',role:'Facturation',site:'abidjan',perms:['facturation','chat'],password:'Facture#2026',active:true,c:'#2563EB'},
+  {id:'u11',nom:'Brou',prenom:'Christian',name:'Christian Brou',email:'c.brou@goodpack.ci',fonction:'Responsable Recouvrement & Contentieux',dept:'Recouvrement & Trésorerie',role:'Recouvrement',site:'abidjan',perms:['recouvrement','chat'],password:'Recouvre#2026',active:true,c:'#7C3AED'},
+  {id:'u6',nom:'Diallo',prenom:'Fatou',name:'Fatou Diallo',email:'f.diallo@goodpack.ci',fonction:'Auditrice & Contrôle Interne',dept:'Direction Générale',role:'Consultation',site:'tous',perms:['chat'],password:'Audit#2026',active:true,c:'#56697F'}
+];
+DEFAULT_SYSTEM_USERS.forEach(su => {
+  const existing = (S.users || []).find(u => u.id === su.id);
+  if (!existing) {
+    S.users.push(JSON.parse(JSON.stringify(su)));
+  } else {
+    if (!existing.site) existing.site = su.site;
+    if (!existing.perms || !existing.perms.length) existing.perms = su.perms;
+    if (existing.role === 'Agent Transit') existing.role = 'Transit';
+    if (existing.role === 'Magasinier') existing.role = 'Entrepôt';
+    if (existing.role === 'Responsable Transport') existing.role = 'Transport';
+  }
+});
+(S.users || []).forEach(u => {
+  if (!u.site) u.site = (u.role === 'Administrateur' || u.role === 'Consultation') ? 'tous' : (u.name.includes('San Pedro') ? 'sanpedro' : 'abidjan');
+  if (!u.perms) u.perms = PERMS[u.role] || ['chat'];
+  if (!u.perms.includes('chat')) u.perms.push('chat');
+});
+// Migration et synchronisation des utilisateurs avec site et accréditations par onglet
 (S.operators || []).forEach(o => { o.active = true; });
 (S.destinations || []).forEach(d => { d.active = true; if(!d.site) d.site = siteOf(d); });
 if (!S.me || (S.me !== 'guest' && !S.users.some(u => u.id === S.me))) S.me = 'guest';
@@ -1401,19 +1474,172 @@ const user = id => {
 const me = () => user(S.me);
 const initials = n => (n || 'U').split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
 
-// Règle d'accès : TOUTES LES MODIFICATIONS SONT DÉVERROUILLÉES ET TOTALEMENT ACTIVES
-const hasAccount = () => true;
-const canEdit = () => true;
-const can = m => true;
-const lockCls = m => '';
-const isAdmin = () => true;
+/* ===================== RÈGLES D'ACCRÉDITATION & CLOISONNEMENT GÉOGRAPHIQUE ===================== */
+const hasAccount = () => S.me && S.me !== 'guest';
 
-function guard(m) {
-  if (!S.me || S.me === 'guest') {
-    S.me = 'u1'; // Connexion automatique sur Administrateur
-    persist();
+function userRoleKey(u) {
+  u = u || me();
+  if (!u || u.isGuest || u.id === 'guest') return 'guest';
+  const r = (u.role || '').toLowerCase();
+  const f = (u.fonction || '').toLowerCase();
+  const d = (u.dept || '').toLowerCase();
+  if (r.includes('admin') || f.includes('directeur')) return 'admin';
+  if (r.includes('transit') || f.includes('transit') || d.includes('transit')) return 'transit';
+  if (r.includes('entrep') || r.includes('magasin') || f.includes('magasin') || d.includes('entrep')) return 'entrepot';
+  if (r.includes('transport') || f.includes('transport') || d.includes('transport')) return 'transport';
+  if (r.includes('planif') || f.includes('planif')) return 'planning';
+  if (r.includes('factur') || f.includes('factur') || d.includes('factur')) return 'facturation';
+  if (r.includes('recouvr') || f.includes('recouvr') || d.includes('recouvr')) return 'recouvrement';
+  if (r.includes('opérat') || r.includes('operat')) return 'admin';
+  return 'consultation';
+}
+
+function isAdmin(u) {
+  return userRoleKey(u || me()) === 'admin';
+}
+
+function userSite(u) {
+  u = u || me();
+  if (!u || u.isGuest || u.id === 'guest') return 'tous';
+  if (u.site) return u.site;
+  if (isAdmin(u) || u.role === 'Consultation') return 'tous';
+  const txt = ((u.name||'') + ' ' + (u.fonction||'') + ' ' + (u.email||'')).toLowerCase();
+  if (txt.includes('san-pedro') || txt.includes('san pedro') || txt.includes('sp')) return 'sanpedro';
+  return 'abidjan';
+}
+
+// Vérifie si un utilisateur peut modifier un module métier
+function canEditModule(modKey, u) {
+  u = u || me();
+  if (modKey === 'chat') return true; // Règle primordiale : TOUS les utilisateurs peuvent tchater sans restriction
+  if (!u || u.isGuest || u.id === 'guest') return false;
+  if (isAdmin(u)) return true;
+
+  // Accréditations personnalisées par onglet (enregistrées en ajout ou modification)
+  if (u.perms && Array.isArray(u.perms)) {
+    if (modKey === 'livraisons') return u.perms.includes('transport');
+    return u.perms.includes(modKey);
   }
+
+  // Accréditations par défaut du rôle si perms non défini
+  const role = userRoleKey(u);
+  if (role === 'transit') return modKey === 'transit' || modKey === 'operateurs';
+  if (role === 'entrepot') return modKey === 'entrepot';
+  if (role === 'transport') return modKey === 'transport' || modKey === 'livraisons' || modKey === 'planning' || modKey === 'operateurs';
+  if (role === 'planning') return modKey === 'planning';
+  if (role === 'facturation') return modKey === 'facturation';
+  if (role === 'recouvrement') return modKey === 'recouvrement';
+  return false;
+}
+
+// Vérifie le cloisonnement géographique : quelqu'un de San Pedro ne peut pas modifier Abidjan et inversement
+function canEditSite(targetSite, u) {
+  u = u || me();
+  if (!u || u.isGuest || u.id === 'guest') return false;
+  if (isAdmin(u)) return true;
+  const uSite = userSite(u);
+  if (uSite === 'tous') return true;
+  const tSite = targetSite || curSite();
+  if (tSite === 'tous') return true;
+  return uSite === tSite;
+}
+
+// Vérification globale : autorisation sur le module ET sur le site
+function canEdit(modKey, targetSite, u) {
+  u = u || me();
+  if (modKey === 'chat') return true;
+  if (!hasAccount()) return false;
+  return canEditModule(modKey, u) && canEditSite(targetSite || curSite(), u);
+}
+
+const can = (m, site) => canEdit(m, site);
+
+function lockCls(modKey, targetSite) {
+  return canEdit(modKey, targetSite) ? '' : ' locked';
+}
+
+// Gardien d'exécution avec toasts explicatifs
+function guard(modKey, targetSite) {
+  if (modKey === 'chat') return true; // Chat universel libre
+  const u = me();
+  if (!hasAccount()) {
+    toast("Mode Consultation libre : Vous visualisez les données en lecture seule. Veuillez vous connecter avec un compte habilité pour modifier.", "warn");
+    openLoginModal();
+    return false;
+  }
+  if (isAdmin(u)) return true;
+
+  // 1. Contrôle de l'accréditation sur l'onglet/module
+  if (!canEditModule(modKey, u)) {
+    const modLabels = {
+      transit: 'Transit Maritime',
+      entrepot: 'Entrepôt & Stocks',
+      transport: 'Transport Routier',
+      livraisons: 'Livraisons',
+      planning: 'Planning des Tournées',
+      facturation: 'Facturation',
+      recouvrement: 'Recouvrement',
+      operateurs: 'Intervenants (Armateurs / Transporteurs)',
+      users: 'Administration des Utilisateurs'
+    };
+    const targetMod = modLabels[modKey] || modKey;
+    if (modKey === 'operateurs') {
+      toast("Accès restreint : L’ajout et la modification des intervenants sont réservés à l’Administrateur principal, au Transit et au Transport (ou profil habilité).", "warn");
+    } else if (modKey === 'planning') {
+      toast("Accès restreint : Le planning est géré exclusivement par le Transport et l’Administrateur principal (ou profil habilité).", "warn");
+    } else {
+      toast(`Accès restreint (Mode Visualisation) : Votre compte (${esc(u.name)} · ${esc(u.role)}) est en consultation seule sur le module ${targetMod}.`, "warn");
+    }
+    return false;
+  }
+
+  // 2. Contrôle du cloisonnement géographique par site
+  const tSite = targetSite || curSite();
+  if (!canEditSite(tSite, u)) {
+    const uSiteName = userSite(u) === 'sanpedro' ? 'San Pedro' : 'Abidjan';
+    const targetSiteName = tSite === 'sanpedro' ? 'San Pedro' : 'Abidjan';
+    toast(`Accès restreint par site : Vous êtes affecté au site de ${uSiteName}. Vous ne pouvez pas modifier les opérations de ${targetSiteName} (mode visualisation sans modification).`, "warn");
+    return false;
+  }
+
   return true;
+}
+
+// Bandeau discret d'information quand l'utilisateur est en visualisation seule
+function viewOnlyNotice(modKey, targetSite) {
+  if (modKey === 'chat') return '';
+  const u = me();
+  const tSite = targetSite || curSite();
+  const modOk = canEditModule(modKey, u);
+  const siteOk = canEditSite(tSite, u);
+  if (modOk && siteOk) return '';
+
+  const siteNames = { abidjan: 'Abidjan (Vridi)', sanpedro: 'San Pedro', tous: 'National' };
+  const uSite = userSite(u);
+  const uSiteName = siteNames[uSite] || uSite;
+  const tSiteName = siteNames[tSite] || tSite;
+
+  let reason = '';
+  if (!hasAccount()) {
+    reason = 'Vous consultez les données en <b>Mode Invité (Consultation libre)</b>. Toutes les modifications sont verrouillées.';
+  } else if (!modOk && !siteOk) {
+    reason = `Votre profil (${esc(u.name)} · ${esc(u.role)}) est affecté à <b>${uSiteName}</b> et n’a pas les droits de modification sur ce module sur le site de <b>${tSiteName}</b>.`;
+  } else if (!modOk) {
+    reason = `Votre compte n’a pas l’accréditation de modification sur ce module. Cet onglet est en <b>visualisation seule sans modification</b>.`;
+  } else if (!siteOk) {
+    reason = `Votre compte est affecté au site de <b>${uSiteName}</b>. Vous ne pouvez pas modifier les opérations du site de <b>${tSiteName}</b> (visualisation seule).`;
+  }
+
+  return `<div class="view-only-banner" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 14px;background:rgba(245,158,11,0.08);border:1.5px solid rgba(245,158,11,0.3);border-radius:10px;margin-bottom:14px;color:var(--text);font-size:12.5px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:18px">👁️</span>
+      <div>
+        <b style="color:var(--warn);font-size:13px">Mode Visualisation actif (Lecture seule)</b>
+        <div style="margin-top:1px;color:var(--muted)">${reason}</div>
+      </div>
+    </div>
+    <span class="badge b-warn" style="font-weight:700;white-space:nowrap;font-size:11px">Lecture seule</span>
+  </div>`;
 }
 
 function audit(action, obj, details) {
@@ -1698,9 +1924,12 @@ function renderHeader(){
  lastAlerts=a.length;
  $('#notif').innerHTML=`<h3>Alertes à traiter</h3><div class="alerts">${a.length?a.map((x,i)=>alertRow(x,i,'n')).join(''):'<p class="empty">Aucune alerte en cours.</p>'}</div>`;
  const userOpts = [
-   '<option value="guest" ' + (S.me === 'guest' ? 'selected' : '') + '>👁️ Mode Invité (Consultation libre)</option>',
-   '<optgroup label="Comptes enregistrés (Modifications autorisées)">',
-   ...S.users.filter(u => u.active).map(u => `<option value="${u.id}" ${u.id === S.me ? 'selected' : ''}>👤 ${esc(u.name)} · ${esc(u.role)}</option>`),
+   '<option value="guest" ' + (S.me === 'guest' ? 'selected' : '') + '>👁️ Mode Invité · Consultation libre (Lecture seule)</option>',
+   '<optgroup label="Comptes enregistrés & Profils opérationnels">',
+   ...S.users.filter(u => u.active).map(u => {
+     const sTxt = userSite(u) === 'tous' ? '🌍 Tous sites' : userSite(u) === 'sanpedro' ? '🌴 San Pedro' : '🏢 Abidjan';
+     return `<option value="${u.id}" ${u.id === S.me ? 'selected' : ''}>👤 ${esc(u.name)} · ${esc(u.role)} [${sTxt}]</option>`;
+   }),
    '</optgroup>'
  ].join('');
  $('#meSel').innerHTML = userOpts;
@@ -1709,12 +1938,14 @@ function renderHeader(){
  const fb = $('#fullbadge');
  if (fb) {
    if (hasAccount()) {
+     const u = me();
+     const sBadge = userSite(u) === 'tous' ? 'National' : userSite(u) === 'sanpedro' ? 'San Pedro' : 'Abidjan';
      fb.className = 'badge b-ok';
      fb.style.background = 'rgba(34,197,94,.18)';
      fb.style.color = '#86EFAC';
      fb.style.border = '1px solid rgba(34,197,94,.4)';
-     fb.innerHTML = '✓ Compte actif : <b>' + esc(me().name) + '</b>';
-     fb.title = 'Connecté avec un compte vérifié. Modifications autorisées.';
+     fb.innerHTML = '✓ <b>' + esc(u.name) + '</b> · ' + esc(u.role) + ' [' + sBadge + ']';
+     fb.title = 'Service : ' + u.role + ' · Site : ' + sBadge + '. Modifications autorisées sur son périmètre.';
    } else {
      fb.className = 'badge b-warn';
      fb.style.background = 'rgba(245,158,11,.18)';
@@ -3035,6 +3266,7 @@ function vTransit(){
  return siteBanner(`Dossiers de dédouanement et franchise portuaire pour ${curSiteObj().name} (${curSiteObj().port})`)+
   hero('ship',`Transit · ${curSiteObj().icon} ${curSiteObj().name}`,`Suivi des dossiers de dédouanement et respect de la franchise.`,
   `<div><b>${open.length}</b>dossiers ouverts</div><div><b>${closed.length}</b>dossiers clôturés</div><div><b>${avg} j</b>franchise moyenne</div>`)+
+  viewOnlyNotice('transit', curSite())+
  `<div class="toolbar">
   <input class="field-inline grow" id="fq" type="search" placeholder="Rechercher un dossier, N° Conteneur(TC), BL, armateur, commentaire" value="${esc(fQ)}" aria-label="Rechercher dans les dossiers">
   <button class="btn primary${lockCls('transit')}" data-act="newDossier">${plus()}Nouveau dossier</button>
@@ -4568,6 +4800,7 @@ function vEntrepot(){
    return siteBanner('Gestion des stocks physiques, reconditionnement et transferts inter-sites Abidjan ⇄ San Pedro')+
   hero('warehouse',`Entrepôt · ${curSiteObj().icon} ${curSiteObj().name}`,`Validation des réceptions de dépotage, lavage, soudure & DOOR SWAP, et gestion des transferts inter-sites.`,
   `<div><b>${n0(s.sale)}</b>sales (${curSiteObj().short})</div><div><b>${n0(dispo('SKCI'))}</b>SKCI dispo</div><div><b>${n0(dispo('Global'))}</b>Classique dispo</div>`)+
+  viewOnlyNotice('entrepot', curSite())+
   `<div class="seg" role="group" aria-label="Espaces de l’entrepôt">${segs.map(([k,l])=>`<button data-ent="${k}" aria-pressed="${ent===k}">${l}</button>`).join('')}</div>${body||pendingPlnStockTable()}`;
  } catch(err) {
   console.error("Erreur d'affichage vEntrepot:", err);
@@ -6217,6 +6450,7 @@ function vTransport(){
  }
  return hero('truck','Transport & Planification','Planification des expéditions vers les destinations clients repertoriées.',
   `<div><b>${n0(dispo('SKCI'))}</b>dispo Stock SKCI</div><div><b>${n0(dispo('Global'))}</b>dispo Stock Classique</div><div><b>${n0(reserved('Tous'))}</b>réservées par Transport</div>`)+
+  viewOnlyNotice(trSub === 'planning' ? 'planning' : 'transport', curSite())+
   subBar+stockBanner+content+renderTransportSynthese(cS);
 }
 function tCard(t){
@@ -6917,6 +7151,7 @@ function vFacturation() {
    `<div><b>${n0(pendingList.length)}</b>opération${pendingList.length>1?'s':''} en attente de facture</div>`+
    `<div><b>${avgDelai} ${avgDelai !== '—' ? 'j' : ''}</b>délai moyen de facturation</div>`+
    `<div><b>${n0(countInvoiced)}</b>dossier${countInvoiced>1?'s':''} facturé${countInvoiced>1?'s':''}</div>`) +
+  viewOnlyNotice('facturation', curSite()) +
   `
    <!-- Sous-onglets Métier Facturation -->
    <div class="seg" role="group" aria-label="Métiers Facturation" style="margin-bottom:16px">
@@ -7162,6 +7397,7 @@ function vRecouvrement() {
    `<div><b>${n0(totAttente)}</b>dossier${totAttente>1?'s':''} en attente de règlement</div>`+
    `<div><b>${tauxRec}%</b>taux de recouvrement</div>`+
    `<div><b>${avgDelaiRec} ${avgDelaiRec !== '—' ? 'j' : ''}</b>délai moyen de recouvrement</div>`) +
+  viewOnlyNotice('recouvrement', curSite()) +
   `
    <!-- Sous-onglets Recouvrement -->
    <div class="seg" role="group" aria-label="Sous-onglets Recouvrement" style="margin-bottom:16px">
@@ -8368,6 +8604,7 @@ function vOperateurs(){
  const chips=[['Tous','Tous les intervenants',ops.length],['Armateur','⚓ Armateurs (Compagnies maritimes)',arms.length],['Transporteur','🚚 Transporteurs (Traction routière)',trs.length]];
  return hero('port','Intervenants · Armateurs & Transporteurs','Référentiel unifié distinguant les Armateurs et les Transporteurs.',
   `<div><b>${arms.filter(o=>o.active).length}</b>⚓ armateurs actifs</div><div><b>${trs.filter(o=>o.active).length}</b>🚚 transporteurs actifs</div><div><b>${ops.length}</b>intervenants référencés</div>`)+
+  viewOnlyNotice('operateurs', curSite())+
  `<div class="toolbar">
    <input class="field-inline grow" id="opq" type="search" placeholder="Rechercher un armateur, un transporteur, code SCAC, contact, téléphone…" value="${esc(opQ)}" aria-label="Rechercher un opérateur">
    <button class="btn primary${lockCls('operateurs')}" data-act="newOperateur">${plus()}Nouvel intervenant</button>
@@ -9075,22 +9312,47 @@ function vUsers(){
  const segs=[['comptes','Comptes'],['droits','Matrice des droits'],['audit','Journal d’audit']];
  let body='';
  if(usub==='comptes')body=`<div class="toolbar"><span class="muted grow">Gestion des comptes, profils utilisateurs, fonctions, départements et niveaux d’accès.</span>${admin?`<button class="btn primary" data-act="newUser">${plus()}Créer un compte</button>`:''}</div>
-  <div class="tablewrap"><table><thead><tr><th>Utilisateur (Nom & Prénoms)</th><th>Fonction</th><th>Départements</th><th>Adresse mail</th><th>Niveau d’accès</th><th>État</th><th>Actions</th></tr></thead><tbody>${S.users.map(u=>`<tr>
-   <td><span style="display:flex;align-items:center;gap:10px"><span class="avatar" style="background:${u.c}">${initials(u.name)}</span><div><b>${esc(u.prenom||'')} ${esc(u.nom||u.name)}</b>${u.id===S.me?` ${badge('info','Vous')}`:''}</div></span></td>
-   <td><b>${esc(u.fonction||'—')}</b></td>
-   <td><span class="badge b-info">${esc(u.dept||'Général')}</span></td>
-   <td>${esc(u.email)}</td>
-   <td>${admin&&u.id!==S.me?`<select class="field-inline" data-role="${u.id}" aria-label="Niveau d’accès de ${esc(u.name)}">${ROLES.map(r=>`<option ${r===u.role?'selected':''}>${r}</option>`).join('')}</select>`:badge('warn',esc(u.role))}</td>
+  <div class="tablewrap"><table><thead><tr><th>Utilisateur (Nom & Prénoms)</th><th>Fonction & Département</th><th>Site d’affectation</th><th>Niveau d’accès</th><th>Onglets modifiables</th><th>État</th><th>Actions</th></tr></thead><tbody>${S.users.map(u=>{
+   const uSt = userSite(u);
+   const sitePill = uSt === 'sanpedro' ? '<span class="badge" style="background:#FEE2E2;color:#991B1B;border:1px solid #FCA5A5;font-weight:700">🌴 San Pedro</span>' : uSt === 'tous' ? '<span class="badge b-info" style="font-weight:700">🌍 Tous les sites</span>' : '<span class="badge" style="background:#EFF6FF;color:#1E40AF;border:1px solid #BFDBFE;font-weight:700">🏢 Abidjan</span>';
+   const pList = u.perms || PERMS[u.role] || ['chat'];
+   const pBadges = EDITABLE_MODULES.filter(([k]) => pList.includes(k)).map(([k, lbl]) => `<span class="badge" style="font-size:10.5px;padding:1px 5px;background:var(--surface-2);border:1px solid var(--line)">${lbl.split(' ')[0]} ${lbl.split(' ')[1]}</span>`).join(' ');
+   return `<tr>
+   <td><span style="display:flex;align-items:center;gap:10px"><span class="avatar" style="background:${u.c}">${initials(u.name)}</span><div><b>${esc(u.prenom||'')} ${esc(u.nom||u.name)}</b>${u.id===S.me?` ${badge('info','Vous')}`:''}<br><small class="muted">${esc(u.email)}</small></div></span></td>
+   <td><b>${esc(u.fonction||'—')}</b><br><small class="muted">${esc(u.dept||'Général')}</small></td>
+   <td>${sitePill}</td>
+   <td>${badge('warn',esc(u.role))}</td>
+   <td style="max-width:240px;white-space:normal"><div style="display:flex;gap:4px;flex-wrap:wrap">${isAdmin(u)?'<span class="badge b-ok" style="font-weight:700">✓ Pleins pouvoirs (Tous onglets)</span>':(pBadges||'<span class="badge b-mute">Consultation uniquement</span>')} <span class="badge b-ok" style="font-size:10px">💬 Chat</span></div></td>
    <td>${u.active?badge('ok','Actif','✓'):badge('mute','Désactivé')}</td>
    <td style="white-space:nowrap">
     <button class="btn small" data-act="viewUser" data-id="${u.id}">Détails</button>
-    ${admin?`<button class="btn small" data-act="editUser" data-id="${u.id}">Modifier</button>`:''}
+    ${admin?`<button class="btn small primary" data-act="editUser" data-id="${u.id}">Modifier</button>`:''}
     ${admin&&u.id!==S.me?`<button class="btn small" data-act="toggleUser" data-id="${u.id}">${u.active?'Désactiver':'Réactiver'}</button>`:''}
    </td>
-  </tr>`).join('')}</tbody></table></div>`;
- if(usub==='droits'){const mods=[['transit','Transit'],['entrepot','Entrepôt'],['transport','Transport'],['livraisons','Livraisons'],['operateurs','Intervenants'],['users','Utilisateurs']];
-  body=`<div class="tablewrap"><table><thead><tr><th>Niveau d’accès (Rôle)</th>${mods.map(m=>`<th>${m[1]}</th>`).join('')}<th>Chat</th><th>Tableau de bord</th></tr></thead><tbody>${ROLES.map(r=>`<tr><td><b>${r}</b></td>${mods.map(([k])=>`<td>${PERMS[r].includes(k)?badge('ok','Créer, modifier, valider','✓'):badge('mute','Consulter')}</td>`).join('')}<td>${badge('ok','Échanger','✓')}</td><td>${badge('info','Consulter')}</td></tr>`).join('')}</tbody></table></div>
-  <p class="muted" style="font-size:13px">Proposition à valider par Good Pack. En production, chaque permission est contrôlée côté serveur à chaque opération.</p>`;}
+  </tr>`;}).join('')}</tbody></table></div>`;
+ if(usub==='droits'){
+  const mods=[
+   ['transit','Transit'],
+   ['entrepot','Entrepôt'],
+   ['transport','Transport'],
+   ['planning','Planning'],
+   ['facturation','Facturation'],
+   ['recouvrement','Recouvrement'],
+   ['operateurs','Intervenants'],
+   ['chat','Chat']
+  ];
+  body=`<div class="panel" style="margin-bottom:14px;padding:12px 16px;background:var(--surface-2);border-left:4px solid var(--blue)">
+   <b style="font-size:13.5px">Règles fondamentales d’accréditation & d'isolation :</b>
+   <ul style="margin:6px 0 0 18px;font-size:12.5px;line-height:1.55;color:var(--text)">
+    <li><b>💬 Discussion / Chat :</b> Tous les utilisateurs ont un accès total pour échanger et lier des dossiers.</li>
+    <li><b>🎯 Périmètre Métier :</b> Chaque profil ne modifie que son périmètre métier (Transit, Entrepôt, Transport, Planning, Facturation, Recouvrement). Les autres onglets sont en <u>mode visualisation sans modification</u>.</li>
+    <li><b>🌍 Cloisonnement des sites :</b> Quelqu’un de <b>San Pedro</b> ne peut pas modifier des opérations d’<b>Abidjan</b> et inversement.</li>
+    <li><b>👥 Intervenants :</b> L’ajout et la modification des intervenants sont réservés à l’<u>Administrateur Principal</u>, au <u>Transit</u> et au <u>Transport</u>.</li>
+    <li><b>📅 Planning :</b> Le planning des livraisons est géré par le <u>Transport</u> et l’<u>Administrateur Principal</u>.</li>
+    <li><b>⚙️ Sur mesure :</b> Pour chaque utilisateur, en création ou modification de compte, vous pouvez <u>sélectionner manuellement les onglets modifiables</u>.</li>
+   </ul>
+  </div>
+  <div class="tablewrap"><table><thead><tr><th>Rôle / Profil</th>${mods.map(m=>`<th>${m[1]}</th>`).join('')}<th>Périmètre Site</th></tr></thead><tbody>${ROLES.map(r=>`<tr><td><b>${r}</b></td>${mods.map(([k])=>`<td>${k==='chat'?badge('ok','Échanger libre','💬'):(PERMS[r]||[]).includes(k)?badge('ok','Modifier & Valider','✓'):badge('mute','Visualisation seule','👁️')}</td>`).join('')}<td>${r==='Administrateur'||r==='Consultation'?'<span class="badge b-info">Tous sites</span>':'<span class="badge b-warn">Site assigné</span>'}</td></tr>`).join('')}</tbody></table></div>`;}
  if(usub==='audit')body=`<div class="toolbar"><span class="muted grow">Journal complet : création, dates, mouvements, validations, transferts.</span><button class="btn" data-act="exportJSON" title="Sauvegarde complète JSON de la base de données">📥 Exporter JSON</button>${admin?'<button class="btn danger" data-act="reset">Réinitialiser la démonstration</button>':''}</div><div class="tablewrap"><table><thead><tr><th>Horodatage</th><th>Utilisateur</th><th>Action</th><th>Objet</th><th>Détails</th></tr></thead><tbody>${S.audit.map(a=>`<tr><td>${fmtT(a.t)}</td><td>${esc(user(a.user).name)}</td><td>${esc(a.action)}</td><td><b>${esc(a.obj)}</b></td><td class="wrap">${esc(a.details)}</td></tr>`).join('')}</tbody></table></div>`;
  return hero('users','Utilisateurs et accès','Comptes, fonctions, départements, niveaux d’accès et permissions. Chaque opération sensible est tracée avec son auteur.',`<div><b>${S.users.filter(u=>u.active).length}</b>comptes actifs</div><div><b>${ROLES.length}</b>niveaux d’accès</div><div><b>${S.audit.length}</b>actions tracées</div>`)+
   `<div class="seg" role="group" aria-label="Sections">${segs.map(([k,l])=>`<button data-us="${k}" aria-pressed="${usub===k}">${l}</button>`).join('')}</div>${body}`;
@@ -9143,16 +9405,42 @@ function viewUser(id){
 function editUser(id){
  const admin=true;
  const u=S.users.find(x=>x.id===id);if(!u)return;
+ const uPerms = u.perms || PERMS[u.role] || ['chat'];
+ const permsCheckboxesHtml = `
+  <div class="full" style="margin-top:12px;padding:12px 14px;background:var(--surface-2);border:1.5px solid var(--line);border-radius:10px">
+   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px">
+    <b style="font-size:13.5px;color:var(--text)">Onglets autorisés en MODIFICATION pour cet utilisateur :</b>
+    <span class="muted" style="font-size:12px">Les onglets non cochés seront en consultation seule</span>
+   </div>
+   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px" id="userPermsChecks">
+    ${EDITABLE_MODULES.map(([k, label, desc]) => {
+      const checked = (u.role === 'Administrateur' || uPerms.includes(k)) ? 'checked' : '';
+      return `<label style="display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border-radius:8px;background:var(--surface);border:1px solid var(--line);cursor:pointer">
+        <input type="checkbox" name="perm_${k}" value="${k}" ${checked} style="margin-top:2px">
+        <div>
+          <b style="font-size:12.5px;display:block">${label}</b>
+          <small class="muted" style="font-size:11px;line-height:1.2;display:block">${desc}</small>
+        </div>
+      </label>`;
+    }).join('')}
+   </div>
+   <div style="margin-top:8px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px">
+    <span>💬</span> <span><b>Discussion / Chat :</b> Ouvert à tous les utilisateurs par défaut (règle générale).</span>
+   </div>
+  </div>`;
+
  openModal(`Modifier le compte utilisateur · ${u.name}`,
   fld('Nom','nom','text',{req:1,value:u.nom||u.name})+
   fld('Prénoms','prenom','text',{req:1,value:u.prenom||''})+
   fld('Adresse mail','email','email',{req:1,value:u.email})+
   fld('Fonction','fonction','text',{req:1,value:u.fonction||''})+
   fld('Départements','dept','select',{req:1,options:DEPARTEMENTS,value:u.dept||DEPARTEMENTS[0][0]})+
-  (admin?fld('Niveau d’accès','role','select',{req:1,options:ROLES,value:u.role}):'')+
-  fld('Mot de Passe','password','password',{ph:'Laisser vide pour conserver le mot de passe actuel'}),
+  fld('Site d’affectation opérationnel','site','select',{req:1,options:[['abidjan','🏢 Abidjan (Hub Vridi & Port)'],['sanpedro','🌴 San Pedro (Dépôt & Port)'],['tous','🌍 Tous les sites (National / Direction)']],value:u.site||'abidjan'})+
+  (admin?fld('Niveau d’accès (Rôle métier)','role','select',{req:1,options:ROLES,value:u.role}):'')+
+  fld('Mot de Passe','password','password',{ph:'Laisser vide pour conserver le mot de passe actuel'})+
+  permsCheckboxesHtml,
   'Enregistrer les modifications',data=>{
-   const fields=['nom','prenom','email','fonction','dept'];
+   const fields=['nom','prenom','email','fonction','dept','site'];
    if(admin)fields.push('role');
    const e=req(data,fields);
    const email=data.email?.trim().toLowerCase();
@@ -9163,6 +9451,16 @@ function editUser(id){
    const nom=data.nom.trim().toUpperCase();
    const prenom=data.prenom.trim();
    const name=`${prenom} ${nom}`.trim();
+
+   // Collecter les onglets modifiables choisis
+   const modalForm = $('#mform');
+   const perms = [];
+   EDITABLE_MODULES.forEach(([k]) => {
+     const chk = modalForm?.querySelector(`[name="perm_${k}"]`);
+     if (chk && chk.checked) perms.push(k);
+   });
+   if (!perms.includes('chat')) perms.push('chat');
+
    save(`Compte de ${name} mis à jour.`,()=>{
     u.nom=nom;
     u.prenom=prenom;
@@ -9170,9 +9468,11 @@ function editUser(id){
     u.email=email;
     u.fonction=data.fonction.trim();
     u.dept=data.dept;
+    u.site=data.site || 'abidjan';
+    u.perms=perms;
     if(admin&&data.role)u.role=data.role;
     if(data.password?.trim())u.password=data.password.trim();
-    audit('Modification compte utilisateur',u.name,`${u.fonction} (${u.dept}) · Niveau d’accès: ${u.role}`);
+    audit('Modification compte utilisateur',u.name,`${u.fonction} (${u.dept}) · Site: ${u.site} · Droits: ${perms.join(', ')}`);
     closeModal();
    },submitBtn());
   }
@@ -9181,18 +9481,44 @@ function editUser(id){
 
 function newUser(){
  if(!guard('users'))return;
+ const defaultPerms = PERMS['Transit'] || ['transit','operateurs','chat'];
+ const permsCheckboxesHtml = `
+  <div class="full" style="margin-top:12px;padding:12px 14px;background:var(--surface-2);border:1.5px solid var(--line);border-radius:10px">
+   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px">
+    <b style="font-size:13.5px;color:var(--text)">Onglets autorisés en MODIFICATION pour ce nouvel utilisateur :</b>
+    <span class="muted" style="font-size:12px">Les onglets décochés seront consultables en lecture seule</span>
+   </div>
+   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px" id="newUserPermsChecks">
+    ${EDITABLE_MODULES.map(([k, label, desc]) => {
+      const checked = defaultPerms.includes(k) ? 'checked' : '';
+      return `<label style="display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border-radius:8px;background:var(--surface);border:1px solid var(--line);cursor:pointer">
+        <input type="checkbox" name="perm_${k}" value="${k}" ${checked} style="margin-top:2px">
+        <div>
+          <b style="font-size:12.5px;display:block">${label}</b>
+          <small class="muted" style="font-size:11px;line-height:1.2;display:block">${desc}</small>
+        </div>
+      </label>`;
+    }).join('')}
+   </div>
+   <div style="margin-top:8px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px">
+    <span>💬</span> <span><b>Discussion / Chat :</b> Toujours inclus pour tous les utilisateurs.</span>
+   </div>
+  </div>`;
+
  openModal('Créer un compte utilisateur',
   fld('Nom','nom','text',{req:1,ph:'Ex. KOUASSI'})+
   fld('Prénoms','prenom','text',{req:1,ph:'Ex. Anderson Jean'})+
   fld('Adresse mail','email','email',{req:1,ph:'Ex. a.kouassi@goodpack.ci'})+
-  fld('Fonction','fonction','text',{req:1,ph:'Ex. Magasinier, Déclarant transit, Responsable transport…'})+
+  fld('Fonction','fonction','text',{req:1,ph:'Ex. Déclarant transit, Magasinier, Coordinateur transport…'})+
   fld('Départements','dept','select',{req:1,options:DEPARTEMENTS,value:DEPARTEMENTS[0][0]})+
-  fld('Niveau d’accès','role','select',{req:1,options:ROLES,value:'Consultation'})+
+  fld('Site d’affectation opérationnel','site','select',{req:1,options:[['abidjan','🏢 Abidjan (Hub Vridi & Port)'],['sanpedro','🌴 San Pedro (Dépôt & Port)'],['tous','🌍 Tous les sites (National / Direction)']],value:'abidjan'})+
+  fld('Niveau d’accès (Rôle métier)','role','select',{req:1,options:ROLES,value:'Transit'})+
   fld('Mot de Passe','password','password',{req:1,ph:'Mot de passe de connexion sécurisé'})+
   fld('Code Administrateur','adminCode','password',{req:1,ph:'Code secret d’autorisation Administrateur'})+
-  `<p class="note" style="margin-top:6px">🔒 <b>Autorisation requise :</b> La validation de la création d’un compte exige la saisie du code Administrateur (masqué).</p>`,
+  permsCheckboxesHtml +
+  `<p class="note" style="margin-top:6px">🔒 <b>Autorisation requise :</b> La validation de la création d’un compte exige la saisie du code Administrateur (A-ICONIC).</p>`,
   'Créer le compte',data=>{
-   const e=req(data,['nom','prenom','email','fonction','dept','role','password','adminCode']);
+   const e=req(data,['nom','prenom','email','fonction','dept','site','role','password','adminCode']);
    const email=data.email?.trim().toLowerCase();
    if(email&&!/^\S+@\S+\.\S+$/.test(email))e.email='Adresse mail invalide.';
    if(S.users.some(u=>u.email.toLowerCase()===email))e.email='Cette adresse mail est déjà utilisée.';
@@ -9202,6 +9528,16 @@ function newUser(){
    const nom=data.nom.trim().toUpperCase();
    const prenom=data.prenom.trim();
    const name=`${prenom} ${nom}`.trim();
+
+   // Collecter les onglets modifiables choisis
+   const modalForm = $('#mform');
+   const perms = [];
+   EDITABLE_MODULES.forEach(([k]) => {
+     const chk = modalForm?.querySelector(`[name="perm_${k}"]`);
+     if (chk && chk.checked) perms.push(k);
+   });
+   if (!perms.includes('chat')) perms.push('chat');
+
    save(`Compte créé pour ${name} (${data.fonction.trim()}).`,()=>{
     const cols=['#1C6FB8','#17844F','#7A4FD0','#B86700','#C3302F','#0E7C86','#2563EB','#7C3AED'];
     S.users.push({
@@ -9212,16 +9548,32 @@ function newUser(){
      email,
      fonction:data.fonction.trim(),
      dept:data.dept,
+     site:data.site || 'abidjan',
      role:data.role,
+     perms:perms,
      password:data.password,
      active:true,
      c:cols[S.users.length%cols.length]
     });
-    audit('Compte créé',name,`${data.fonction.trim()} (${data.dept}) · Niveau d’accès : ${data.role} · ${email}`);
+    audit('Compte créé',name,`${data.fonction.trim()} (${data.dept}) · Site: ${data.site} · Droits: ${perms.join(', ')}`);
     closeModal();
    },submitBtn());
   }
  );
+
+ // Mise à jour automatique des cases quand l'administrateur change le rôle
+ const modalForm = $('#mform');
+ const roleSel = modalForm?.querySelector('[name="role"]');
+ if (roleSel) {
+   roleSel.addEventListener('change', () => {
+     const selRole = roleSel.value;
+     const rPerms = PERMS[selRole] || ['chat'];
+     EDITABLE_MODULES.forEach(([k]) => {
+       const chk = modalForm.querySelector(`[name="perm_${k}"]`);
+       if (chk) chk.checked = (selRole === 'Administrateur' || rPerms.includes(k));
+     });
+   });
+ }
 }
 
 /* ===================== Recherche globale ===================== */
@@ -9435,12 +9787,17 @@ document.addEventListener('change',e=>{
   if(e.target.value==='guest'){
     S.me='guest';
     persist();
-    toast('Mode Consultation libre actif. Vous pouvez consulter toutes les informations sans modification.','info');
+    toast('Mode Consultation libre actif : Vous visualisez les données en lecture seule. Vous pouvez tchater librement.','info');
     render();
   } else {
     S.me=e.target.value;
+    const u = me();
+    if(u.site && u.site !== 'tous' && S.curSite !== u.site){
+      S.curSite = u.site;
+    }
     persist();
-    toast(`Connecté au compte de ${me().name} (${me().role}). Modifications autorisées.`,'ok');
+    const siteTxt = userSite(u)==='tous'?'Tous les sites':userSite(u)==='sanpedro'?'San Pedro':'Abidjan';
+    toast(`Connecté au compte de ${u.name} (Service : ${u.role} · Site : ${siteTxt}). Modifications autorisées sur son périmètre.`,'ok');
     render();
   }
 }
